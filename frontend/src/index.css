@@ -1,0 +1,522 @@
+@import url("https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Clash+Grotesk:wght@200;300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Clash Grotesk", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Clash Grotesk", sans-serif;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
+    transition-colors focus-visible:outline-none focus-visible:ring-2 
+    focus-visible:ring-emerald-500 focus-visible:ring-offset-2 
+    disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply bg-emerald-500 text-white hover:bg-emerald-600 h-10 px-4 py-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 h-10 px-4 py-2;
+  }
+
+  .btn-destructive {
+    @apply bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2;
+  }
+
+  .btn-outline {
+    @apply border border-gray-300 bg-white hover:bg-gray-50 hover:text-gray-900;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm 
+    file:border-0 file:bg-transparent file:text-sm file:font-medium 
+    placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 
+    focus-visible:ring-emerald-500 focus-visible:ring-offset-2 
+    disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .card {
+    @apply rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden;
+  }
+
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-6;
+  }
+
+  .card-title {
+    @apply text-xl font-semibold leading-none tracking-tight;
+  }
+
+  .card-description {
+    @apply text-sm text-gray-500;
+  }
+
+  .card-content {
+    @apply p-6 pt-0;
+  }
+
+  .card-footer {
+    @apply flex items-center p-6 pt-0;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold 
+    transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+  }
+
+  .badge-primary {
+    @apply bg-emerald-500 text-white hover:bg-emerald-600 border-transparent;
+  }
+
+  .badge-secondary {
+    @apply bg-blue-100 text-blue-800 hover:bg-blue-200 border-transparent;
+  }
+
+  .badge-outline {
+    @apply text-gray-900 border-gray-200;
+  }
+
+  .float-input-wrapper {
+    position: relative;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    border-radius: 0.25rem;
+    overflow: hidden;
+  }
+
+  .float-input {
+    @apply block w-full px-3 border-0 border-b border-gray-300 bg-transparent 
+    focus:ring-0 focus:border-emerald-500 sm:text-sm sm:leading-6 transition-colors;
+    @apply dark:text-white dark:border-gray-700 dark:focus:border-emerald-500;
+  }
+
+  .float-input:focus {
+    outline: none;
+    border-bottom-width: 2px;
+    border-bottom-color: #10b981;
+  }
+
+  .float-input:hover {
+    border-bottom-width: 1px;
+    border-bottom-color: #10b981;
+    box-shadow: 0 1px 0 0 rgba(16, 185, 129, 0.4);
+  }
+
+  .dark .float-input:hover {
+    border-bottom-color: #34d399;
+    box-shadow: 0 1px 0 0 rgba(52, 211, 153, 0.4);
+  }
+
+  .float-label {
+    position: absolute;
+    left: 0.75rem;
+    top: 1rem;
+    color: #6b7280;
+    font-weight: 500;
+    pointer-events: none;
+    transform-origin: left;
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 200ms;
+  }
+
+  .float-input:focus ~ .float-label {
+    top: 0.5rem;
+    font-size: 0.75rem;
+    color: #10b981;
+  }
+
+  .dark .float-input:focus ~ .float-label {
+    color: #34d399;
+  }
+
+  .float-input:not(:placeholder-shown) ~ .float-label {
+    top: 0.5rem;
+    font-size: 0.75rem;
+    color: #10b981;
+  }
+
+  .dark .float-input:not(:placeholder-shown) ~ .float-label {
+    color: #34d399;
+  }
+
+  .float-highlight {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(236, 253, 245, 0.1);
+    z-index: -10;
+    transform: scaleX(0);
+    transform-origin: left;
+    transition-property: transform;
+    transition-duration: 300ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .dark .float-highlight {
+    background-color: rgba(6, 78, 59, 0.1);
+  }
+
+  .float-input:focus ~ .float-highlight {
+    transform: scaleX(1);
+  }
+
+  /* Responsive table container for horizontal scrolling */
+  .table-container {
+    @apply w-full overflow-x-auto pb-2;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile optimized table */
+  .responsive-table {
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+  }
+
+  /* Mobile optimized grid containers */
+  .responsive-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  /* Mobile responsive card */
+  .mobile-card {
+    @apply rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700 
+    p-4 flex flex-col h-full;
+  }
+
+  /* Responsive tab navigation */
+  .responsive-tabs {
+    @apply flex overflow-x-auto pb-1 scrollbar-none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .responsive-tabs::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-45deg);
+  }
+  50%,
+  100% {
+    transform: translateX(150%) skewX(-45deg);
+  }
+}
+
+@keyframes pulseSubtle {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes backdropAppear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes loadingBar {
+  0% {
+    width: 0%;
+  }
+  50% {
+    width: 70%;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+
+  .animate-slide-left {
+    animation: slideLeft 0.3s ease-out;
+  }
+
+  .animate-modal-appear {
+    animation: modalAppear 0.3s ease-out forwards;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulseSubtle 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+  }
+
+  .animate-backdrop-appear {
+    animation: backdropAppear 0.2s ease-out forwards;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .animate-bounce {
+    animation: bounce 1s infinite;
+  }
+
+  .animate-rotate {
+    animation: rotate 2s linear infinite;
+  }
+
+  .animate-loadingBar {
+    animation: loadingBar 2.5s ease-in-out forwards;
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .scrollbar-none {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .transition-colors {
+    transition-property: color, background-color, border-color,
+      text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .animate-slide-out-right {
+    animation: slideOutRight 0.3s ease-out;
+  }
+
+  .animate-slide-out-left {
+    animation: slideOutLeft 0.3s ease-out;
+  }
+
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+
+  .swipe-container {
+    position: relative;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  .swipe-item {
+    width: 100%;
+    transition: transform 0.3s ease-out;
+  }
+
+  .swipe-active {
+    display: block;
+  }
+
+  .swipe-inactive {
+    display: none;
+  }
+
+  /* This class adds additional blur when modals are open */
+  .modal-open {
+    overflow: hidden;
+    padding-right: var(--scrollbar-width, 0px); /* Prevents layout shift */
+  }
+
+  /* Add modal backdrop styles */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s, backdrop-filter 0.3s;
+  }
+
+  /* Enhanced backdrop glow effect */
+  .ring-emerald-500\/30 {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.3),
+      0 0 20px 2px rgba(16, 185, 129, 0.15);
+  }
+
+  /* Mobile menu animation */
+  .menu-slide-down {
+    max-height: 300px;
+    opacity: 1;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+}
+
+body {
+  margin: 0;
+  font-family: "Clash Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+    "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+.dark {
+  color-scheme: dark;
+}
