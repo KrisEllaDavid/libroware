@@ -272,7 +272,7 @@ const Navigation: React.FC = () => {
       {/* Mobile menu backdrop */}
       {isMenuOpen && (
         <div 
-          className="fixed inset-0 bg-black bg-opacity-70 z-10 sm:hidden animate-backdrop-appear"
+          className="fixed inset-0 bg-black bg-opacity-70 z-0 sm:hidden animate-backdrop-appear"
           aria-hidden="true"
           onClick={() => setIsMenuOpen(false)}
         />
