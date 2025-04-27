@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@apollo/client';
-import { gql } from '@apollo/client';
-import { useAuth } from '../../context/AuthContext';
-import UserActivity from './UserActivity';
-import UserBorrows from './UserBorrows';
-import BorrowStatistics from './BorrowStatistics';
-import UserBookView from './UserBookView';
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@apollo/client";
+import { gql } from "@apollo/client";
+import { useAuth } from "../../context/AuthContext";
+import UserActivity from "./UserActivity";
+import UserBorrows from "./UserBorrows";
+import BorrowStatistics from "./BorrowStatistics";
+import UserBookView from "./UserBookView";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -43,10 +43,10 @@ interface UserStats {
 
 // Define tabs
 enum Tab {
-  DASHBOARD = 'dashboard',
-  MY_BOOKS = 'my-books',
-  MY_REQUESTS = 'my-requests',
-  BROWSE_BOOKS = 'browse-books',
+  DASHBOARD = "dashboard",
+  MY_BOOKS = "my-books",
+  MY_REQUESTS = "my-requests",
+  BROWSE_BOOKS = "browse-books",
 }
 
 const UserDashboard: React.FC = () => {
@@ -60,45 +60,64 @@ const UserDashboard: React.FC = () => {
     favoriteCategory: null,
   });
 
+  // Add these variables for swipe behavior
+  const [transitionDirection, setTransitionDirection] = useState<
+    "left" | "right"
+  >("right");
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [touchEndX, setTouchEndX] = useState<number | null>(null);
+
   // Query borrows for this user
-  const { data: borrowsData, loading: borrowsLoading, error: borrowsError, refetch } = useQuery(GET_USER_BORROWS, {
+  const {
+    data: borrowsData,
+    loading: borrowsLoading,
+    error: borrowsError,
+    refetch,
+  } = useQuery(GET_USER_BORROWS, {
     variables: { userId: user?.id },
     skip: !user?.id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: "network-only",
   });
 
   // Process borrow data to calculate statistics
   useEffect(() => {
     if (borrowsData?.userBorrows) {
       const borrows = borrowsData.userBorrows;
-      
+
       // Count active and overdue borrows
-      const activeBorrows = borrows.filter((b: any) => b.status === 'BORROWED' && !b.returnedAt).length;
-      const overdueBorrows = borrows.filter((b: any) => b.status === 'OVERDUE').length;
+      const activeBorrows = borrows.filter(
+        (b: any) => b.status === "BORROWED" && !b.returnedAt
+      ).length;
+      const overdueBorrows = borrows.filter(
+        (b: any) => b.status === "OVERDUE"
+      ).length;
       const returnedBooks = borrows.filter((b: any) => b.returnedAt).length;
-      
+
       // Determine favorite category (most frequently borrowed category)
       const categoryMap = new Map<string, number>();
-      
+
       borrows.forEach((borrow: any) => {
         if (borrow.book && borrow.book.categories) {
           borrow.book.categories.forEach((category: any) => {
-            categoryMap.set(category.name, (categoryMap.get(category.name) || 0) + 1);
+            categoryMap.set(
+              category.name,
+              (categoryMap.get(category.name) || 0) + 1
+            );
           });
         }
       });
-      
+
       // Find the most frequent category
       let favoriteCategory = null;
       let maxCount = 0;
-      
+
       categoryMap.forEach((count, category) => {
         if (count > maxCount) {
           maxCount = count;
           favoriteCategory = category;
         }
       });
-      
+
       setUserStats({
         totalBorrows: borrows.length,
         activeBorrows,
@@ -112,7 +131,7 @@ const UserDashboard: React.FC = () => {
   // Format borrows data for BorrowStatistics component
   const getFormattedBorrows = () => {
     if (!borrowsData?.userBorrows) return [];
-    
+
     return borrowsData.userBorrows.map((borrow: any) => ({
       id: borrow.id,
       borrowDate: borrow.borrowedAt,
@@ -121,14 +140,14 @@ const UserDashboard: React.FC = () => {
         id: borrow.book.id,
         title: borrow.book.title,
         categories: borrow.book.categories,
-      }
+      },
     }));
   };
 
   // Format borrows data for UserBorrows component
   const getFormattedUserBorrows = () => {
     if (!borrowsData?.userBorrows) return [];
-    
+
     return borrowsData.userBorrows.map((borrow: any) => ({
       id: borrow.id,
       book: {
@@ -145,16 +164,78 @@ const UserDashboard: React.FC = () => {
     }));
   };
 
+  // Handle tab change with transition direction
+  const handleTabChange = (tab: Tab) => {
+    // Set transition direction based on the order of tabs
+    const tabOrder = [
+      Tab.DASHBOARD,
+      Tab.MY_BOOKS,
+      Tab.MY_REQUESTS,
+      Tab.BROWSE_BOOKS,
+    ];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    const nextIndex = tabOrder.indexOf(tab);
+
+    if (currentIndex !== -1 && nextIndex !== -1) {
+      setTransitionDirection(nextIndex > currentIndex ? "right" : "left");
+    }
+
+    setActiveTab(tab);
+  };
+
+  // Touch event handlers for swipe
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchStartX(e.touches[0].clientX);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEndX(e.touches[0].clientX);
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX && touchEndX) {
+      const difference = touchStartX - touchEndX;
+      const tabOrder = [
+        Tab.DASHBOARD,
+        Tab.MY_BOOKS,
+        Tab.MY_REQUESTS,
+        Tab.BROWSE_BOOKS,
+      ];
+      const currentIndex = tabOrder.indexOf(activeTab);
+
+      // Check if swipe was significant
+      if (Math.abs(difference) > 50) {
+        if (difference > 0) {
+          // Swipe left - go to next tab
+          const nextTab = tabOrder[currentIndex + 1];
+          if (nextTab) {
+            handleTabChange(nextTab);
+          }
+        } else {
+          // Swipe right - go to previous tab
+          const prevTab = tabOrder[currentIndex - 1];
+          if (prevTab) {
+            handleTabChange(prevTab);
+          }
+        }
+      }
+    }
+
+    // Reset touch coordinates
+    setTouchStartX(null);
+    setTouchEndX(null);
+  };
+
   const renderTabButton = (tab: Tab, label: string) => {
     return (
       <button
         key={tab}
         className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
           activeTab === tab
-            ? 'bg-emerald-600 text-white shadow-md'
-            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+            ? "bg-emerald-600 text-white shadow-md"
+            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
         }`}
-        onClick={() => setActiveTab(tab)}
+        onClick={() => handleTabChange(tab)}
       >
         {label}
       </button>
@@ -162,90 +243,129 @@ const UserDashboard: React.FC = () => {
   };
 
   const renderTabContent = () => {
+    // Apply transition classes based on direction
+    const transitionClass = `transform transition-all duration-300 ${
+      transitionDirection === "right" ? "translate-x-0" : "-translate-x-0"
+    }`;
+
     switch (activeTab) {
       case Tab.DASHBOARD:
         return (
-          <div className="mt-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Your Overview</h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Total Borrows</div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">{userStats.totalBorrows}</div>
+          <div className={transitionClass}>
+            <div className="mt-6">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+                <h2 className="text-xl font-semibold mb-4">Your Overview</h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Total Borrows
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                      {userStats.totalBorrows}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Active Borrows
+                    </div>
+                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {userStats.activeBorrows}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Overdue
+                    </div>
+                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                      {userStats.overdueBorrows}
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
+                      Returned Books
+                    </div>
+                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                      {userStats.returnedBooks}
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Active Borrows</div>
-                  <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{userStats.activeBorrows}</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Overdue</div>
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">{userStats.overdueBorrows}</div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">Returned Books</div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">{userStats.returnedBooks}</div>
-                </div>
+
+                {userStats.favoriteCategory && (
+                  <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                    <span className="font-medium">Favorite Category:</span>{" "}
+                    {userStats.favoriteCategory}
+                  </div>
+                )}
               </div>
-              
-              {userStats.favoriteCategory && (
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                  <span className="font-medium">Favorite Category:</span> {userStats.favoriteCategory}
-                </div>
-              )}
+
+              <BorrowStatistics borrows={getFormattedBorrows()} />
             </div>
-            
-            <BorrowStatistics borrows={getFormattedBorrows()} />
           </div>
         );
-      
+
       case Tab.MY_BOOKS:
         return (
-          <div className="mt-6">
-            <UserBorrows 
-              userId={user?.id || ''} 
-              borrows={getFormattedUserBorrows()} 
-              loading={borrowsLoading} 
-              error={borrowsError} 
-              refetch={refetch} 
-            />
+          <div className={transitionClass}>
+            <div className="mt-6">
+              <UserBorrows
+                userId={user?.id || ""}
+                borrows={getFormattedUserBorrows()}
+                loading={borrowsLoading}
+                error={borrowsError}
+                refetch={refetch}
+              />
+            </div>
           </div>
         );
-      
+
       case Tab.MY_REQUESTS:
         return (
-          <div className="mt-6">
-            <UserActivity />
+          <div className={transitionClass}>
+            <div className="mt-6">
+              <UserActivity />
+            </div>
           </div>
         );
-      
+
       case Tab.BROWSE_BOOKS:
         return (
-          <div className="mt-6">
-            <UserBookView />
+          <div className={transitionClass}>
+            <div className="mt-6">
+              <UserBookView />
+            </div>
           </div>
         );
-      
+
       default:
         return null;
     }
   };
 
   if (!user) {
-    return <div className="text-center py-8 text-red-500">You must be logged in to view this page</div>;
+    return (
+      <div className="text-center py-8 text-red-500">
+        You must be logged in to view this page
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div
+      className="container mx-auto px-4 sm:px-6 lg:px-8 py-6"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
-      
+
       <div className="flex overflow-x-auto pb-2 mb-4 space-x-2">
-        {renderTabButton(Tab.DASHBOARD, 'Dashboard')}
-        {renderTabButton(Tab.MY_BOOKS, 'My Books')}
-        {renderTabButton(Tab.MY_REQUESTS, 'My Requests')}
-        {renderTabButton(Tab.BROWSE_BOOKS, 'Browse Books')}
+        {renderTabButton(Tab.DASHBOARD, "Dashboard")}
+        {renderTabButton(Tab.MY_BOOKS, "My Books")}
+        {renderTabButton(Tab.MY_REQUESTS, "My Requests")}
+        {renderTabButton(Tab.BROWSE_BOOKS, "Browse Books")}
       </div>
-      
+
       {renderTabContent()}
     </div>
   );

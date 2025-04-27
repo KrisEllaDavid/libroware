@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useQuery } from '@apollo/client';
-import { useMutation } from '@apollo/client/react';
-import { GET_BOOKS, GET_AUTHORS, GET_CATEGORIES } from '../../graphql/queries';
-import { CREATE_BOOK, UPDATE_BOOK, DELETE_BOOK } from '../../graphql/mutations';
-import Modal from '../Modal';
-import FloatingInput from '../FloatingInput';
-import FloatingDropdown from '../FloatingDropdown';
-import DeleteConfirmation from '../DeleteConfirmation';
-import FileUpload from '../common/FileUpload';
-import { useToast } from '../../context/ToastContext';
+import React, { useState, useEffect } from "react";
+import { useQuery } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
+import { GET_BOOKS, GET_AUTHORS, GET_CATEGORIES } from "../../graphql/queries";
+import { CREATE_BOOK, UPDATE_BOOK, DELETE_BOOK } from "../../graphql/mutations";
+import Modal from "../Modal";
+import FloatingInput from "../FloatingInput";
+import FloatingDropdown from "../FloatingDropdown";
+import DeleteConfirmation from "../DeleteConfirmation";
+import FileUpload from "../common/FileUpload";
+import { useToast } from "../../context/ToastContext";
 
 interface Author {
   id: string;
@@ -52,27 +52,27 @@ interface BookManagementProps {
 }
 
 const initialFormData: BookFormData = {
-  title: '',
-  isbn: '',
-  description: '',
+  title: "",
+  isbn: "",
+  description: "",
   publishedAt: new Date().getFullYear().toString(), // Just the year
-  coverImage: '',
+  coverImage: "",
   pageCount: 0,
   quantity: 1,
   authorIds: [],
   categoryIds: [],
 };
 
-const BookManagement: React.FC<BookManagementProps> = ({ 
+const BookManagement: React.FC<BookManagementProps> = ({
   onAuthorCreate,
-  onCategoryCreate 
+  onCategoryCreate,
 }) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [formData, setFormData] = useState<BookFormData>(initialFormData);
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [authors, setAuthors] = useState<Author[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -82,7 +82,12 @@ const BookManagement: React.FC<BookManagementProps> = ({
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
 
   // GraphQL queries
-  const { loading, error: queryError, data, refetch } = useQuery(GET_BOOKS, {
+  const {
+    loading,
+    error: queryError,
+    data,
+    refetch,
+  } = useQuery(GET_BOOKS, {
     variables: { skip: 0, take: 50, searchTitle: searchTerm || undefined },
   });
 
@@ -147,11 +152,13 @@ const BookManagement: React.FC<BookManagementProps> = ({
 
   // Form handling
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >
   ) => {
     const { name, value, type } = e.target as HTMLInputElement;
-    
-    if (type === 'number') {
+
+    if (type === "number") {
       setFormData({ ...formData, [name]: parseInt(value) || 0 });
     } else {
       setFormData({ ...formData, [name]: value });
@@ -161,13 +168,13 @@ const BookManagement: React.FC<BookManagementProps> = ({
   const handleMultiSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, options } = e.target;
     const selectedValues: string[] = [];
-    
+
     for (let i = 0; i < options.length; i++) {
       if (options[i].selected) {
         selectedValues.push(options[i].value);
       }
     }
-    
+
     setFormData({ ...formData, [name]: selectedValues });
   };
 
@@ -176,12 +183,12 @@ const BookManagement: React.FC<BookManagementProps> = ({
 
     // Create a copy of the form data
     const input = { ...formData };
-    
+
     // Ensure publishedAt is formatted correctly as a date string for the API
     try {
       // Try to parse the year as a number first
       const year = parseInt(input.publishedAt, 10);
-      
+
       // Check if it's a valid year (4 digits, not too far in the past or future)
       if (!isNaN(year) && year >= 1000 && year <= 9999) {
         // Format as ISO date string with January 1st of that year
@@ -194,7 +201,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
       setError("Invalid publication year format");
       return;
     }
-    
+
     if (isEditing && selectedBookId) {
       updateBook({ variables: { id: selectedBookId, input: input } });
     } else {
@@ -205,7 +212,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
   const handleEdit = (book: Book) => {
     setIsEditing(true);
     setSelectedBookId(book.id);
-    
+
     // Extract year from publishedAt string (in case it's a full date)
     let publishedYear = book.publishedAt;
     try {
@@ -216,19 +223,19 @@ const BookManagement: React.FC<BookManagementProps> = ({
     } catch (e) {
       // If parsing fails, keep the original value
     }
-    
+
     setFormData({
       title: book.title,
       isbn: book.isbn,
-      description: book.description || '',
+      description: book.description || "",
       publishedAt: publishedYear,
-      coverImage: book.coverImage || '',
+      coverImage: book.coverImage || "",
       pageCount: book.pageCount,
       quantity: book.quantity,
-      authorIds: book.authors.map(author => author.id),
-      categoryIds: book.categories.map(category => category.id),
+      authorIds: book.authors.map((author) => author.id),
+      categoryIds: book.categories.map((category) => category.id),
     });
-    
+
     setIsFormModalOpen(true);
   };
 
@@ -284,9 +291,9 @@ const BookManagement: React.FC<BookManagementProps> = ({
 
   // Add a handler for when book cover is uploaded successfully
   const handleCoverImageUpdate = (url: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      coverImage: url
+      coverImage: url,
     }));
   };
 
@@ -314,50 +321,107 @@ const BookManagement: React.FC<BookManagementProps> = ({
               onClick={handleCreate}
               className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 w-full sm:w-auto justify-center"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 mr-2"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
                 <path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z" />
               </svg>
               Add Book
             </button>
           </div>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Title</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">ISBN</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Authors</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Categories</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Quantity</th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">Available</th>
-                <th scope="col" className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Actions</th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Title
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
+                >
+                  ISBN
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell"
+                >
+                  Authors
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell"
+                >
+                  Categories
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
+                >
+                  Quantity
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
+                >
+                  Available
+                </th>
+                <th
+                  scope="col"
+                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center">
-                    <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]" role="status">
+                    <div
+                      className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]"
+                      role="status"
+                    >
                       <span className="sr-only">Loading...</span>
                     </div>
-                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">Loading books...</p>
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
+                      Loading books...
+                    </p>
                   </td>
                 </tr>
               ) : books.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-4 text-center">
                     <div className="flex flex-col items-center justify-center p-8">
-                      <svg className="h-12 w-12 text-gray-400 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="h-12 w-12 text-gray-400 mb-3"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={1.5}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                       <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                        {searchTerm ? `No books match "${searchTerm}"` : "No books found. Click \"Add Book\" to create one."}
+                        {searchTerm
+                          ? `No books match "${searchTerm}"`
+                          : 'No books found. Click "Add Book" to create one.'}
                       </p>
                       {searchTerm && (
                         <button
-                          onClick={() => setSearchTerm('')}
+                          onClick={() => setSearchTerm("")}
                           className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
                         >
                           Clear Search
@@ -368,45 +432,82 @@ const BookManagement: React.FC<BookManagementProps> = ({
                 </tr>
               ) : (
                 books.map((book) => (
-                  <tr key={book.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                    <td className="px-4 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white">{book.title}</div>
+                  <tr
+                    key={book.id}
+                    className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  >
+                    <td className="px-4 py-4 whitespace-normal">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
+                        {book.title}
+                      </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
                         ISBN: {book.isbn}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 md:hidden">
-                        Authors: {book.authors.map(a => a.name).join(', ')}
+                      <div className="text-xs text-gray-500 dark:text-gray-400 md:hidden break-words">
+                        Authors: {book.authors.map((a) => a.name).join(", ")}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 md:hidden">
-                        Categories: {book.categories.map(c => c.name).join(', ')}
+                      <div className="text-xs text-gray-500 dark:text-gray-400 md:hidden break-words">
+                        Categories:{" "}
+                        {book.categories.map((c) => c.name).join(", ")}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
                         {book.quantity} copies, {book.available} available
                       </div>
                     </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{book.isbn}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{book.authors.map(a => a.name).join(', ')}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{book.categories.map(c => c.name).join(', ')}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{book.quantity}</td>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{book.available}</td>
+                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                      {book.isbn}
+                    </td>
+                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell break-words">
+                      {book.authors.map((a) => a.name).join(", ")}
+                    </td>
+                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell break-words">
+                      {book.categories.map((c) => c.name).join(", ")}
+                    </td>
+                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                      {book.quantity}
+                    </td>
+                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+                      {book.available}
+                    </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-center space-x-2">
                         <button
                           onClick={() => handleEdit(book)}
-                          className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                          className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           aria-label={`Edit ${book.title}`}
+                          title="Edit Book"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
+                            <path
+                              fillRule="evenodd"
+                              d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         </button>
                         <button
                           onClick={() => handleDelete(book.id)}
-                          className="text-red-600 hover:text-red-800 dark:text-red-500 dark:hover:text-red-400"
+                          className="text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                           aria-label={`Delete ${book.title}`}
+                          title="Delete Book"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                              clipRule="evenodd"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -451,7 +552,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               required
             />
           </div>
-          
+
           <FloatingInput
             id="description"
             name="description"
@@ -459,7 +560,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
             value={formData.description}
             onChange={handleInputChange}
           />
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FloatingInput
               id="publishedAt"
@@ -478,7 +579,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               onChange={handleInputChange}
             />
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FloatingInput
               id="quantity"
@@ -495,7 +596,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               </label>
               {isEditing ? (
                 <FileUpload
-                  entityId={selectedBookId || ''}
+                  entityId={selectedBookId || ""}
                   uploadType="BOOK_COVER"
                   currentImageUrl={formData.coverImage}
                   onUploadSuccess={handleCoverImageUpdate}
@@ -509,7 +610,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               )}
             </div>
           </div>
-          
+
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Authors
@@ -523,7 +624,11 @@ const BookManagement: React.FC<BookManagementProps> = ({
                 className="input h-auto min-h-[80px] w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               >
                 {authors.map((author) => (
-                  <option key={author.id} value={author.id} className="py-1 px-2 dark:text-gray-100">
+                  <option
+                    key={author.id}
+                    value={author.id}
+                    className="py-1 px-2 dark:text-gray-100"
+                  >
                     {author.name}
                   </option>
                 ))}
@@ -535,8 +640,17 @@ const BookManagement: React.FC<BookManagementProps> = ({
                 title="Add New Author"
               >
                 <span className="sr-only">Add New Author</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </div>
@@ -544,7 +658,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               Hold Ctrl or Cmd to select multiple authors
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Categories
@@ -558,7 +672,11 @@ const BookManagement: React.FC<BookManagementProps> = ({
                 className="input h-auto min-h-[80px] w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               >
                 {categories.map((category) => (
-                  <option key={category.id} value={category.id} className="py-1 px-2 dark:text-gray-100">
+                  <option
+                    key={category.id}
+                    value={category.id}
+                    className="py-1 px-2 dark:text-gray-100"
+                  >
                     {category.name}
                   </option>
                 ))}
@@ -570,8 +688,17 @@ const BookManagement: React.FC<BookManagementProps> = ({
                 title="Add New Category"
               >
                 <span className="sr-only">Add New Category</span>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </div>
@@ -579,7 +706,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               Hold Ctrl or Cmd to select multiple categories
             </p>
           </div>
-          
+
           {error && (
             <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded">
               {error}
@@ -601,4 +728,4 @@ const BookManagement: React.FC<BookManagementProps> = ({
   );
 };
 
-export default BookManagement; 
+export default BookManagement;
