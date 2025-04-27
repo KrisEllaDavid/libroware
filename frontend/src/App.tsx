@@ -20,16 +20,6 @@ const AppContent: React.FC = () => {
   const { isAuthenticated, user, isAdmin, isLibrarian } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
 
-  // Add debugging logs
-  useEffect(() => {
-    if (user) {
-      console.log("Current user:", user);
-      console.log("User role:", user.role);
-      console.log("Is admin?", isAdmin());
-      console.log("Is librarian?", isLibrarian());
-    }
-  }, [user, isAdmin, isLibrarian]);
-
   // Handler for when splash screen animation completes
   const handleSplashFinish = () => {
     setShowSplash(false);

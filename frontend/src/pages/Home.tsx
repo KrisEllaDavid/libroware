@@ -1,5 +1,5 @@
-import React from 'react';
-import { useQuery, gql } from '@apollo/client';
+import React from "react";
+import { useQuery, gql } from "@apollo/client";
 
 const HELLO_QUERY = gql`
   query GetHello {
@@ -11,7 +11,10 @@ const Home: React.FC = () => {
   const { loading, error, data } = useQuery(HELLO_QUERY);
 
   if (loading) return <div className="text-center p-8">Loading...</div>;
-  if (error) return <div className="text-center p-8 text-red-500">Error: {error.message}</div>;
+  if (error)
+    return (
+      <div className="text-center p-8 text-red-500">Error: {error.message}</div>
+    );
 
   return (
     <div className="container mx-auto p-8">
@@ -23,4 +26,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home; 
+export default Home;

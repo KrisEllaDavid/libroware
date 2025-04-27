@@ -1,5 +1,6 @@
 const express = require("express");
-const { ApolloServer } = require("apollo-server-express");
+const { ApolloServer } = require("@apollo/server");
+const { expressMiddleware } = require("@apollo/server/express4");
 const { readFileSync } = require("fs");
 const { join } = require("path");
 const cors = require("cors");
@@ -38,59 +39,61 @@ async function startServer() {
   // Create Express app
   const app = express();
 
-  // Apply middleware with proper CORS settings for mobile support
-  app.use(
-    cors({
-      origin: "*", // Allow all origins during testing
-      credentials: false, // Disable credentials for now to test connection
-      allowedHeaders: ["*"], // Allow all headers
-      methods: ["GET", "POST", "OPTIONS"],
-      maxAge: 86400, // Cache preflight requests for 1 day
-    })
-  );
-  // Increase JSON payload limit for file uploads (50MB)
-  app.use(express.json({ limit: "50mb" }));
-  // Increase URL-encoded payload limit as well
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
   // Create Apollo Server
   const server = new ApolloServer({
     typeDefs,
     resolvers,
-    context: ({ req }) => {
-      // Get token from Authorization header
-      const token = req.headers.authorization?.replace("Bearer ", "");
-
-      // For debugging
-      console.log("Auth header:", req.headers.authorization);
-      console.log("Request origin:", req.headers.origin);
-      console.log("Request IP:", req.ip);
-
-      // Get userId and role from token
-      const { userId, role } = getUser(token);
-
-      console.log("User ID from token:", userId);
-      console.log("User role from token:", role);
-
-      // Return context with userId, role and prisma client
-      return {
-        userId,
-        role,
-        prisma,
-      };
-    },
     formatError: (error) => {
       console.error("GraphQL Error:", error);
       return error;
     },
   });
 
+  // Start Apollo Server
   await server.start();
-  server.applyMiddleware({
-    app,
-    cors: false, // We already configured cors for the entire app
-    path: "/graphql",
+
+  // Add route for root path
+  app.get("/", (req, res) => {
+    res.send("Libroware API server. Use /graphql for the GraphQL endpoint.");
   });
+
+  // Apply middleware with proper CORS settings for mobile support
+  app.use(
+    "/graphql",
+    cors({
+      origin: "*", // Allow all origins during testing
+      credentials: false, // Disable credentials for now to test connection
+      allowedHeaders: ["*"], // Allow all headers
+      methods: ["GET", "POST", "OPTIONS"],
+      maxAge: 86400, // Cache preflight requests for 1 day
+    }),
+    express.json({ limit: "50mb" }),
+    express.urlencoded({ limit: "50mb", extended: true }),
+    expressMiddleware(server, {
+      context: async ({ req }) => {
+        // Get token from Authorization header
+        const token = req.headers.authorization?.replace("Bearer ", "");
+
+        // For debugging
+        console.log("Auth header:", req.headers.authorization);
+        console.log("Request origin:", req.headers.origin);
+        console.log("Request IP:", req.ip);
+
+        // Get userId and role from token
+        const { userId, role } = getUser(token);
+
+        console.log("User ID from token:", userId);
+        console.log("User role from token:", role);
+
+        // Return context with userId, role and prisma client
+        return {
+          userId,
+          role,
+          prisma,
+        };
+      },
+    })
+  );
 
   // Define port
   const PORT = process.env.PORT || 4000;
@@ -99,7 +102,7 @@ async function startServer() {
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on port ${PORT}`);
     console.log(
-      `GraphQL endpoint is available at http://localhost:${PORT}${server.graphqlPath}`
+      `GraphQL endpoint is available at http://localhost:${PORT}/graphql`
     );
     console.log(
       `For external access, use your device's network IP address with port ${PORT}`

@@ -1,67 +1,132 @@
-# Libroware
+# LibroWare - Library Management System
 
-A modern book management system built with React, Apollo GraphQL, and Express.
+LibroWare is a modern library management system built with React, TypeScript, Node.js, Apollo GraphQL, and PostgreSQL. It allows libraries to manage books, users, borrowing, and more through an intuitive interface.
 
 ## Project Structure
 
-```
-libroware/
-├── backend/         # Express & Apollo GraphQL server
-└── frontend/        # React & Apollo Client frontend
-```
+The project is organized as a monorepo with two main directories:
+
+- `frontend/`: React application built with Vite, TypeScript, and Apollo Client
+- `backend/`: Node.js API server with Express, Apollo Server, and Prisma ORM
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v16+)
-- npm
+- Node.js 18+ and npm
+- PostgreSQL 14+
+- Git
 
-### Installation
+### Setup Instructions
 
-1. Clone the repository
+#### Clone the repository
+
+```bash
+git clone https://github.com/your-username/libroware.git
+cd libroware
+```
+
+#### Backend Setup
+
+1. Navigate to the backend directory:
+
+   ```bash
+   cd backend
+   ```
+
 2. Install dependencies:
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
-### Running the Application
+3. Set up environment variables:
 
-Start both frontend and backend simultaneously:
+   ```bash
+   cp .env.example .env
+   ```
 
-```bash
-npm run dev
-```
+   Edit the `.env` file with your database credentials and other settings.
 
-Or run them individually:
+4. Set up the database:
 
-```bash
-# Start backend only
-npm run backend
+   ```bash
+   npx prisma migrate dev
+   ```
 
-# Start frontend only
-npm run frontend
-```
+5. Seed the database (optional):
 
-## Backend
+   ```bash
+   npm run seed
+   ```
 
-The backend is built with:
+6. Start the backend server:
+   ```bash
+   npm start
+   ```
+   The server will be available at http://localhost:4000/graphql.
 
-- Express.js
-- Apollo Server
-- GraphQL
+#### Frontend Setup
 
-API available at: http://localhost:4000/graphql
+1. Navigate to the frontend directory:
 
-## Frontend
+   ```bash
+   cd frontend
+   ```
 
-The frontend is built with:
+2. Install dependencies:
 
-- React
-- TypeScript
-- Apollo Client
-- Tailwind CSS
-- Vite
+   ```bash
+   npm install
+   ```
 
-UI available at: http://localhost:3000
+3. Set up environment variables:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+4. Start the development server:
+   ```bash
+   npm run dev
+   ```
+   The frontend will be available at http://localhost:3000.
+
+## Features
+
+- **User Management**: Register, login, and manage user profiles
+- **Book Management**: Add, edit, delete, and search books
+- **Borrowing System**: Check out books, return them, track borrowing history
+- **Categorization**: Organize books by categories and authors
+- **Statistics**: View library statistics and user activity
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+
+## Technology Stack
+
+### Frontend
+
+- React with TypeScript
+- Vite for fast development and building
+- Apollo Client for GraphQL data fetching
+- TailwindCSS for styling
+- React Router for navigation
+
+### Backend
+
+- Node.js with Express
+- Apollo Server for GraphQL API
+- Prisma ORM for database access
+- PostgreSQL for data storage
+- JWT for authentication
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature-name`
+3. Commit your changes: `git commit -m 'Add some feature'`
+4. Push to the branch: `git push origin feature/your-feature-name`
+5. Open a pull request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

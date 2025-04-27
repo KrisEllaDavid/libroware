@@ -13,16 +13,8 @@ const AdminPanel: React.FC = () => {
   const { isAdmin, isLibrarian, user } = useAuth();
   const location = useLocation();
 
-  // Debug logging for role-based access
-  console.log("🔑 AdminPanel: Loading with user role:", user?.role);
-  console.log("👑 isAdmin() returns:", isAdmin());
-  console.log("📚 isLibrarian() returns:", isLibrarian());
-
   // If not admin or librarian, redirect to user dashboard
   if (!isAdmin() && !isLibrarian()) {
-    console.log(
-      "🚫 User is neither admin nor librarian, redirecting to dashboard"
-    );
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -35,7 +27,6 @@ const AdminPanel: React.FC = () => {
   // Determine initial active tab based on user role and query params
   const getInitialTab = () => {
     const queryTab = getTabFromQueryParams();
-    console.log("📋 Query tab parameter:", queryTab);
 
     // If a tab is specified in the query params, validate it
     if (queryTab) {
@@ -60,11 +51,6 @@ const AdminPanel: React.FC = () => {
   };
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
-
-  // Debug log when active tab changes
-  useEffect(() => {
-    console.log("📑 Active tab set to:", activeTab);
-  }, [activeTab]);
 
   const [transitionDirection, setTransitionDirection] = useState<
     "left" | "right"
@@ -228,7 +214,6 @@ const AdminPanel: React.FC = () => {
             </div>
           );
         case "pending":
-          console.log("🔍 Rendering PendingRequests tab");
           return (
             <div className={transitionClass}>
               <PendingRequests />
@@ -244,7 +229,6 @@ const AdminPanel: React.FC = () => {
           return null;
       }
     } catch (error) {
-      console.error("❌ Error rendering tab content:", error);
       return (
         <div className="p-6 bg-red-50 dark:bg-red-900/20 rounded-lg">
           <h3 className="text-lg font-medium text-red-800 dark:text-red-200">

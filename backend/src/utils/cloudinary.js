@@ -1,13 +1,14 @@
 const cloudinary = require("cloudinary").v2;
+require("dotenv").config();
 
 // Initialize Cloudinary with environment variables
 // The CLOUDINARY_URL environment variable should contain the full Cloudinary URL
 // with cloud name, API key, and API secret
 cloudinary.config({
   secure: true,
-  cloud_name: "dstqlhuyt",
-  api_key: "883593547985737",
-  api_secret: "0G75JAeBydvdOZTenU9AeFNOrI0",
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 /**

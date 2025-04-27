@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@apollo/client/react';
-import { useParams, Link } from 'react-router-dom';
-import { GET_USER, USER_BORROWS } from '../graphql/queries';
-import { useAuth } from '../context/AuthContext';
-import UserBorrows from './user/UserBorrows';
-import BorrowStatistics from './user/BorrowStatistics';
-import ProfileEditor from './ProfileEditor';
+import React, { useEffect, useState } from "react";
+import { useQuery } from "@apollo/client/react";
+import { useParams, Link } from "react-router-dom";
+import { GET_USER, USER_BORROWS } from "../graphql/queries";
+import { useAuth } from "../context/AuthContext";
+import UserBorrows from "./user/UserBorrows";
+import BorrowStatistics from "./user/BorrowStatistics";
+import ProfileEditor from "./ProfileEditor";
 
 // Define a ME query to fetch the current user's data when needed
 const ME_QUERY = `
@@ -32,27 +32,27 @@ const UserProfile: React.FC = () => {
   // Use the current user's ID if no ID is provided in the URL
   const userId = id || currentUser?.id;
 
-  // Debug authentication and ID info
-  useEffect(() => {
-    console.log('UserProfile Debug:');
-    console.log('ID from params:', id);
-    console.log('Current user:', currentUser);
-    console.log('Is admin?', isAdmin());
-    console.log('Is librarian?', isLibrarian());
-    console.log('Using userId:', userId);
-  }, [id, currentUser, isAdmin, isLibrarian, userId]);
-
   // Ensure we have a userId before proceeding
   if (!userId) {
-    console.error('No userId available - currentUser:', currentUser);
-    return <div className="text-center py-8 text-red-500">User not found - No user ID available</div>;
+    console.error("No userId available - currentUser:", currentUser);
+    return (
+      <div className="text-center py-8 text-red-500">
+        User not found - No user ID available
+      </div>
+    );
   }
 
   // Check if the user has access to this profile
-  const canViewProfile = currentUser?.id === userId || isAdmin() || isLibrarian();
+  const canViewProfile =
+    currentUser?.id === userId || isAdmin() || isLibrarian();
 
   if (!canViewProfile) {
-    console.error('Cannot view profile - access denied - currentUser:', currentUser?.id, 'targetUserId:', userId);
+    console.error(
+      "Cannot view profile - access denied - currentUser:",
+      currentUser?.id,
+      "targetUserId:",
+      userId
+    );
     return (
       <div className="text-center py-8 text-red-500">
         You do not have permission to view this profile
@@ -65,37 +65,25 @@ const UserProfile: React.FC = () => {
   const isSelfProfile = !id || (currentUser && currentUser.id === userId);
 
   // Fetch user data - always fetch, but we'll use currentUser data when possible
-  const { data: userData, loading: userLoading, error: userError } = useQuery(GET_USER, {
+  const {
+    data: userData,
+    loading: userLoading,
+    error: userError,
+  } = useQuery(GET_USER, {
     variables: { id: userId },
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: "cache-and-network",
   });
-
-  // Debug user data response
-  useEffect(() => {
-    console.log('GET_USER Query Debug:');
-    console.log('Variables:', { id: userId });
-    console.log('Loading:', userLoading);
-    console.log('Error:', userError);
-    console.log('Data:', userData);
-    console.log('isSelfProfile:', isSelfProfile);
-    console.log('Will use cached data:', isSelfProfile && !!currentUser);
-  }, [userId, userLoading, userError, userData, isSelfProfile, currentUser]);
 
   // Fetch borrows data
-  const { data: borrowsData, loading: borrowsLoading, error: borrowsError, refetch } = useQuery(USER_BORROWS, {
+  const {
+    data: borrowsData,
+    loading: borrowsLoading,
+    error: borrowsError,
+    refetch,
+  } = useQuery(USER_BORROWS, {
     variables: { userId },
-    fetchPolicy: 'cache-and-network',
+    fetchPolicy: "cache-and-network",
   });
-
-  // Debug outputs to console
-  useEffect(() => {
-    console.log('USER_BORROWS Query Debug:');
-    if (borrowsError) {
-      console.error('Error fetching borrows:', borrowsError);
-    }
-    console.log('Variables:', { userId });
-    console.log('Borrows data:', borrowsData);
-  }, [userId, borrowsData, borrowsError]);
 
   if (userLoading) {
     return <div className="text-center py-8">Loading profile...</div>;
@@ -105,21 +93,32 @@ const UserProfile: React.FC = () => {
   let user;
   if (isSelfProfile && currentUser) {
     user = currentUser;
-    console.log('Using cached user data for profile:', user.firstName, user.lastName);
   } else {
     // For viewing other profiles, use the data from the GET_USER query
     if (userError) {
-      console.error('User query error:', userError);
-      return <div className="text-center py-8 text-red-500">Error loading profile: {userError.message}</div>;
+      console.error("User query error:", userError);
+      return (
+        <div className="text-center py-8 text-red-500">
+          Error loading profile: {userError.message}
+        </div>
+      );
     }
 
     if (!userData || !userData.user) {
-      console.error('No user data found for ID:', userId, 'Response:', userData);
-      return <div className="text-center py-8 text-red-500">User not found (ID: {userId})</div>;
+      console.error(
+        "No user data found for ID:",
+        userId,
+        "Response:",
+        userData
+      );
+      return (
+        <div className="text-center py-8 text-red-500">
+          User not found (ID: {userId})
+        </div>
+      );
     }
 
     user = userData.user;
-    console.log('Successfully loaded user from query:', user.firstName, user.lastName, user.role);
   }
 
   // Safely handle borrows data, even if there's an error with the borrows query
@@ -187,7 +186,8 @@ const UserProfile: React.FC = () => {
                 />
               ) : (
                 <div className="h-32 w-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-2xl font-bold text-gray-500 dark:text-gray-400">
-                  {user.firstName.charAt(0)}{user.lastName.charAt(0)}
+                  {user.firstName.charAt(0)}
+                  {user.lastName.charAt(0)}
                 </div>
               )}
             </div>
@@ -199,26 +199,37 @@ const UserProfile: React.FC = () => {
 
               <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Email</dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-white">{user.email}</dd>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Email
+                  </dt>
+                  <dd className="mt-1 text-sm text-gray-900 dark:text-white">
+                    {user.email}
+                  </dd>
                 </div>
 
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Role</dt>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Role
+                  </dt>
                   <dd className="mt-1">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === 'ADMIN'
-                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'
-                        : user.role === 'LIBRARIAN'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                          : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                      }`}>
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.role === "ADMIN"
+                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
+                          : user.role === "LIBRARIAN"
+                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                          : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                      }`}
+                    >
                       {user.role}
                     </span>
                   </dd>
                 </div>
 
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Member Since</dt>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Member Since
+                  </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
                     {new Date(user.createdAt).toLocaleDateString()}
                   </dd>
@@ -226,7 +237,9 @@ const UserProfile: React.FC = () => {
 
                 {/* Account Status */}
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Account Status</dt>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Account Status
+                  </dt>
                   <dd className="mt-1">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                       Active
@@ -236,38 +249,47 @@ const UserProfile: React.FC = () => {
 
                 {/* Access Level - Different display based on user role */}
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Access Level</dt>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Access Level
+                  </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user.role === 'ADMIN' && 'Full system access'}
-                    {user.role === 'LIBRARIAN' && 'Library management access'}
-                    {user.role === 'USER' && 'Standard user access'}
+                    {user.role === "ADMIN" && "Full system access"}
+                    {user.role === "LIBRARIAN" && "Library management access"}
+                    {user.role === "USER" && "Standard user access"}
                   </dd>
                 </div>
 
                 {/* Show last login or account update (placeholder) */}
                 <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">Last Account Update</dt>
+                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                    Last Account Update
+                  </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {new Date().toLocaleDateString()} {/* This is a placeholder */}
+                    {new Date().toLocaleDateString()}{" "}
+                    {/* This is a placeholder */}
                   </dd>
                 </div>
               </div>
 
               {/* Show specific role-based information */}
-              {(user.role === 'ADMIN' || user.role === 'LIBRARIAN') && (
+              {(user.role === "ADMIN" || user.role === "LIBRARIAN") && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <h3 className="text-md font-medium text-blue-800 dark:text-blue-300">
                     Staff Information
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    {user.role === 'ADMIN' ?
-                      'As an administrator, you have full access to manage users, books, and library operations.' :
-                      'As a librarian, you can manage books, handle borrows, and assist library members.'}
+                    {user.role === "ADMIN"
+                      ? "As an administrator, you have full access to manage users, books, and library operations."
+                      : "As a librarian, you can manage books, handle borrows, and assist library members."}
                   </p>
                   {(isAdmin() || currentUser?.id === user.id) && (
                     <div className="mt-2">
                       <Link
-                        to={user.role === 'ADMIN' ? '/admin?tab=users' : '/admin?tab=books'}
+                        to={
+                          user.role === "ADMIN"
+                            ? "/admin?tab=users"
+                            : "/admin?tab=books"
+                        }
                         className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 transition-colors duration-200"
                       >
                         Go to Management Dashboard
