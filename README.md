@@ -130,3 +130,22 @@ cd libroware
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## NB: Make sure you do this before running
+
+1. Go to or create frontend/.env
+2. Insert VITE_API_URL=http://{your_own_host_ip}:4000/graphql
+3. Then move to or create backend/.env and put:
+
+   DATABASE_URL="your_postgresql_db_link_here"
+
+   PORT=4000
+   NODE_ENV=development
+
+   JWT_SECRET="your-secret-key-here"
+
+   CLOUDINARY_CLOUD_NAME="name_here"
+   CLOUDINARY_API_KEY="key_here"
+   CLOUDINARY_API_SECRET="secret_here"
+
+   Hurraaaayyyy !! Everything shoul be working fine !
