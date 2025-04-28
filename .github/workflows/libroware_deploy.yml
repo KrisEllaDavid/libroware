@@ -24,7 +24,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }}
             set -e
-            cd libroware
+            yum install -y docker docker-compose
             docker-compose down
             docker-compose build
             docker-compose up -d
