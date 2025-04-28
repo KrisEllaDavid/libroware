@@ -29,6 +29,8 @@ jobs:
             sudo rm -rf libroware
             sudo git clone https://github.com/KrisEllaDavid/libroware.git
             cd /home/ec2-user/libroware
+            sudo touch .env
+            sudo chmod 600 .env
             sudo echo "${{ secrets.ENV_FILE }}" > .env
             sudo docker-compose down
             sudo docker-compose build
