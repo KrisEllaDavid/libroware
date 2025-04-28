@@ -43,19 +43,13 @@ const UserProfile: React.FC = () => {
   }
 
   // Check if the user has access to this profile
-  const canViewProfile =
-    currentUser?.id === userId || isAdmin() || isLibrarian();
+  const canViewProfile = currentUser !== null; // Allow any authenticated user to view profiles
 
   if (!canViewProfile) {
-    console.error(
-      "Cannot view profile - access denied - currentUser:",
-      currentUser?.id,
-      "targetUserId:",
-      userId
-    );
+    console.error("Cannot view profile - user not authenticated");
     return (
       <div className="text-center py-8 text-red-500">
-        You do not have permission to view this profile
+        Please log in to view user profiles
       </div>
     );
   }
