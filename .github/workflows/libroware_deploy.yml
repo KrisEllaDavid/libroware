@@ -25,8 +25,11 @@ jobs:
           ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }} '
             set -e
             cd /
-            sudo git pull origin main
+            cd /home/ec2-user
+            rm -r -y libroware
+            sudo git clone https://github.com/KrisEllaDavid/libroware.git
             cd /home/ec2-user/libroware
+            echo "${{ secrets.ENV_FILE }}" > .env
             docker-compose down
             docker-compose build
             docker-compose up -d
