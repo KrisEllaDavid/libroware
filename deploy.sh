@@ -24,9 +24,3 @@ docker-compose exec backend npx prisma migrate deploy
 
 echo "Deployment complete! Your application is now running." 
 
-# Add after the deployment completes
-if [ -f "libroware_backup.sql" ]; then
-  echo "Restoring database from backup..."
-  docker-compose exec -T postgres psql -U postgres -d libroware_db < libroware_backup.sql
-  echo "Database restored!"
-fi
