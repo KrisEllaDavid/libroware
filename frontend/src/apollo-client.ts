@@ -4,9 +4,14 @@ import { HttpLink } from '@apollo/client/link/http';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 
-// Get API URL from environment variables or use a proxy path
-const API_URL = import.meta.env.VITE_API_URL || '/graphql';
+// Get API URL from environment variables and ensure it's properly formatted
+const API_URL = "/api/graphql";
 
+if (!API_URL) {
+  console.error('VITE_API_URL environment variable is not set');
+}
+
+// Log the API URL for debugging
 console.log('Using Apollo API URL:', API_URL);
 
 // Error handling link
@@ -14,6 +19,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, response })
   console.log('🔍 Apollo operation error details:');
   console.log('- Operation:', operation.operationName);
   console.log('- Variables:', JSON.stringify(operation.variables));
+  console.log('- Request URL:', operation.getContext().uri);
   
   if (graphQLErrors) {
     graphQLErrors.forEach(({ message, locations, path, extensions }) => {
@@ -37,9 +43,23 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, response })
   }
 });
 
-// Create an http link
+// Add a link to always send the x-apollo-operation-name header
+const operationNameLink = setContext((_, { headers }) => ({
+  headers: {
+    ...headers,
+    'x-apollo-operation-name': 'default',
+  }
+}));
+
+// Create an http link with proper configuration
 const httpLink = new HttpLink({
   uri: API_URL,
+  credentials: 'include',
+  fetch: (uri, options) => {
+    // Log the actual request URL
+    console.log('Making request to:', uri);
+    return fetch(uri, options);
+  }
 });
 
 // Auth link to set the authorization header
@@ -56,9 +76,8 @@ const authLink = setContext((_, { headers }) => {
 });
 
 // Create Apollo client with appropriate configuration
-// Using type assertion as a workaround for TypeScript limitations
 const clientOptions = {
-  link: from([errorLink, authLink, httpLink]),
+  link: from([errorLink, operationNameLink, authLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {

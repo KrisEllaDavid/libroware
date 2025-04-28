@@ -1,0 +1,22 @@
+{
+  "dashboard": {
+    "title": "User Dashboard",
+    "overview": "Your Overview",
+    "totalBorrows": "Total Borrows",
+    "overdue": "Overdue",
+    "returnedBooks": "Returned Books",
+    "favoriteCategory": "Favorite Category"
+  },
+  "bookRequests": {
+    "title": "My Book Requests",
+    "pending": "Pending Requests",
+    "history": "Request History",
+    "noHistory": "No request history",
+    "noRequests": "You haven't made any book requests yet.",
+    "browseLibrary": "Browse Library"
+  },
+  "common": {
+    "pendingApproval": "Pending Approval",
+    "completed": "Completed"
+  }
+} 

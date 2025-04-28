@@ -60,13 +60,6 @@ const UserDashboard: React.FC = () => {
     favoriteCategory: null,
   });
 
-  // Add these variables for swipe behavior
-  const [transitionDirection, setTransitionDirection] = useState<
-    "left" | "right"
-  >("right");
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchEndX, setTouchEndX] = useState<number | null>(null);
-
   // Query borrows for this user
   const {
     data: borrowsData,
@@ -164,66 +157,9 @@ const UserDashboard: React.FC = () => {
     }));
   };
 
-  // Handle tab change with transition direction
+  // Handle tab change
   const handleTabChange = (tab: Tab) => {
-    // Set transition direction based on the order of tabs
-    const tabOrder = [
-      Tab.DASHBOARD,
-      Tab.MY_BOOKS,
-      Tab.MY_REQUESTS,
-      Tab.BROWSE_BOOKS,
-    ];
-    const currentIndex = tabOrder.indexOf(activeTab);
-    const nextIndex = tabOrder.indexOf(tab);
-
-    if (currentIndex !== -1 && nextIndex !== -1) {
-      setTransitionDirection(nextIndex > currentIndex ? "right" : "left");
-    }
-
     setActiveTab(tab);
-  };
-
-  // Touch event handlers for swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEndX(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartX && touchEndX) {
-      const difference = touchStartX - touchEndX;
-      const tabOrder = [
-        Tab.DASHBOARD,
-        Tab.MY_BOOKS,
-        Tab.MY_REQUESTS,
-        Tab.BROWSE_BOOKS,
-      ];
-      const currentIndex = tabOrder.indexOf(activeTab);
-
-      // Check if swipe was significant
-      if (Math.abs(difference) > 50) {
-        if (difference > 0) {
-          // Swipe left - go to next tab
-          const nextTab = tabOrder[currentIndex + 1];
-          if (nextTab) {
-            handleTabChange(nextTab);
-          }
-        } else {
-          // Swipe right - go to previous tab
-          const prevTab = tabOrder[currentIndex - 1];
-          if (prevTab) {
-            handleTabChange(prevTab);
-          }
-        }
-      }
-    }
-
-    // Reset touch coordinates
-    setTouchStartX(null);
-    setTouchEndX(null);
   };
 
   const renderTabButton = (tab: Tab, label: string) => {
@@ -243,97 +179,76 @@ const UserDashboard: React.FC = () => {
   };
 
   const renderTabContent = () => {
-    // Apply transition classes based on direction
-    const transitionClass = `transform transition-all duration-300 ${
-      transitionDirection === "right" ? "translate-x-0" : "-translate-x-0"
-    }`;
-
     switch (activeTab) {
       case Tab.DASHBOARD:
         return (
-          <div className={transitionClass}>
-            <div className="mt-6">
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">Your Overview</h2>
+          <div className="mt-6">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
+              <h2 className="text-xl font-semibold mb-4">Your Overview</h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Total Borrows
-                    </div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                      {userStats.totalBorrows}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Total Borrows
                   </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Active Borrows
-                    </div>
-                    <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                      {userStats.activeBorrows}
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Overdue
-                    </div>
-                    <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                      {userStats.overdueBorrows}
-                    </div>
-                  </div>
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      Returned Books
-                    </div>
-                    <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                      {userStats.returnedBooks}
-                    </div>
+                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
+                    {userStats.totalBorrows}
                   </div>
                 </div>
-
-                {userStats.favoriteCategory && (
-                  <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                    <span className="font-medium">Favorite Category:</span>{" "}
-                    {userStats.favoriteCategory}
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Overdue
                   </div>
-                )}
+                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
+                    {userStats.overdueBorrows}
+                  </div>
+                </div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Returned Books
+                  </div>
+                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {userStats.returnedBooks}
+                  </div>
+                </div>
               </div>
 
-              <BorrowStatistics borrows={getFormattedBorrows()} />
+              {userStats.favoriteCategory && (
+                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                  <span className="font-medium">Favorite Category:</span>{" "}
+                  {userStats.favoriteCategory}
+                </div>
+              )}
             </div>
+
+            <BorrowStatistics borrows={getFormattedBorrows()} />
           </div>
         );
 
       case Tab.MY_BOOKS:
         return (
-          <div className={transitionClass}>
-            <div className="mt-6">
-              <UserBorrows
-                userId={user?.id || ""}
-                borrows={getFormattedUserBorrows()}
-                loading={borrowsLoading}
-                error={borrowsError}
-                refetch={refetch}
-              />
-            </div>
+          <div className="mt-6">
+            <UserBorrows
+              userId={user?.id || ""}
+              borrows={getFormattedUserBorrows()}
+              loading={borrowsLoading}
+              error={borrowsError}
+              refetch={refetch}
+            />
           </div>
         );
 
       case Tab.MY_REQUESTS:
         return (
-          <div className={transitionClass}>
-            <div className="mt-6">
-              <UserActivity />
-            </div>
+          <div className="mt-6">
+            <UserActivity />
           </div>
         );
 
       case Tab.BROWSE_BOOKS:
         return (
-          <div className={transitionClass}>
-            <div className="mt-6">
-              <UserBookView />
-            </div>
+          <div className="mt-6">
+            <UserBookView />
           </div>
         );
 
@@ -351,12 +266,7 @@ const UserDashboard: React.FC = () => {
   }
 
   return (
-    <div
-      className="container mx-auto px-4 sm:px-6 lg:px-8 py-6"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
 
       <div className="flex overflow-x-auto pb-2 mb-4 space-x-2">

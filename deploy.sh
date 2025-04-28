@@ -4,10 +4,7 @@
 docker-compose down
 
 # Pull latest changes if deploying from a repository
-# git pull origin main
-
-# Copy production environment file
-cp .env.prod .env
+git pull origin main
 
 # Build and start containers
 docker-compose up -d --build

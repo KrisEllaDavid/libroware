@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@apollo/client";
 import { gql } from "@apollo/client";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "react-i18next";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -52,6 +53,7 @@ type Borrow = {
 const UserActivity: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
+  const { t } = useTranslation();
 
   // Fetch user borrows
   const { loading, error, data } = useQuery(GET_USER_BORROWS, {
@@ -92,10 +94,10 @@ const UserActivity: React.FC = () => {
     <div className="p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          My Book Requests
+          {t("bookRequests.title")}
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          View your pending and completed requests
+          {t("bookRequests.pending")} / {t("bookRequests.history")}
         </p>
       </div>
 
@@ -111,7 +113,7 @@ const UserActivity: React.FC = () => {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             aria-current={activeTab === "pending" ? "page" : undefined}
           >
-            Pending Requests
+            {t("bookRequests.pending")}
             {pendingBorrows.length > 0 && (
               <span
                 className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium 
@@ -134,7 +136,7 @@ const UserActivity: React.FC = () => {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             aria-current={activeTab === "history" ? "page" : undefined}
           >
-            Request History
+            {t("bookRequests.history")}
             {historyBorrows.length > 0 && (
               <span
                 className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium 
@@ -186,7 +188,7 @@ const UserActivity: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="w-full overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>
@@ -297,7 +299,7 @@ const UserActivity: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="w-full overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead className="bg-gray-50 dark:bg-gray-800">
                     <tr>

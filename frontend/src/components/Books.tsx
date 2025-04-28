@@ -145,7 +145,12 @@ const Books: React.FC = () => {
                       Published
                     </span>
                     <span className="text-gray-700 dark:text-gray-300">
-                      {new Date(book.publishedAt).getFullYear()}
+                      {book.publishedAt && book.publishedAt.length === 4
+                        ? book.publishedAt
+                        : book.publishedAt &&
+                          !isNaN(new Date(book.publishedAt).getTime())
+                        ? new Date(book.publishedAt).getFullYear()
+                        : "N/A"}
                     </span>
                   </div>
 

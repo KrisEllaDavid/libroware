@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd());
 
   // Use the loaded environment variables
-  const apiUrl = env.VITE_API_URL || "http://localhost:4000/graphql";
+  const apiUrl = env.VITE_API_URL;
 
   return {
     plugins: [react()],

@@ -52,12 +52,6 @@ const AdminPanel: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
 
-  const [transitionDirection, setTransitionDirection] = useState<
-    "left" | "right"
-  >("right");
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchEndX, setTouchEndX] = useState<number | null>(null);
-
   // Update URL when tab changes
   useEffect(() => {
     // Only update URL if the tab is different from what's in the query params
@@ -80,78 +74,7 @@ const AdminPanel: React.FC = () => {
   }, [location.search]);
 
   const handleTabChange = (tab: string) => {
-    // Set transition direction based on the order of tabs
-    const tabOrder = [
-      "home",
-      "users",
-      "books",
-      "authors",
-      "categories",
-      "pending",
-      "history",
-    ];
-    const currentIndex = tabOrder.indexOf(activeTab);
-    const nextIndex = tabOrder.indexOf(tab);
-
-    if (currentIndex !== -1 && nextIndex !== -1) {
-      setTransitionDirection(nextIndex > currentIndex ? "right" : "left");
-    }
-
     setActiveTab(tab);
-  };
-
-  // Touch event handlers for swipe
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStartX(e.touches[0].clientX);
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEndX(e.touches[0].clientX);
-  };
-
-  const handleTouchEnd = () => {
-    if (touchStartX && touchEndX) {
-      const difference = touchStartX - touchEndX;
-      const tabOrder = [
-        "home",
-        "users",
-        "books",
-        "authors",
-        "categories",
-        "pending",
-        "history",
-      ];
-      const currentIndex = tabOrder.indexOf(activeTab);
-
-      // Determine the available tabs based on user role
-      const availableTabs = tabOrder.filter((tab) => {
-        if (tab === "users" && !isAdmin()) return false;
-        return true;
-      });
-
-      const currentAvailableIndex = availableTabs.indexOf(activeTab);
-
-      // Check if swipe was significant
-      if (Math.abs(difference) > 50) {
-        if (difference > 0) {
-          // Swipe left - go to next tab
-          const nextTab = availableTabs[currentAvailableIndex + 1];
-          if (nextTab) {
-            handleTabChange(nextTab);
-          }
-        } else {
-          // Swipe right - go to previous tab
-          const prevTab = availableTabs[currentAvailableIndex - 1];
-          if (prevTab) {
-            handleTabChange(prevTab);
-          }
-        }
-      }
-    }
-
-    // Reset touch coordinates
-    setTouchStartX(null);
-    setTouchEndX(null);
   };
 
   // Render tab button with appropriate styling
@@ -174,7 +97,7 @@ const AdminPanel: React.FC = () => {
   const renderTabContent = () => {
     // Apply transition classes based on direction
     const transitionClass = `transform transition-all duration-300 ${
-      transitionDirection === "right" ? "translate-x-0" : "-translate-x-0"
+      activeTab === "right" ? "translate-x-0" : "-translate-x-0"
     }`;
 
     // Add error catching wrapper for tab content
@@ -247,12 +170,7 @@ const AdminPanel: React.FC = () => {
   };
 
   return (
-    <div
-      className="container mx-auto px-4 sm:px-6 lg:px-8 py-6"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Make the tabs stick to the top of the viewport when scrolling, accounting for the main nav */}
       <div className="sticky top-16 z-50 bg-white dark:bg-gray-900 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-3 shadow-md transition-all duration-200">
         <div className="flex overflow-x-auto space-x-2">

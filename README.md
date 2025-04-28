@@ -1,4 +1,4 @@
-# LibroWare - Library Management System
+# LibroWare - Library Management System - (For deployment)
 
 LibroWare is a modern library management system built with React, TypeScript, Node.js, Apollo GraphQL, and PostgreSQL. It allows libraries to manage books, users, borrowing, and more through an intuitive interface.
 
