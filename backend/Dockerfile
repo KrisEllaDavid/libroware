@@ -1,5 +1,8 @@
 FROM node:20-slim
 
+# Install OpenSSL - this is required for Prisma
+RUN apt-get update -y && apt-get install -y openssl
+
 WORKDIR /app
 
 COPY package*.json ./
