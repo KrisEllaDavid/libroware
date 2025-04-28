@@ -3,9 +3,6 @@
 # Stop and remove existing containers
 docker-compose down
 
-# Pull latest changes if deploying from a repository
-git pull origin main
-
 # Build and start containers
 docker-compose up -d --build
 

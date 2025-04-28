@@ -32,7 +32,5 @@ jobs:
             sudo touch .env
             sudo chmod 777 .env
             sudo echo "${{ secrets.ENV_FILE }}" > .env
-            sudo docker-compose down
-            sudo docker-compose build
-            sudo docker-compose up -d
+            sudo chmod +x deploy.sh && ./deploy.sh
           '
