@@ -75,6 +75,13 @@ module.exports = {
       const borrows = await prisma.borrow.findMany({
         where,
         orderBy: { borrowedAt: "desc" },
+        include: {
+          book: {
+            include: {
+              authors: true,
+            },
+          },
+        },
       });
 
       // Check and update overdue status for all non-returned borrows
