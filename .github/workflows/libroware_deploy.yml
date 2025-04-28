@@ -22,11 +22,10 @@ jobs:
 
       - name: Deploy to EC2 and restart app
         run: |
-          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }} '
+          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }}
             set -e
             cd /home/ec2-user/libroware
             git pull origin main
             docker-compose down
             docker-compose build
             docker-compose up -d
-          '
