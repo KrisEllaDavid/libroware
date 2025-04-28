@@ -1,4 +1,4 @@
-import { ApolloClient, InMemoryCache } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloClientOptions } from '@apollo/client';
 import { from } from '@apollo/client/core';
 import { HttpLink } from '@apollo/client/link/http';
 import { setContext } from '@apollo/client/link/context';
@@ -55,22 +55,25 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
-// Create Apollo client
-export const client = new ApolloClient({
+// Create Apollo client with appropriate configuration
+// Using type assertion as a workaround for TypeScript limitations
+const clientOptions = {
   link: from([errorLink, authLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'network-only',
-      errorPolicy: 'all',
+      fetchPolicy: 'network-only' as const, 
+      errorPolicy: 'all' as const,
     },
     query: {
-      fetchPolicy: 'network-only',
-      errorPolicy: 'all',
+      fetchPolicy: 'network-only' as const,
+      errorPolicy: 'all' as const,
     },
     mutate: {
-      fetchPolicy: 'no-cache',
-      errorPolicy: 'all',
+      fetchPolicy: 'no-cache' as const,
+      errorPolicy: 'all' as const,
     },
-  },
-}); 
+  }
+};
+
+export const client = new ApolloClient(clientOptions as any); 
