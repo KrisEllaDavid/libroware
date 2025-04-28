@@ -24,9 +24,7 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }}
             set -e
-            sudo apt update
-            sudo apt remove -y containerd
-            sudo apt install -y docker.io docker-compose
+            sudo snap install -y docker docker-compose
             sudo systemctl start docker
             sudo systemctl enable docker
             docker-compose down
