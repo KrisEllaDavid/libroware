@@ -24,11 +24,8 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }}
             set -e
-            sudo snap install docker
-            sudo apt update
-            sudo apt install docker-compose
-            sudo systemctl start docker
-            sudo systemctl enable docker
+            cd
+            cd libroware
             docker-compose down
             docker-compose build
             docker-compose up -d
