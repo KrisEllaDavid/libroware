@@ -1,5 +1,11 @@
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { User, Role } from '../types';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User, Role } from "../types";
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -9,6 +15,7 @@ interface AuthContextType {
   logout: () => void;
   isAdmin: () => boolean;
   isLibrarian: () => boolean;
+  isUser: () => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -24,9 +31,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     // Check if user is already logged in
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
-    
+    const storedToken = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("user");
+
     if (storedToken && storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser) as User;
@@ -34,39 +41,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser(parsedUser);
         setIsAuthenticated(true);
       } catch (error) {
-        console.error('Error parsing stored user:', error);
+        console.error("Error parsing stored user:", error);
         logout();
       }
     }
   }, []);
 
   const login = (newToken: string, newUser: User) => {
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
-    
+    localStorage.setItem("token", newToken);
+    localStorage.setItem("user", JSON.stringify(newUser));
+
     setToken(newToken);
     setUser(newUser);
     setIsAuthenticated(true);
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
     setToken(null);
     setUser(null);
     setIsAuthenticated(false);
   };
 
   const isAdmin = () => {
-    console.log('AuthContext: Checking if user is admin', user?.role);
-    return user?.role?.toUpperCase() === 'ADMIN';
+    console.log("AuthContext: Checking if user is admin", user?.role);
+    return user?.role?.toUpperCase() === "ADMIN";
   };
 
   const isLibrarian = () => {
-    console.log('AuthContext: Checking if user is librarian', user?.role);
+    console.log("AuthContext: Checking if user is librarian", user?.role);
     const role = user?.role?.toUpperCase();
-    return role === 'LIBRARIAN' || role === 'ADMIN';
+    return role === "LIBRARIAN" || role === "ADMIN";
+  };
+
+  const isUser = () => {
+    console.log("AuthContext: Checking if user is User", user?.role);
+    const role = user?.role?.toUpperCase();
+    return role === "USER" || role === "USER";
   };
 
   return (
@@ -79,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         logout,
         isAdmin,
         isLibrarian,
+        isUser,
       }}
     >
       {children}
@@ -89,9 +103,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
-export default AuthContext; 
+export default AuthContext;
