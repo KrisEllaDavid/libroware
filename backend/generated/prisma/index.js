@@ -200,7 +200,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\Users\\Mederos\\Documents\\libroware\\backend\\generated\\prisma",
+      "value": "C:\\Users\\Mederos\\Documents\\Persos\\Projets\\libroware-dev\\backend\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -214,7 +214,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\Users\\Mederos\\Documents\\libroware\\backend\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\Users\\Mederos\\Documents\\Persos\\Projets\\libroware-dev\\backend\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
