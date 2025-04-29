@@ -188,6 +188,10 @@ export const USER_BORROWS = gql`
           id
           name
         }
+        categories {
+          id
+          name
+        }
         coverImage
       }
       borrowedAt

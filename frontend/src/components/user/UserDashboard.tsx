@@ -90,12 +90,14 @@ const UserDashboard: React.FC = () => {
       const categoryMap = new Map<string, number>();
 
       borrows.forEach((borrow: any) => {
-        if (borrow.book && borrow.book.categories) {
+        if (borrow.book?.categories?.length > 0) {
           borrow.book.categories.forEach((category: any) => {
-            categoryMap.set(
-              category.name,
-              (categoryMap.get(category.name) || 0) + 1
-            );
+            if (category?.name) {
+              categoryMap.set(
+                category.name,
+                (categoryMap.get(category.name) || 0) + 1
+              );
+            }
           });
         }
       });
