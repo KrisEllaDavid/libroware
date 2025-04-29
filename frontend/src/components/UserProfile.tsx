@@ -25,7 +25,7 @@ const ME_QUERY = `
 
 const UserProfile: React.FC = () => {
   const params = useParams();
-  const id = params.id;
+  const id = params?.id;
   const { user: currentUser, isAuthenticated, isAdmin } = useAuth();
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
@@ -63,7 +63,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(GET_USER, {
     variables: { id: userId },
     fetchPolicy: "cache-and-network",
-    skip: Boolean(!userId || (isSelfProfile && !!currentUser)), // Ensure boolean type
+    skip: Boolean(!userId || (isSelfProfile && !!currentUser)),
   });
 
   // Fetch borrows data
@@ -75,7 +75,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(USER_BORROWS, {
     variables: { userId },
     fetchPolicy: "cache-and-network",
-    skip: Boolean(!userId), // Ensure boolean type
+    skip: Boolean(!userId),
   });
 
   if (userLoading) {
@@ -97,13 +97,8 @@ const UserProfile: React.FC = () => {
       );
     }
 
-    if (!userData || !userData.user) {
-      console.error(
-        "No user data found for ID:",
-        userId,
-        "Response:",
-        userData
-      );
+    if (!userData?.user) {
+      console.error("No user data found for ID:", userId);
       return (
         <div className="text-center py-8 text-red-500">
           User not found (ID: {userId})
@@ -134,15 +129,21 @@ const UserProfile: React.FC = () => {
       }));
     } catch (error) {
       console.error("Error processing borrows data:", error);
-      // If there's an error processing borrows, we'll just use an empty array
       borrows = [];
     }
   }
 
   // Handle refreshing user data after profile update
   const handleProfileUpdate = () => {
-    refetch();
+    refetch?.();
   };
+
+  // Safely handle user data for display
+  const userInitials = `${user?.firstName?.charAt(0) || ""}${
+    user?.lastName?.charAt(0) || ""
+  }`;
+  const userName =
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Unknown User";
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -177,23 +178,22 @@ const UserProfile: React.FC = () => {
         <div className="px-4 py-5 sm:p-6">
           <div className="flex flex-col sm:flex-row gap-8">
             <div className="flex-shrink-0">
-              {user.profilePicture ? (
+              {user?.profilePicture ? (
                 <img
                   src={user.profilePicture}
-                  alt={`${user.firstName} ${user.lastName}`}
+                  alt={userName}
                   className="h-32 w-32 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
                 />
               ) : (
                 <div className="h-32 w-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-2xl font-bold text-gray-500 dark:text-gray-400">
-                  {user.firstName.charAt(0)}
-                  {user.lastName.charAt(0)}
+                  {userInitials || "?"}
                 </div>
               )}
             </div>
 
             <div className="flex-grow">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {user.firstName} {user.lastName}
+                {userName}
               </h2>
 
               <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
@@ -202,7 +202,7 @@ const UserProfile: React.FC = () => {
                     Email
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user.email}
+                    {user?.email || "No email provided"}
                   </dd>
                 </div>
 
@@ -213,14 +213,14 @@ const UserProfile: React.FC = () => {
                   <dd className="mt-1">
                     <span
                       className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.role === "ADMIN"
+                        user?.role === "ADMIN"
                           ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                          : user.role === "LIBRARIAN"
+                          : user?.role === "LIBRARIAN"
                           ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                           : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                       }`}
                     >
-                      {user.role}
+                      {user?.role || "USER"}
                     </span>
                   </dd>
                 </div>
@@ -230,7 +230,9 @@ const UserProfile: React.FC = () => {
                     Member Since
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {new Date(user.createdAt).toLocaleDateString()}
+                    {user?.createdAt
+                      ? new Date(user.createdAt).toLocaleDateString()
+                      : "Unknown"}
                   </dd>
                 </div>
 
@@ -252,9 +254,9 @@ const UserProfile: React.FC = () => {
                     Access Level
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user.role === "ADMIN" && "Full system access"}
-                    {user.role === "LIBRARIAN" && "Library management access"}
-                    {user.role === "USER" && "Standard user access"}
+                    {user?.role === "ADMIN" && "Full system access"}
+                    {user?.role === "LIBRARIAN" && "Library management access"}
+                    {user?.role === "USER" && "Standard user access"}
                   </dd>
                 </div>
 
@@ -271,13 +273,13 @@ const UserProfile: React.FC = () => {
               </div>
 
               {/* Show specific role-based information */}
-              {(user.role === "ADMIN" || user.role === "LIBRARIAN") && (
+              {(user?.role === "ADMIN" || user?.role === "LIBRARIAN") && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <h3 className="text-md font-medium text-blue-800 dark:text-blue-300">
                     Staff Information
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    {user.role === "ADMIN"
+                    {user?.role === "ADMIN"
                       ? "As an administrator, you have full access to manage users, books, and library operations."
                       : "As a librarian, you can manage books, handle borrows, and assist library members."}
                   </p>
@@ -285,7 +287,7 @@ const UserProfile: React.FC = () => {
                     <div className="mt-2">
                       <Link
                         to={
-                          user.role === "ADMIN"
+                          user?.role === "ADMIN"
                             ? "/admin?tab=users"
                             : "/admin?tab=books"
                         }
