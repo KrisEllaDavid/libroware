@@ -1,0 +1,264 @@
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  role: Role!
+  profilePicture: String
+  requiresPasswordChange: Boolean
+  borrowedBooks: [Borrow!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+enum Role {
+  USER
+  LIBRARIAN
+  ADMIN
+}
+
+type Book {
+  id: ID!
+  title: String!
+  isbn: String!
+  description: String
+  publishedAt: String!
+  coverImage: String
+  pageCount: Int!
+  quantity: Int!
+  available: Int!
+  authors: [Author!]!
+  categories: [Category!]!
+  borrows: [Borrow!]!
+  reviews: [Review!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Author {
+  id: ID!
+  name: String!
+  books: [Book!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Category {
+  id: ID!
+  name: String!
+  description: String
+  books: [Book!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Borrow {
+  id: ID!
+  user: User!
+  book: Book!
+  borrowedAt: String!
+  dueDate: String!
+  returnedAt: String
+  status: BorrowStatus!
+  note: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+enum BorrowStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+}
+
+type Review {
+  id: ID!
+  book: Book!
+  userEmail: String!
+  userName: String!
+  rating: Int!
+  comment: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input UserCreateInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+  role: Role
+  profilePicture: String
+  requiresPasswordChange: Boolean
+}
+
+input UserUpdateInput {
+  email: String
+  password: String
+  firstName: String
+  lastName: String
+  role: Role
+  profilePicture: String
+  requiresPasswordChange: Boolean
+}
+
+input BookCreateInput {
+  title: String!
+  isbn: String!
+  description: String
+  publishedAt: String!
+  coverImage: String
+  pageCount: Int!
+  quantity: Int!
+  authorIds: [ID!]
+  categoryIds: [ID!]
+}
+
+input BookUpdateInput {
+  title: String
+  isbn: String
+  description: String
+  publishedAt: String
+  coverImage: String
+  pageCount: Int
+  quantity: Int
+  available: Int
+  authorIds: [ID!]
+  categoryIds: [ID!]
+}
+
+input AuthorCreateInput {
+  name: String!
+}
+
+input AuthorUpdateInput {
+  name: String
+}
+
+input CategoryCreateInput {
+  name: String!
+  description: String
+}
+
+input CategoryUpdateInput {
+  name: String
+  description: String
+}
+
+input BorrowCreateInput {
+  userId: ID!
+  bookId: ID!
+  dueDate: String!
+  note: String
+}
+
+input BorrowUpdateInput {
+  returnedAt: String
+  status: BorrowStatus
+}
+
+input ReviewCreateInput {
+  bookId: ID!
+  userEmail: String!
+  userName: String!
+  rating: Int!
+  comment: String
+}
+
+input ReviewUpdateInput {
+  rating: Int
+  comment: String
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type Query {
+  # User queries
+  me: User
+  user(id: ID!): User
+  users(skip: Int, take: Int): [User!]!
+
+  # Book queries
+  book(id: ID!): Book
+  books(skip: Int, take: Int, searchTitle: String): [Book!]!
+  booksByAuthor(authorId: ID!, skip: Int, take: Int): [Book!]!
+  booksByCategory(categoryId: ID!, skip: Int, take: Int): [Book!]!
+
+  # Author queries
+  author(id: ID!): Author
+  authors(skip: Int, take: Int, searchName: String): [Author!]!
+
+  # Category queries
+  category(id: ID!): Category
+  categories(skip: Int, take: Int): [Category!]!
+
+  # Borrow queries
+  borrow(id: ID!): Borrow
+  borrows(skip: Int, take: Int, status: BorrowStatus): [Borrow!]!
+  userBorrows(userId: ID!, status: BorrowStatus): [Borrow!]!
+  overdueBorrows: [Borrow!]!
+
+  # Review queries
+  review(id: ID!): Review
+  bookReviews(bookId: ID!, skip: Int, take: Int): [Review!]!
+}
+
+type Mutation {
+  # Auth mutations
+  signup(input: UserCreateInput!): AuthPayload!
+  login(input: LoginInput!): AuthPayload!
+
+  # User mutations
+  createUser(input: UserCreateInput!): User!
+  updateUser(id: ID!, input: UserUpdateInput!): User!
+  deleteUser(id: ID!): User!
+  forceDeleteUser(id: ID!): User!
+  uploadProfilePicture(userId: ID!, imageData: String!): UploadResponse!
+  uploadFile(file: String!, type: UploadType!, id: ID!): UploadResponse!
+
+  # Book mutations
+  createBook(input: BookCreateInput!): Book!
+  updateBook(id: ID!, input: BookUpdateInput!): Book!
+  deleteBook(id: ID!): Book!
+
+  # Author mutations
+  createAuthor(input: AuthorCreateInput!): Author!
+  updateAuthor(id: ID!, input: AuthorUpdateInput!): Author!
+  deleteAuthor(id: ID!): Author!
+
+  # Category mutations
+  createCategory(input: CategoryCreateInput!): Category!
+  updateCategory(id: ID!, input: CategoryUpdateInput!): Category!
+  deleteCategory(id: ID!): Category!
+
+  # Borrow mutations
+  createBorrow(input: BorrowCreateInput!): Borrow!
+  updateBorrow(id: ID!, input: BorrowUpdateInput!): Borrow!
+  returnBook(id: ID!): Borrow!
+
+  # Review mutations
+  createReview(input: ReviewCreateInput!): Review!
+  updateReview(id: ID!, input: ReviewUpdateInput!): Review!
+  deleteReview(id: ID!): Review!
+}
+
+type UploadResponse {
+  success: Boolean!
+  message: String!
+  url: String
+  user: User
+  book: Book
+}
+
+enum UploadType {
+  PROFILE_PICTURE
+  BOOK_COVER
+}

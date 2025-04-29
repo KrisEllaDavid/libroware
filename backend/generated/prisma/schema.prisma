@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String   @id @default(uuid())
+  email                  String   @unique
+  password               String
+  firstName              String
+  lastName               String
+  role                   Role     @default(USER)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  profilePicture         String?
+  requiresPasswordChange Boolean? @default(true)
+  borrowedBooks          Borrow[]
+}
+
+model Book {
+  id          String     @id @default(uuid())
+  title       String
+  isbn        String     @unique
+  description String?
+  publishedAt DateTime
+  coverImage  String?
+  pageCount   Int
+  quantity    Int        @default(1)
+  available   Int        @default(1)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  borrows     Borrow[]
+  reviews     Review[]
+  authors     Author[]   @relation("BookToAuthor")
+  categories  Category[] @relation("BookToCategory")
+}
+
+model Author {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  books     Book[]   @relation("BookToAuthor")
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  books       Book[]   @relation("BookToCategory")
+}
+
+model Borrow {
+  id         String       @id @default(uuid())
+  userId     String
+  bookId     String
+  borrowedAt DateTime     @default(now())
+  dueDate    DateTime
+  returnedAt DateTime?
+  status     BorrowStatus @default(BORROWED)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  book       Book         @relation(fields: [bookId], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([bookId])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  bookId    String
+  userEmail String
+  userName  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  book      Book     @relation(fields: [bookId], references: [id])
+
+  @@index([bookId])
+}
+
+enum Role {
+  USER
+  LIBRARIAN
+  ADMIN
+}
+
+enum BorrowStatus {
+  BORROWED
+  RETURNED
+  OVERDUE
+}

@@ -1,0 +1,465 @@
+@import url("https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: "Clash Grotesk", sans-serif;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: "Clash Grotesk", sans-serif;
+  }
+
+  body {
+    @apply text-gray-800 bg-white dark:bg-gray-900 dark:text-gray-200;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body.mobile-menu-open {
+    @apply overflow-hidden;
+  }
+
+  code {
+    @apply font-mono;
+  }
+
+  /* Fix for autofill styling in forms */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: inherit;
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+    transition: background-color 5000s ease-in-out 0s;
+    background-color: transparent !important;
+  }
+
+  .dark input:-webkit-autofill,
+  .dark input:-webkit-autofill:hover,
+  .dark input:-webkit-autofill:focus {
+    -webkit-text-fill-color: white;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
+    transition-colors focus-visible:outline-none focus-visible:ring-2 
+    focus-visible:ring-emerald-500 focus-visible:ring-offset-2 
+    disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-primary {
+    @apply bg-emerald-500 text-white hover:bg-emerald-600 h-10 px-4 py-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 h-10 px-4 py-2;
+  }
+
+  .btn-destructive {
+    @apply bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2;
+  }
+
+  .btn-outline {
+    @apply border border-gray-300 bg-white hover:bg-gray-50 hover:text-gray-900;
+  }
+
+  .input {
+    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm 
+    file:border-0 file:bg-transparent file:text-sm file:font-medium 
+    placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 
+    focus-visible:ring-emerald-500 focus-visible:ring-offset-2 
+    disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .card {
+    @apply rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden;
+  }
+
+  .card-header {
+    @apply flex flex-col space-y-1.5 p-6;
+  }
+
+  .card-title {
+    @apply text-xl font-semibold leading-none tracking-tight;
+  }
+
+  .card-description {
+    @apply text-sm text-gray-500;
+  }
+
+  .card-content {
+    @apply p-6 pt-0;
+  }
+
+  .card-footer {
+    @apply flex items-center p-6 pt-0;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold 
+    transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+  }
+
+  .badge-primary {
+    @apply bg-emerald-500 text-white hover:bg-emerald-600 border-transparent;
+  }
+
+  .badge-secondary {
+    @apply bg-blue-100 text-blue-800 hover:bg-blue-200 border-transparent;
+  }
+
+  .badge-outline {
+    @apply text-gray-900 border-gray-200;
+  }
+
+  .float-input-wrapper {
+    @apply relative mx-auto w-full rounded-md overflow-hidden;
+  }
+
+  .float-input {
+    @apply block w-full px-3 border-0 border-b border-gray-300 bg-transparent 
+    focus:ring-0 focus:border-emerald-500 sm:text-sm sm:leading-6 transition-colors
+    dark:text-white dark:border-gray-700 dark:focus:border-emerald-500;
+  }
+
+  .float-input:focus {
+    @apply outline-none border-b-2 border-emerald-500;
+  }
+
+  .float-input:hover {
+    @apply border-b border-emerald-500;
+    box-shadow: 0 1px 0 0 rgba(16, 185, 129, 0.4);
+  }
+
+  .dark .float-input:hover {
+    @apply border-emerald-400;
+    box-shadow: 0 1px 0 0 rgba(52, 211, 153, 0.4);
+  }
+
+  .float-label {
+    @apply absolute left-3 top-4 text-gray-500 font-medium pointer-events-none origin-left
+    transition-all duration-200 ease-out;
+  }
+
+  .float-input:focus ~ .float-label {
+    @apply top-2 text-xs text-emerald-500;
+  }
+
+  .dark .float-input:focus ~ .float-label {
+    @apply text-emerald-400;
+  }
+
+  .float-input:not(:placeholder-shown) ~ .float-label {
+    @apply top-2 text-xs text-emerald-500;
+  }
+
+  .dark .float-input:not(:placeholder-shown) ~ .float-label {
+    @apply text-emerald-400;
+  }
+
+  .float-highlight {
+    @apply absolute inset-0 bg-emerald-50/10 dark:bg-emerald-900/10 -z-10
+    scale-x-0 origin-left transition-transform duration-300 ease-out;
+  }
+
+  .float-input:focus ~ .float-highlight {
+    @apply scale-x-100;
+  }
+
+  /* Responsive table container for horizontal scrolling */
+  .table-container {
+    @apply w-full overflow-x-auto pb-2;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Mobile optimized table */
+  .responsive-table {
+    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+  }
+
+  /* Mobile optimized grid containers */
+  .responsive-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  /* Mobile responsive card */
+  .mobile-card {
+    @apply rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700 
+    p-4 flex flex-col h-full;
+  }
+
+  /* Responsive tab navigation */
+  .responsive-tabs {
+    @apply flex overflow-x-auto pb-1;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .responsive-tabs::-webkit-scrollbar {
+    @apply hidden;
+  }
+
+  /* Modal styling */
+  .modal-open {
+    @apply overflow-hidden;
+  }
+
+  .modal-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+  }
+
+  /* Ring styles for focus states */
+  .ring-emerald-500\/30 {
+    @apply ring-2 ring-emerald-500 ring-opacity-30;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@keyframes modalAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-150%) skewX(-45deg);
+  }
+  100% {
+    transform: translateX(150%) skewX(-45deg);
+  }
+}
+
+@keyframes pulseSubtle {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes slideOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+@keyframes backdropAppear {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.5;
+  }
+}
+
+@keyframes loadingBar {
+  0% {
+    width: 0;
+  }
+  100% {
+    width: 100%;
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.3s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+
+  .animate-slide-left {
+    animation: slideLeft 0.3s ease-out;
+  }
+
+  .animate-modal-appear {
+    animation: modalAppear 0.3s ease-out;
+  }
+
+  .animate-pulse-subtle {
+    animation: pulseSubtle 3s ease-in-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2.5s infinite;
+  }
+
+  .animate-backdrop-appear {
+    animation: backdropAppear 0.3s ease-out forwards;
+  }
+
+  .animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .animate-bounce {
+    animation: bounce 1s ease-in-out infinite;
+  }
+
+  .animate-rotate {
+    animation: rotate 1s linear infinite;
+  }
+
+  .animate-loadingBar {
+    animation: loadingBar 2s ease-out forwards;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-none {
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .transition-colors {
+    transition-property: background-color, border-color, color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+  }
+
+  .animate-slide-out-right {
+    animation: slideOutRight 0.3s ease-out;
+  }
+
+  .animate-slide-out-left {
+    animation: slideOutLeft 0.3s ease-out;
+  }
+
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+}
+
+/* This class adds additional blur when modals are open */
+.modal-open {
+  @apply overflow-hidden;
+}
