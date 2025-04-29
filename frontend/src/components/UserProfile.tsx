@@ -117,20 +117,26 @@ const UserProfile: React.FC = () => {
   // Safely handle borrows data, even if there's an error with the borrows query
   let borrows = [];
   if (borrowsData?.userBorrows) {
-    borrows = borrowsData.userBorrows.map((borrow: any) => ({
-      id: borrow.id,
-      book: {
-        id: borrow.book.id,
-        title: borrow.book.title,
-        isbn: borrow.book.isbn,
-        authors: borrow.book.authors || [],
-        coverImage: borrow.book.coverImage || null,
-      },
-      borrowDate: borrow.borrowedAt,
-      dueDate: borrow.dueDate,
-      returnDate: borrow.returnedAt,
-      status: borrow.status,
-    }));
+    try {
+      borrows = borrowsData.userBorrows.map((borrow: any) => ({
+        id: borrow?.id || "",
+        book: {
+          id: borrow?.book?.id || "",
+          title: borrow?.book?.title || "Unknown Book",
+          isbn: borrow?.book?.isbn || "",
+          authors: borrow?.book?.authors || [],
+          coverImage: borrow?.book?.coverImage || null,
+        },
+        borrowDate: borrow?.borrowedAt || new Date().toISOString(),
+        dueDate: borrow?.dueDate || new Date().toISOString(),
+        returnDate: borrow?.returnedAt || null,
+        status: borrow?.status || "UNKNOWN",
+      }));
+    } catch (error) {
+      console.error("Error processing borrows data:", error);
+      // If there's an error processing borrows, we'll just use an empty array
+      borrows = [];
+    }
   }
 
   // Handle refreshing user data after profile update
@@ -296,21 +302,36 @@ const UserProfile: React.FC = () => {
         </div>
       </div>
 
-      {/* Borrow Statistics - only show if there are borrows */}
-      {borrows.length > 0 && (
-        <div className="mb-8">
-          <BorrowStatistics borrows={borrows} />
+      {/* Only show borrows section if we have data or if there's an error */}
+      {(borrows.length > 0 || borrowsError) && (
+        <div className="mt-8">
+          {borrowsError ? (
+            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
+              <p className="text-yellow-700 dark:text-yellow-300">
+                Unable to load borrow history. Please try again later.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Borrow Statistics - only show if there are borrows */}
+              {borrows.length > 0 && (
+                <div className="mb-8">
+                  <BorrowStatistics borrows={borrows} />
+                </div>
+              )}
+
+              {/* User Borrows - always show, the component handles empty states */}
+              <UserBorrows
+                userId={userId}
+                borrows={borrows}
+                loading={borrowsLoading}
+                error={borrowsError}
+                refetch={refetch}
+              />
+            </>
+          )}
         </div>
       )}
-
-      {/* User Borrows - always show, the component handles empty states */}
-      <UserBorrows
-        userId={userId}
-        borrows={borrows}
-        loading={borrowsLoading}
-        error={borrowsError}
-        refetch={refetch}
-      />
     </div>
   );
 };
