@@ -78,8 +78,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isUser = () => {
     console.log("AuthContext: Checking if user is User", user?.role);
-    const role = user?.role?.toUpperCase();
-    return role === "USER" || role === "USER";
+    return user?.role?.toUpperCase() === "USER";
   };
 
   return (

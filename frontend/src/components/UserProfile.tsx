@@ -26,11 +26,20 @@ const ME_QUERY = `
 const UserProfile: React.FC = () => {
   const params = useParams();
   const id = params.id;
-  const { user: currentUser, isAdmin, isLibrarian } = useAuth();
+  const { user: currentUser, isAuthenticated, isAdmin } = useAuth();
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Use the current user's ID if no ID is provided in the URL
   const userId = id || currentUser?.id;
+
+  // Show loading state while auth state is being determined
+  if (!isAuthenticated) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        Please log in to view user profiles
+      </div>
+    );
+  }
 
   // Ensure we have a userId before proceeding
   if (!userId) {
@@ -38,18 +47,6 @@ const UserProfile: React.FC = () => {
     return (
       <div className="text-center py-8 text-red-500">
         User not found - No user ID available
-      </div>
-    );
-  }
-
-  // Check if the user has access to this profile
-  const canViewProfile = currentUser !== null; // Allow any authenticated user to view profiles
-
-  if (!canViewProfile) {
-    console.error("Cannot view profile - user not authenticated");
-    return (
-      <div className="text-center py-8 text-red-500">
-        Please log in to view user profiles
       </div>
     );
   }
@@ -66,6 +63,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(GET_USER, {
     variables: { id: userId },
     fetchPolicy: "cache-and-network",
+    skip: Boolean(!userId || (isSelfProfile && !!currentUser)), // Ensure boolean type
   });
 
   // Fetch borrows data
@@ -77,6 +75,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(USER_BORROWS, {
     variables: { userId },
     fetchPolicy: "cache-and-network",
+    skip: Boolean(!userId), // Ensure boolean type
   });
 
   if (userLoading) {
