@@ -26,12 +26,7 @@ const ME_QUERY = `
 const UserProfile: React.FC = () => {
   const params = useParams();
   const id = params?.id;
-  const {
-    user: currentUser,
-    isAuthenticated,
-    isAdmin,
-    isLibrarian,
-  } = useAuth();
+  const { user: currentUser, isAuthenticated } = useAuth();
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Use the current user's ID if no ID is provided in the URL
@@ -56,18 +51,6 @@ const UserProfile: React.FC = () => {
     );
   }
 
-  // Check if user has permission to view this profile
-  const isSelfProfile = !id || (currentUser && currentUser.id === userId);
-  const hasPermission = isSelfProfile || isAdmin() || isLibrarian();
-
-  if (!hasPermission) {
-    return (
-      <div className="text-center py-8 text-red-500">
-        You don't have permission to view this profile
-      </div>
-    );
-  }
-
   // Fetch user data - always fetch, but we'll use currentUser data when possible
   const {
     data: userData,
@@ -76,22 +59,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(GET_USER, {
     variables: { id: userId },
     fetchPolicy: "cache-and-network",
-    skip: Boolean(!userId || (isSelfProfile && !!currentUser)),
-  });
-
-  // Fetch borrows data only for self profile
-  const {
-    data: borrowsData,
-    loading: borrowsLoading,
-    error: borrowsError,
-    refetch,
-  } = useQuery(USER_BORROWS, {
-    variables: { userId },
-    fetchPolicy: "cache-and-network",
-    skip: Boolean(!userId || !isSelfProfile),
-    onError: (error) => {
-      console.error("Error fetching borrows:", error);
-    },
+    skip: Boolean(!userId || (currentUser && currentUser.id === userId)),
   });
 
   if (userLoading) {
@@ -100,7 +68,7 @@ const UserProfile: React.FC = () => {
 
   // For self-profile viewing, use the cached currentUser data
   let user;
-  if (isSelfProfile && currentUser) {
+  if (currentUser && currentUser.id === userId) {
     user = currentUser;
   } else {
     // For viewing other profiles, use the data from the GET_USER query
@@ -125,40 +93,10 @@ const UserProfile: React.FC = () => {
     user = userData.user;
   }
 
-  // Safely handle borrows data, even if there's an error with the borrows query
-  let borrows = [];
-  if (isSelfProfile && borrowsData?.userBorrows) {
-    try {
-      borrows = borrowsData.userBorrows
-        .map((borrow: any) => {
-          // Ensure we have a valid borrow object
-          if (!borrow) return null;
-
-          return {
-            id: borrow?.id || "",
-            book: {
-              id: borrow?.book?.id || "",
-              title: borrow?.book?.title || "Unknown Book",
-              isbn: borrow?.book?.isbn || "",
-              authors: borrow?.book?.authors || [],
-              coverImage: borrow?.book?.coverImage || null,
-            },
-            borrowDate: borrow?.borrowedAt || new Date().toISOString(),
-            dueDate: borrow?.dueDate || new Date().toISOString(),
-            returnDate: borrow?.returnedAt || null,
-            status: borrow?.status || "UNKNOWN",
-          };
-        })
-        .filter(Boolean); // Remove any null entries
-    } catch (error) {
-      console.error("Error processing borrows data:", error);
-      borrows = [];
-    }
-  }
-
   // Handle refreshing user data after profile update
   const handleProfileUpdate = () => {
-    refetch?.();
+    // Refresh the page to get updated data
+    window.location.reload();
   };
 
   // Safely handle user data for display
@@ -188,7 +126,7 @@ const UserProfile: React.FC = () => {
             </p>
           </div>
 
-          {isSelfProfile && (
+          {currentUser && currentUser.id === userId && (
             <button
               onClick={() => setShowProfileEditor(true)}
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
@@ -296,75 +234,29 @@ const UserProfile: React.FC = () => {
               </div>
 
               {/* Show specific role-based information */}
-              {(isAdmin() || isLibrarian()) && (
+              {user?.role === "ADMIN" && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <h3 className="text-md font-medium text-blue-800 dark:text-blue-300">
                     Staff Information
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    {user?.role === "ADMIN"
-                      ? "As an administrator, you have full access to manage users, books, and library operations."
-                      : "As a librarian, you can manage books, handle borrows, and assist library members."}
+                    As an administrator, you have full access to manage users,
+                    books, and library operations.
                   </p>
-                  {(isAdmin() || currentUser?.id === user.id) && (
-                    <div className="mt-2">
-                      <Link
-                        to={
-                          user?.role === "ADMIN"
-                            ? "/admin?tab=users"
-                            : "/admin?tab=books"
-                        }
-                        className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 transition-colors duration-200"
-                      >
-                        Go to Management Dashboard
-                      </Link>
-                    </div>
-                  )}
+                  <div className="mt-2">
+                    <Link
+                      to="/admin?tab=users"
+                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 transition-colors duration-200"
+                    >
+                      Go to Management Dashboard
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Borrows section - only show for self profile */}
-      {isSelfProfile && (
-        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
-          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              Your Borrows
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-              View your current and past book borrows.
-            </p>
-          </div>
-
-          <div className="px-4 py-5 sm:p-6">
-            {borrowsLoading ? (
-              <div className="text-center py-4">Loading borrows...</div>
-            ) : borrowsError ? (
-              <div className="text-center py-4 text-red-500">
-                Error loading borrows: {borrowsError.message}
-              </div>
-            ) : borrows.length === 0 ? (
-              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-                No borrows found.
-              </div>
-            ) : (
-              <>
-                <BorrowStatistics borrows={borrows} />
-                <UserBorrows
-                  userId={userId}
-                  borrows={borrows}
-                  loading={borrowsLoading}
-                  error={borrowsError}
-                  refetch={refetch}
-                />
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
