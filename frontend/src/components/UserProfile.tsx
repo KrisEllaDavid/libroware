@@ -26,7 +26,12 @@ const ME_QUERY = `
 const UserProfile: React.FC = () => {
   const params = useParams();
   const id = params?.id;
-  const { user: currentUser, isAuthenticated, isAdmin } = useAuth();
+  const {
+    user: currentUser,
+    isAuthenticated,
+    isAdmin,
+    isLibrarian,
+  } = useAuth();
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Use the current user's ID if no ID is provided in the URL
@@ -51,9 +56,17 @@ const UserProfile: React.FC = () => {
     );
   }
 
-  // If we're viewing our own profile (or not using an ID parameter),
-  // use the cached currentUser from AuthContext
+  // Check if user has permission to view this profile
   const isSelfProfile = !id || (currentUser && currentUser.id === userId);
+  const hasPermission = isSelfProfile || isAdmin() || isLibrarian();
+
+  if (!hasPermission) {
+    return (
+      <div className="text-center py-8 text-red-500">
+        You don't have permission to view this profile
+      </div>
+    );
+  }
 
   // Fetch user data - always fetch, but we'll use currentUser data when possible
   const {
@@ -66,7 +79,7 @@ const UserProfile: React.FC = () => {
     skip: Boolean(!userId || (isSelfProfile && !!currentUser)),
   });
 
-  // Fetch borrows data
+  // Fetch borrows data only for self profile
   const {
     data: borrowsData,
     loading: borrowsLoading,
@@ -75,7 +88,7 @@ const UserProfile: React.FC = () => {
   } = useQuery(USER_BORROWS, {
     variables: { userId },
     fetchPolicy: "cache-and-network",
-    skip: Boolean(!userId),
+    skip: Boolean(!userId || !isSelfProfile),
     onError: (error) => {
       console.error("Error fetching borrows:", error);
     },
@@ -114,7 +127,7 @@ const UserProfile: React.FC = () => {
 
   // Safely handle borrows data, even if there's an error with the borrows query
   let borrows = [];
-  if (borrowsData?.userBorrows) {
+  if (isSelfProfile && borrowsData?.userBorrows) {
     try {
       borrows = borrowsData.userBorrows
         .map((borrow: any) => {
@@ -206,7 +219,7 @@ const UserProfile: React.FC = () => {
                 {userName}
               </h2>
 
-              <div className="mt-4 grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
+              <div className="mt-4 space-y-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
                     Email
@@ -283,7 +296,7 @@ const UserProfile: React.FC = () => {
               </div>
 
               {/* Show specific role-based information */}
-              {(user?.role === "ADMIN" || user?.role === "LIBRARIAN") && (
+              {(isAdmin() || isLibrarian()) && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <h3 className="text-md font-medium text-blue-800 dark:text-blue-300">
                     Staff Information
@@ -314,36 +327,44 @@ const UserProfile: React.FC = () => {
         </div>
       </div>
 
-      {/* Borrows section - show even if there's an error */}
-      <div className="mt-8">
-        {borrowsError ? (
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
-            <p className="text-yellow-700 dark:text-yellow-300">
-              Unable to load borrow history. Please try again later.
+      {/* Borrows section - only show for self profile */}
+      {isSelfProfile && (
+        <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+              Your Borrows
+            </h3>
+            <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
+              View your current and past book borrows.
             </p>
           </div>
-        ) : borrowsLoading ? (
-          <div className="text-center py-8">Loading borrow history...</div>
-        ) : (
-          <>
-            {/* Borrow Statistics - only show if there are borrows */}
-            {borrows.length > 0 && (
-              <div className="mb-8">
-                <BorrowStatistics borrows={borrows} />
-              </div>
-            )}
 
-            {/* User Borrows - always show, the component handles empty states */}
-            <UserBorrows
-              userId={userId}
-              borrows={borrows}
-              loading={borrowsLoading}
-              error={borrowsError}
-              refetch={refetch}
-            />
-          </>
-        )}
-      </div>
+          <div className="px-4 py-5 sm:p-6">
+            {borrowsLoading ? (
+              <div className="text-center py-4">Loading borrows...</div>
+            ) : borrowsError ? (
+              <div className="text-center py-4 text-red-500">
+                Error loading borrows: {borrowsError.message}
+              </div>
+            ) : borrows.length === 0 ? (
+              <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+                No borrows found.
+              </div>
+            ) : (
+              <>
+                <BorrowStatistics borrows={borrows} />
+                <UserBorrows
+                  userId={userId}
+                  borrows={borrows}
+                  loading={borrowsLoading}
+                  error={borrowsError}
+                  refetch={refetch}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

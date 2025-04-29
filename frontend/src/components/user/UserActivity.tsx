@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useQuery } from "@apollo/client";
 import { gql } from "@apollo/client";
 import { useAuth } from "../../context/AuthContext";
-import { useTranslation } from "react-i18next";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -53,7 +52,6 @@ type Borrow = {
 const UserActivity: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
-  const { t } = useTranslation();
 
   // Fetch user borrows
   const { loading, error, data } = useQuery(GET_USER_BORROWS, {
@@ -94,10 +92,10 @@ const UserActivity: React.FC = () => {
     <div className="p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {t("bookRequests.title")}
+          Book Requests
         </h1>
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {t("bookRequests.pending")} / {t("bookRequests.history")}
+          Pending / History
         </p>
       </div>
 
@@ -113,7 +111,7 @@ const UserActivity: React.FC = () => {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             aria-current={activeTab === "pending" ? "page" : undefined}
           >
-            {t("bookRequests.pending")}
+            Pending
             {pendingBorrows.length > 0 && (
               <span
                 className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium 
@@ -136,7 +134,7 @@ const UserActivity: React.FC = () => {
             } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
             aria-current={activeTab === "history" ? "page" : undefined}
           >
-            {t("bookRequests.history")}
+            History
             {historyBorrows.length > 0 && (
               <span
                 className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium 
