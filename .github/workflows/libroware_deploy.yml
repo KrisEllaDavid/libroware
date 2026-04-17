@@ -29,7 +29,7 @@ jobs:
 
       - name: Clone repo on server
         run: |
-          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ubuntu@${{ secrets.SERVER_HOST }} '
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ubuntu@${{ secrets.SERVER_HOST }} '
             set -e
             cd /home/ubuntu
             rm -rf libroware
@@ -40,12 +40,12 @@ jobs:
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
-          echo "$ENV_FILE" | ssh -o StrictHostKeyChecking=yes ubuntu@${{ secrets.SERVER_HOST }} \
+          echo "$ENV_FILE" | ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes ubuntu@${{ secrets.SERVER_HOST }} \
             "cat > /home/ubuntu/libroware/.env && chmod 600 /home/ubuntu/libroware/.env"
 
       - name: Start application
         run: |
-          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ubuntu@${{ secrets.SERVER_HOST }} '
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ubuntu@${{ secrets.SERVER_HOST }} '
             set -e
             cd /home/ubuntu/libroware
             chmod +x deploy.sh
