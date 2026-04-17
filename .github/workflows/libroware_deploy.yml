@@ -1,4 +1,4 @@
-name: Deploy to EC2
+name: Deploy to Contabo
 
 on:
   push:
@@ -13,24 +13,41 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-client-secret: ${{ secrets.TS_OAUTH_CLIENT_SECRET }}
+          tags: tag:ci
+
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_ed25519
+          echo "${{ secrets.SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan -H ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2 and restart app
+      - name: Clone repo on server
         run: |
-          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ec2-user@${{ secrets.EC2_HOST }} '
+          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ubuntu@${{ secrets.SERVER_HOST }} '
             set -e
-            cd /
-            cd /home/ec2-user
-            sudo rm -rf libroware
-            sudo git clone https://github.com/KrisEllaDavid/libroware.git
-            cd /home/ec2-user/libroware
-            sudo touch .env
-            sudo chmod 777 .env
-            sudo echo "${{ secrets.ENV_FILE }}" > .env
-            sudo chmod +x deploy.sh && ./deploy.sh
+            cd /home/ubuntu
+            rm -rf libroware
+            git clone https://github.com/KrisEllaDavid/libroware.git
+          '
+
+      - name: Write environment file
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          echo "$ENV_FILE" | ssh -o StrictHostKeyChecking=yes ubuntu@${{ secrets.SERVER_HOST }} \
+            "cat > /home/ubuntu/libroware/.env && chmod 600 /home/ubuntu/libroware/.env"
+
+      - name: Start application
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ubuntu@${{ secrets.SERVER_HOST }} '
+            set -e
+            cd /home/ubuntu/libroware
+            chmod +x deploy.sh
+            ./deploy.sh
           '

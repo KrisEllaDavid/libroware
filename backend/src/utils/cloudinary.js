@@ -4,12 +4,7 @@ require("dotenv").config();
 // Initialize Cloudinary with environment variables
 // The CLOUDINARY_URL environment variable should contain the full Cloudinary URL
 // with cloud name, API key, and API secret
-cloudinary.config({
-  secure: true,
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+cloudinary.config({ secure: true });
 
 /**
  * Upload an image to Cloudinary
