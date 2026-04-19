@@ -23,7 +23,7 @@ jobs:
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} "
             set -e
-            cd /home/${{ secrets.PUBLIC_SERVER_USER }}
+            cd /root
             rm -rf libroware
             git clone https://github.com/KrisEllaDavid/libroware.git
           "
@@ -33,13 +33,13 @@ jobs:
           ENV_FILE: ${{ secrets.PUBLIC_ENV_FILE }}
         run: |
           echo "$ENV_FILE" | ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} \
-            "cat > /home/${{ secrets.PUBLIC_SERVER_USER }}/libroware/.env && chmod 600 /home/${{ secrets.PUBLIC_SERVER_USER }}/libroware/.env"
+            "cat > /root/libroware/.env && chmod 600 /root/libroware/.env"
 
       - name: Start application
         run: |
           ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} "
             set -e
-            cd /home/${{ secrets.PUBLIC_SERVER_USER }}/libroware
+            cd /root/libroware
             chmod +x deploy.sh
             ./deploy.sh
           "
