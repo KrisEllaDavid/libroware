@@ -9,17 +9,22 @@ datasource db {
 }
 
 model User {
-  id                     String   @id @default(uuid())
-  email                  String   @unique
+  id                     String    @id @default(uuid())
+  email                  String    @unique
   password               String
   firstName              String
   lastName               String
-  role                   Role     @default(USER)
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  role                   Role      @default(USER)
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+  deletedAt              DateTime?
   profilePicture         String?
-  requiresPasswordChange Boolean? @default(true)
+  requiresPasswordChange Boolean?  @default(true)
   borrowedBooks          Borrow[]
+  reviews                Review[]  @relation("UserReviews")
+
+  @@index([role])
+  @@index([deletedAt])
 }
 
 model Book {
@@ -34,10 +39,13 @@ model Book {
   available   Int        @default(1)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
   borrows     Borrow[]
   reviews     Review[]
   authors     Author[]   @relation("BookToAuthor")
   categories  Category[] @relation("BookToCategory")
+
+  @@index([deletedAt])
 }
 
 model Author {
@@ -65,6 +73,7 @@ model Borrow {
   dueDate    DateTime
   returnedAt DateTime?
   status     BorrowStatus @default(BORROWED)
+  note       String?
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   book       Book         @relation(fields: [bookId], references: [id])
@@ -72,20 +81,24 @@ model Borrow {
 
   @@index([userId])
   @@index([bookId])
+  @@index([status])
 }
 
 model Review {
   id        String   @id @default(uuid())
   bookId    String
+  userId    String
   userEmail String
   userName  String
   rating    Int
   comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  book      Book     @relation(fields: [bookId], references: [id])
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user      User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([bookId])
+  @@index([userId])
 }
 
 enum Role {
@@ -98,4 +111,16 @@ enum BorrowStatus {
   BORROWED
   RETURNED
   OVERDUE
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  model     String
+  action    String
+  recordId  String
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([model, recordId])
+  @@index([userId])
 }

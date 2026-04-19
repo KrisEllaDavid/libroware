@@ -3,7 +3,9 @@ const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@apollo/server/express4");
 const { readFileSync } = require("fs");
 const { join } = require("path");
+const { AsyncLocalStorage } = require("async_hooks");
 const cors = require("cors");
+const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const resolvers = require("./graphql/resolvers");
 const { PrismaClient } = require("../generated/prisma");
@@ -16,8 +18,11 @@ const typeDefs = readFileSync(
   "utf8"
 );
 
-// JWT secret
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
+// JWT secret — must be set explicitly; no insecure fallback
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 
 // Auth context function
 const getUser = (token) => {
@@ -33,7 +38,36 @@ const getUser = (token) => {
   }
 };
 
-const prisma = new PrismaClient();
+const auditContext = new AsyncLocalStorage();
+
+const baseClient = new PrismaClient();
+
+const AUDITED_MODELS = ["User", "Book", "Borrow"];
+const AUDITED_OPS = { create: "CREATE", update: "UPDATE", delete: "DELETE" };
+
+const prisma = baseClient.$extends({
+  query: {
+    $allModels: {
+      async $allOperations({ model, operation, args, query }) {
+        const result = await query(args);
+        if (AUDITED_MODELS.includes(model) && AUDITED_OPS[operation]) {
+          const store = auditContext.getStore();
+          baseClient.auditLog
+            .create({
+              data: {
+                model,
+                action: AUDITED_OPS[operation],
+                recordId: result?.id ?? JSON.stringify(args?.where) ?? "",
+                userId: store?.userId ?? null,
+              },
+            })
+            .catch(() => {});
+        }
+        return result;
+      },
+    },
+  },
+});
 
 async function startServer() {
   // Create Express app
@@ -57,33 +91,66 @@ async function startServer() {
     res.send("Libroware API server. Use /graphql for the GraphQL endpoint.");
   });
 
-  // Apply middleware with proper CORS settings for mobile support
+  // Rate limiting — 100 requests per 15 min per IP globally,
+  // tighter 10 req/15 min for auth operations
+  const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 100,
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { errors: [{ message: "Too many attempts, please try again later." }] },
+  });
+
+  // Apply middleware with CORS settings
+  const allowedOrigins = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(",").map((o) => o.trim())
+    : ["http://localhost:3000"];
+
+  // Populate audit context with the requesting userId for every /graphql request
+  app.use("/graphql", (req, res, next) => {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    const { userId } = getUser(token);
+    auditContext.run({ userId }, next);
+  });
+
   app.use(
     "/graphql",
     cors({
-      origin: "*", // Allow all origins during testing
-      credentials: false, // Disable credentials for now to test connection
-      allowedHeaders: ["*"], // Allow all headers
+      origin: (origin, callback) => {
+        // Allow requests with no origin (curl, server-to-server, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
+      },
+      credentials: true,
+      allowedHeaders: ["Content-Type", "Authorization"],
       methods: ["GET", "POST", "OPTIONS"],
-      maxAge: 86400, // Cache preflight requests for 1 day
+      maxAge: 86400,
     }),
     express.json({ limit: "50mb" }),
     express.urlencoded({ limit: "50mb", extended: true }),
+    // Global limiter after body is parsed
+    globalLimiter,
+    // Tighter limit on login/signup — body is parsed so operationName is available
+    (req, res, next) => {
+      const op = req.body?.operationName?.toLowerCase();
+      if (op === "login" || op === "signup") return authLimiter(req, res, next);
+      next();
+    },
     expressMiddleware(server, {
       context: async ({ req }) => {
         // Get token from Authorization header
         const token = req.headers.authorization?.replace("Bearer ", "");
 
-        // For debugging
-        console.log("Auth header:", req.headers.authorization);
-        console.log("Request origin:", req.headers.origin);
-        console.log("Request IP:", req.ip);
-
         // Get userId and role from token
         const { userId, role } = getUser(token);
-
-        console.log("User ID from token:", userId);
-        console.log("User role from token:", role);
 
         // Return context with userId, role and prisma client
         return {

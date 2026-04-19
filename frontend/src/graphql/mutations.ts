@@ -37,15 +37,6 @@ export const DELETE_USER = gql`
   }
 `;
 
-export const FORCE_DELETE_USER = gql`
-  mutation ForceDeleteUser($id: ID!) {
-    forceDeleteUser(id: $id) {
-      id
-    }
-  }
-`;
-
-// Add this mutation after the FORCE_DELETE_USER mutation
 export const UPLOAD_PROFILE_PICTURE = gql`
   mutation UploadProfilePicture($userId: ID!, $imageData: String!) {
     uploadProfilePicture(userId: $userId, imageData: $imageData) {

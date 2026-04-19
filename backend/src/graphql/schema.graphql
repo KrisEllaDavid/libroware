@@ -159,8 +159,6 @@ input BorrowUpdateInput {
 
 input ReviewCreateInput {
   bookId: ID!
-  userEmail: String!
-  userName: String!
   rating: Int!
   comment: String
 }
@@ -203,7 +201,7 @@ type Query {
   # Borrow queries
   borrow(id: ID!): Borrow
   borrows(skip: Int, take: Int, status: BorrowStatus): [Borrow!]!
-  userBorrows(userId: ID!, status: BorrowStatus): [Borrow!]!
+  userBorrows(userId: ID!, status: BorrowStatus, skip: Int, take: Int): [Borrow!]!
   overdueBorrows: [Borrow!]!
 
   # Review queries
@@ -220,7 +218,6 @@ type Mutation {
   createUser(input: UserCreateInput!): User!
   updateUser(id: ID!, input: UserUpdateInput!): User!
   deleteUser(id: ID!): User!
-  forceDeleteUser(id: ID!): User!
   uploadProfilePicture(userId: ID!, imageData: String!): UploadResponse!
   uploadFile(file: String!, type: UploadType!, id: ID!): UploadResponse!
 

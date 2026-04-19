@@ -56,10 +56,6 @@ const uploadImage = async (
       uploadOptions
     );
 
-    console.log(
-      `Image uploaded to Cloudinary in ${folder}:`,
-      result.secure_url
-    );
     return result;
   } catch (error) {
     console.error("Error uploading image to Cloudinary:", error);

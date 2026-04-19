@@ -1,6 +1,9 @@
 # Dependency directories
 node_modules/
 
+# Prisma generated client (regenerated on server via prisma generate)
+generated/
+
 # Environment variables
 .env
 .env.local

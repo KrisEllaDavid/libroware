@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
 import { GET_USERS } from '../../graphql/queries';
-import { CREATE_USER, UPDATE_USER, DELETE_USER, FORCE_DELETE_USER } from '../../graphql/mutations';
+import { CREATE_USER, UPDATE_USER, DELETE_USER } from '../../graphql/mutations';
 import Modal from '../Modal';
 import FloatingInput from '../FloatingInput';
 import FloatingDropdown from '../FloatingDropdown';
@@ -44,9 +44,6 @@ const UserManagement: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isForceDeleteModalOpen, setIsForceDeleteModalOpen] = useState(false);
-  const [userHasRecords, setUserHasRecords] = useState(false);
-
   const { toasts, addToast } = useToast();
 
   // GraphQL queries and mutations
@@ -139,56 +136,10 @@ const UserManagement: React.FC = () => {
     onError: (error) => {
       console.error("Delete user error:", error);
       setError(error.message);
-      
-      // Check if it's a foreign key constraint error
-      if (error.message.includes('Foreign key constraint violated')) {
-        // Switch to force delete confirmation instead of closing the modal
-        setIsForceDeleteModalOpen(true);
-      } else {
-        setIsDeleteModalOpen(false);
-        setUserToDelete(null);
-        addToast(`Error: ${error.message}`, 'error');
-      }
-    }
-  });
-
-  const [forceDeleteUser, { loading: forceDeleteLoading }] = useMutation(FORCE_DELETE_USER, {
-    onCompleted: (data: { forceDeleteUser: { id: string } }) => {
-      
-      // Close all modals
-      setIsForceDeleteModalOpen(false);
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
-      setUserHasRecords(false);
-      
-      // Refetch and update UI
-      refetch().then((result: { data?: { users: User[] } }) => {
-        if (result.data && result.data.users) {
-          setAllUsers(result.data.users);
-          setUsers(result.data.users);
-          addToast('User and all associated records deleted successfully', 'success');
-        }
-      }).catch((err: any) => {
-        console.error("Error refetching users after force delete:", err);
-        addToast('Error refreshing user list: ' + err.message, 'error');
-      });
-      
-      // Optimistic update
-      if (userToDelete) {
-        const filteredUsers = allUsers.filter(user => user.id !== userToDelete);
-        setAllUsers(filteredUsers);
-        setUsers(filteredUsers);
-      }
-    },
-    onError: (error: any) => {
-      console.error("Force delete user error:", error);
-      setError(error.message);
-      setIsForceDeleteModalOpen(false);
-      setIsDeleteModalOpen(false);
-      setUserToDelete(null);
-      setUserHasRecords(false);
       addToast(`Error: ${error.message}`, 'error');
-    },
+    }
   });
 
   // Update users state when data changes
@@ -389,41 +340,6 @@ const UserManagement: React.FC = () => {
       });
       // Modal is closed in the onCompleted handler
     }
-  };
-
-  const confirmForceDelete = () => {
-    if (userToDelete) {
-      
-      forceDeleteUser({ 
-        variables: { id: userToDelete },
-        update: (cache, { data }) => {
-          if (data && data.forceDeleteUser) {
-            // Update Apollo cache to remove the deleted user immediately
-            const deletedUserId = data.forceDeleteUser.id;
-            const cacheData: { users: User[] } | null = cache.readQuery({ 
-              query: GET_USERS, 
-              variables: { skip: 0, take: 50 } 
-            });
-            
-            if (cacheData && cacheData.users) {
-              const updatedUsers = cacheData.users.filter(user => user.id !== deletedUserId);
-              
-              cache.writeQuery({
-                query: GET_USERS,
-                variables: { skip: 0, take: 50 },
-                data: { users: updatedUsers }
-              });
-            }
-          }
-        }
-      });
-    }
-  };
-
-  const cancelForceDelete = () => {
-    setIsForceDeleteModalOpen(false);
-    setIsDeleteModalOpen(false);
-    setUserToDelete(null);
   };
 
   const cancelDelete = () => {
@@ -627,7 +543,7 @@ const UserManagement: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => handleDelete(user.id)}
-                    disabled={deleteLoading || user.id === currentUser?.id}  // Prevent self-deletion
+                    disabled={deleteLoading || user.id === currentUser?.id}
                     className={`${
                       user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : ''
                     } text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
@@ -826,29 +742,6 @@ const UserManagement: React.FC = () => {
         itemType="user"
       />
 
-      {/* Force Delete Confirmation Modal */}
-      <DeleteConfirmation
-        isOpen={isForceDeleteModalOpen}
-        title="User Has Associated Records"
-        message={
-          <div>
-            <p className="mb-4">This user has borrowed books, pending requests, or other associated records that prevent deletion.</p>
-            <p className="mb-2 font-medium">You have two options:</p>
-            <ol className="list-decimal pl-5 space-y-2 mb-4">
-              <li>Cancel and manually remove the user's records first</li>
-              <li>Force delete the user, which will remove ALL associated records</li>
-            </ol>
-            <p className="text-red-600 font-medium">Warning: Force delete is permanent and will remove all user data!</p>
-          </div>
-        }
-        confirmText={forceDeleteLoading ? "Deleting..." : "Force Delete"}
-        cancelText="Cancel"
-        onConfirm={confirmForceDelete}
-        onCancel={cancelForceDelete}
-        isLoading={forceDeleteLoading}
-        itemType="user"
-        isDanger={true}
-      />
     </div>
   );
 };

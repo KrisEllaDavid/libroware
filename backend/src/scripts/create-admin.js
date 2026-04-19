@@ -18,7 +18,7 @@ const DEFAULT_ADMIN = {
   firstName: "Admin",
   lastName: "User",
   role: "ADMIN",
-  requiresPasswordChange: false,
+  requiresPasswordChange: true,
   profilePicture:
     "https://ui-avatars.com/api/?name=Admin+User&background=0D8ABC&color=fff",
 };

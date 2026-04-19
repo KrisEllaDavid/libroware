@@ -14,7 +14,7 @@ const LIBRARIAN = {
   firstName: "Head",
   lastName: "Librarian",
   role: "LIBRARIAN",
-  requiresPasswordChange: false,
+  requiresPasswordChange: true,
   profilePicture:
     "https://ui-avatars.com/api/?name=Head+Librarian&background=FFA500&color=fff",
 };

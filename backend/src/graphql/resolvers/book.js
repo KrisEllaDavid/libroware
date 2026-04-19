@@ -1,58 +1,58 @@
-const { PrismaClient } = require("../../../generated/prisma");
-const prisma = new PrismaClient();
-
 module.exports = {
   Query: {
-    book: async (_, { id }) => {
-      return prisma.book.findUnique({ where: { id } });
+    book: async (_, { id }, { prisma }) => {
+      const book = await prisma.book.findUnique({
+        where: { id },
+        include: { authors: true, categories: true },
+      });
+      if (book?.deletedAt) return null;
+      return book;
     },
 
-    books: async (_, { skip = 0, take = 10, searchTitle }) => {
-      const where = searchTitle
-        ? { title: { contains: searchTitle, mode: "insensitive" } }
-        : {};
+    books: async (_, { skip = 0, take = 10, searchTitle }, { prisma }) => {
+      const where = { deletedAt: null };
+      if (searchTitle) where.title = { contains: searchTitle, mode: "insensitive" };
 
       return prisma.book.findMany({
         where,
         skip,
         take,
         orderBy: { title: "asc" },
+        include: { authors: true, categories: true },
       });
     },
 
-    booksByAuthor: async (_, { authorId, skip = 0, take = 10 }) => {
+    booksByAuthor: async (_, { authorId, skip = 0, take = 10 }, { prisma }) => {
       return prisma.book.findMany({
-        where: {
-          authors: {
-            some: {
-              id: authorId,
-            },
-          },
-        },
+        where: { deletedAt: null, authors: { some: { id: authorId } } },
         skip,
         take,
         orderBy: { title: "asc" },
+        include: { authors: true, categories: true },
       });
     },
 
-    booksByCategory: async (_, { categoryId, skip = 0, take = 10 }) => {
+    booksByCategory: async (
+      _,
+      { categoryId, skip = 0, take = 10 },
+      { prisma }
+    ) => {
       return prisma.book.findMany({
-        where: {
-          categories: {
-            some: {
-              id: categoryId,
-            },
-          },
-        },
+        where: { deletedAt: null, categories: { some: { id: categoryId } } },
         skip,
         take,
         orderBy: { title: "asc" },
+        include: { authors: true, categories: true },
       });
     },
   },
 
   Mutation: {
-    createBook: async (_, { input }) => {
+    createBook: async (_, { input }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN")
+        throw new Error("Only librarians and admins can create books");
+
       const {
         title,
         isbn,
@@ -65,29 +65,17 @@ module.exports = {
         categoryIds = [],
       } = input;
 
-      // Check if book with the same ISBN exists
+      if (!pageCount || pageCount < 1)
+        throw new Error("pageCount must be at least 1");
+      if (!quantity || quantity < 1)
+        throw new Error("quantity must be at least 1");
+
       const existingBook = await prisma.book.findUnique({ where: { isbn } });
-      if (existingBook) {
-        throw new Error("Book with this ISBN already exists");
-      }
+      if (existingBook) throw new Error("Book with this ISBN already exists");
 
-      // Create connections to authors and categories
-      const authorConnections = authorIds.map((id) => ({ id }));
-      const categoryConnections = categoryIds.map((id) => ({ id }));
-
-      // Create book
-      // Parse the publishedAt date safely
-      let parsedDate;
-      try {
-        parsedDate = new Date(publishedAt);
-        if (isNaN(parsedDate.getTime())) {
-          throw new Error("Invalid date format");
-        }
-      } catch (error) {
-        throw new Error(
-          `Invalid date format for publishedAt: ${error.message}`
-        );
-      }
+      const parsedDate = new Date(publishedAt);
+      if (isNaN(parsedDate.getTime()))
+        throw new Error("Invalid date format for publishedAt");
 
       return prisma.book.create({
         data: {
@@ -98,31 +86,24 @@ module.exports = {
           coverImage,
           pageCount,
           quantity,
-          available: quantity, // Initial available count equals quantity
-          authors: {
-            connect: authorConnections,
-          },
-          categories: {
-            connect: categoryConnections,
-          },
+          available: quantity,
+          authors: { connect: authorIds.map((id) => ({ id })) },
+          categories: { connect: categoryIds.map((id) => ({ id })) },
         },
-        include: {
-          authors: true,
-          categories: true,
-        },
+        include: { authors: true, categories: true },
       });
     },
 
-    updateBook: async (_, args) => {
+    updateBook: async (_, args, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN")
+        throw new Error("Only librarians and admins can update books");
+
       const { id } = args;
-      // Allow input from both "input" and "data" parameters for backward compatibility
       const input = args.input || args.data || {};
 
-      // Check if book exists
       const book = await prisma.book.findUnique({ where: { id } });
-      if (!book) {
-        throw new Error("Book not found");
-      }
+      if (!book || book.deletedAt) throw new Error("Book not found");
 
       const {
         title,
@@ -139,123 +120,93 @@ module.exports = {
 
       const updateData = {};
 
-      // Basic fields
       if (title !== undefined) updateData.title = title;
       if (isbn !== undefined) updateData.isbn = isbn;
       if (description !== undefined) updateData.description = description;
       if (publishedAt !== undefined) {
-        try {
-          // Try to parse the date, ensuring it's a valid date
-          const parsedDate = new Date(publishedAt);
-
-          // Check if the date is valid
-          if (!isNaN(parsedDate.getTime())) {
-            updateData.publishedAt = parsedDate;
-          } else {
-            throw new Error("Invalid date format for publishedAt");
-          }
-        } catch (error) {
-          throw new Error(
-            `Invalid date format for publishedAt: ${error.message}`
-          );
-        }
+        const parsedDate = new Date(publishedAt);
+        if (isNaN(parsedDate.getTime()))
+          throw new Error("Invalid date format for publishedAt");
+        updateData.publishedAt = parsedDate;
       }
       if (coverImage !== undefined) updateData.coverImage = coverImage;
-      if (pageCount !== undefined) updateData.pageCount = pageCount;
-      if (quantity !== undefined) updateData.quantity = quantity;
+      if (pageCount !== undefined) {
+        if (pageCount < 1) throw new Error("pageCount must be at least 1");
+        updateData.pageCount = pageCount;
+      }
+      if (quantity !== undefined) {
+        if (quantity < 1) throw new Error("quantity must be at least 1");
+        updateData.quantity = quantity;
+      }
       if (available !== undefined) updateData.available = available;
 
-      // Handle relationships
       if (authorIds && authorIds.length > 0) {
         updateData.authors = {
-          set: [], // Clear existing relationships
+          set: [],
           connect: authorIds.map((id) => ({ id })),
         };
       }
 
       if (categoryIds && categoryIds.length > 0) {
         updateData.categories = {
-          set: [], // Clear existing relationships
+          set: [],
           connect: categoryIds.map((id) => ({ id })),
         };
       }
 
-      // Update book
       return prisma.book.update({
         where: { id },
         data: updateData,
-        include: {
-          authors: true,
-          categories: true,
-        },
+        include: { authors: true, categories: true },
       });
     },
 
-    deleteBook: async (_, { id }) => {
-      // Check if book exists
-      const book = await prisma.book.findUnique({ where: { id } });
-      if (!book) {
-        throw new Error("Book not found");
-      }
+    deleteBook: async (_, { id }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN")
+        throw new Error("Only librarians and admins can delete books");
 
-      // Check if book is currently borrowed
+      const book = await prisma.book.findUnique({ where: { id } });
+      if (!book || book.deletedAt) throw new Error("Book not found");
+
       const activeBorrows = await prisma.borrow.findMany({
-        where: {
-          bookId: id,
-          status: "BORROWED",
-        },
+        where: { bookId: id, status: "BORROWED" },
       });
 
-      if (activeBorrows.length > 0) {
+      if (activeBorrows.length > 0)
         throw new Error("Cannot delete book because it is currently borrowed");
-      }
 
-      // Delete book
-      return prisma.book.delete({
+      return prisma.book.update({
         where: { id },
-        include: {
-          authors: true,
-          categories: true,
-        },
+        data: { deletedAt: new Date() },
+        include: { authors: true, categories: true },
       });
     },
   },
 
   Book: {
-    authors: async (parent) => {
+    // authors and categories are eagerly loaded in all queries above;
+    // these fallbacks handle direct book queries that may not include them.
+    authors: async (parent, _, { prisma }) => {
+      if (parent.authors) return parent.authors;
       return prisma.author.findMany({
-        where: {
-          books: {
-            some: {
-              id: parent.id,
-            },
-          },
-        },
+        where: { books: { some: { id: parent.id } } },
       });
     },
 
-    categories: async (parent) => {
+    categories: async (parent, _, { prisma }) => {
+      if (parent.categories) return parent.categories;
       return prisma.category.findMany({
-        where: {
-          books: {
-            some: {
-              id: parent.id,
-            },
-          },
-        },
+        where: { books: { some: { id: parent.id } } },
       });
     },
 
-    borrows: async (parent) => {
-      return prisma.borrow.findMany({
-        where: { bookId: parent.id },
-      });
+    borrows: async (parent, _, { prisma }) => {
+      return prisma.borrow.findMany({ where: { bookId: parent.id } });
     },
 
-    reviews: async (parent) => {
-      return prisma.review.findMany({
-        where: { bookId: parent.id },
-      });
+    reviews: async (parent, _, { prisma }) => {
+      return prisma.review.findMany({ where: { bookId: parent.id } });
     },
   },
 };
