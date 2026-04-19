@@ -88,24 +88,16 @@ const Modal: React.FC<ModalProps> = ({
 
   // Handle confirm action with toast notification
   const handleConfirm = () => {
-    // First close the modal
-    if (onCancel) {
-      onCancel();
-    }
-
-    // Then perform the action
     if (onConfirm) {
       onConfirm();
 
-      // Show a single specific toast notification if enabled
       if (showToast) {
-        const specificMessage = generateSuccessMessage();
-
-        // Use success type for all confirmations
-        setTimeout(() => {
-          addToast(specificMessage, "success");
-        }, 100);
+        addToast(generateSuccessMessage(), "success");
       }
+    }
+
+    if (onCancel) {
+      onCancel();
     }
   };
 
@@ -114,12 +106,8 @@ const Modal: React.FC<ModalProps> = ({
     if (onCancel) {
       onCancel();
 
-      // Show toast notification for cancel if enabled and message provided
       if (showToast && cancelMessage) {
-        // Short delay to prevent double toasts
-        setTimeout(() => {
-          addToast(cancelMessage, "info");
-        }, 100);
+        addToast(cancelMessage, "info");
       }
     }
   };

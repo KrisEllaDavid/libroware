@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useMutation } from "@apollo/client/react";
 import { RETURN_BOOK } from "../../graphql/mutations";
 import { USER_BORROWS } from "../../graphql/queries";
+import { useToast } from "../../context/ToastContext";
 
 interface UserBorrowsProps {
   userId: string;
@@ -33,27 +34,31 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
 }) => {
   const [filter, setFilter] = useState<"all" | "active" | "returned">("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const [returningBorrowId, setReturningBorrowId] = useState<string | null>(null);
+  const { addToast } = useToast();
 
-  const [returnBook, { loading: returningBook }] = useMutation(RETURN_BOOK, {
+  const [returnBook] = useMutation(RETURN_BOOK, {
     onCompleted: () => {
+      setReturningBorrowId(null);
       refetch();
     },
     onError: (error: any) => {
+      setReturningBorrowId(null);
       console.error("Error returning book:", error);
+      addToast(`Failed to return book: ${error.message}`, "error");
     },
     refetchQueries: [{ query: USER_BORROWS, variables: { userId } }],
   });
 
   const handleReturnBook = (borrowId: string) => {
+    setReturningBorrowId(borrowId);
     returnBook({ variables: { id: borrowId } });
   };
 
   const filteredBorrows = borrows.filter((borrow) => {
-    // Apply status filter
     if (filter === "active" && borrow.returnedAt !== null) return false;
     if (filter === "returned" && borrow.returnedAt === null) return false;
 
-    // Apply search filter
     if (searchTerm.trim() !== "") {
       const searchLower = searchTerm.toLowerCase();
       return (
@@ -218,10 +223,10 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                 <div className="p-4 pt-0">
                   <button
                     onClick={() => handleReturnBook(borrow.id)}
-                    disabled={returningBook}
+                    disabled={returningBorrowId === borrow.id}
                     className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {returningBook ? "Processing..." : "Return Book"}
+                    {returningBorrowId === borrow.id ? "Processing..." : "Return Book"}
                   </button>
                 </div>
               )}

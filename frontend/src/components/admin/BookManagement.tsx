@@ -100,6 +100,8 @@ const BookManagement: React.FC<BookManagementProps> = ({
   });
 
   // GraphQL mutations
+  const { addToast } = useToast();
+
   const [createBook, { loading: createLoading }] = useMutation(CREATE_BOOK, {
     onCompleted: () => {
       resetForm();
@@ -108,6 +110,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
     },
     onError: (error: any) => {
       setError(error.message);
+      addToast(`Failed to create book: ${error.message}`, 'error');
     },
   });
 
@@ -119,6 +122,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
     },
     onError: (error: any) => {
       setError(error.message);
+      addToast(`Failed to update book: ${error.message}`, 'error');
     },
   });
 
@@ -128,6 +132,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
     },
     onError: (error: any) => {
       setError(error.message);
+      addToast(`Failed to delete book: ${error.message}`, 'error');
     },
   });
 
@@ -190,11 +195,11 @@ const BookManagement: React.FC<BookManagementProps> = ({
       const year = parseInt(input.publishedAt, 10);
 
       // Check if it's a valid year (4 digits, not too far in the past or future)
-      if (!isNaN(year) && year >= 1000 && year <= 9999) {
+      if (!isNaN(year) && year >= 1000 && year <= new Date().getFullYear()) {
         // Format as ISO date string with January 1st of that year
         input.publishedAt = `${year}-01-01`;
       } else {
-        setError("Please enter a valid 4-digit year for publication date");
+        setError(`Please enter a valid year between 1000 and ${new Date().getFullYear()}`);
         return;
       }
     } catch (err) {

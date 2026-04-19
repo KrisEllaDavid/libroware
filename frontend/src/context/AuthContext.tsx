@@ -65,21 +65,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  const isAdmin = () => {
-    console.log("AuthContext: Checking if user is admin", user?.role);
-    return user?.role?.toUpperCase() === "ADMIN";
-  };
+  const isAdmin = () => user?.role?.toUpperCase() === "ADMIN";
 
   const isLibrarian = () => {
-    console.log("AuthContext: Checking if user is librarian", user?.role);
     const role = user?.role?.toUpperCase();
     return role === "LIBRARIAN" || role === "ADMIN";
   };
 
-  const isUser = () => {
-    console.log("AuthContext: Checking if user is User", user?.role);
-    return user?.role?.toUpperCase() === "USER";
-  };
+  const isUser = () => user?.role?.toUpperCase() === "USER";
 
   return (
     <AuthContext.Provider

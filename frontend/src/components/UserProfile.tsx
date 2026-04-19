@@ -7,21 +7,6 @@ import UserBorrows from "./user/UserBorrows";
 import BorrowStatistics from "./user/BorrowStatistics";
 import ProfileEditor from "./ProfileEditor";
 
-// Define a ME query to fetch the current user's data when needed
-const ME_QUERY = `
-  query Me {
-    me {
-      id
-      email
-      firstName
-      lastName
-      role
-      profilePicture
-      requiresPasswordChange
-      createdAt
-    }
-  }
-`;
 
 const UserProfile: React.FC = () => {
   const params = useParams();

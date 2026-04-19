@@ -54,7 +54,6 @@ const UserManagement: React.FC = () => {
     variables: { skip: 0, take: 50 },
     fetchPolicy: 'network-only', // Always fetch fresh data
     onCompleted: (data: { users: User[] }) => {
-      console.log("Users data received:", data);
       setAllUsers(data.users);
       setUsers(data.users);
     },
@@ -66,7 +65,6 @@ const UserManagement: React.FC = () => {
 
   const [createUser, { loading: createLoading }] = useMutation(CREATE_USER, {
     onCompleted: (data: { createUser: User }) => {
-      console.log("User created successfully:", data);
       resetForm();
       setIsFormModalOpen(false);
       
@@ -88,7 +86,6 @@ const UserManagement: React.FC = () => {
 
   const [updateUser, { loading: updateLoading }] = useMutation(UPDATE_USER, {
     onCompleted: (data: { updateUser: User }) => {
-      console.log("User updated successfully:", data);
       resetForm();
       setIsFormModalOpen(false);
       
@@ -109,48 +106,35 @@ const UserManagement: React.FC = () => {
 
   const [deleteUser, { loading: deleteLoading }] = useMutation(DELETE_USER, {
     onCompleted: (data) => {
-      console.log("User deleted successfully:", data);
-      
-      // Close the modal immediately
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
-      
-      // Immediate UI update without waiting for refetch
+
       if (userToDelete) {
         const filteredUsers = allUsers.filter(user => user.id !== userToDelete);
         setAllUsers(filteredUsers);
         setUsers(filteredUsers);
       }
-      
-      // Add a small delay before refetching to ensure the server has processed the deletion
-      setTimeout(() => {
-        console.log("Refetching users after deletion");
-        refetch({ fetchPolicy: 'network-only' })
-          .then(({ data }) => {
-            if (data && data.users) {
-              console.log("Refetch successful, got", data.users.length, "users");
-              setAllUsers(data.users);
-              
-              // Apply search filter if one exists
-              if (searchTerm.trim() === '') {
-                setUsers(data.users);
-              } else {
-                const filtered = data.users.filter(user => 
-                  user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  user.email.toLowerCase().includes(searchTerm.toLowerCase())
-                );
-                setUsers(filtered);
-              }
-              
 
+      refetch()
+        .then(({ data }) => {
+          if (data && data.users) {
+            setAllUsers(data.users);
+            if (searchTerm.trim() === '') {
+              setUsers(data.users);
+            } else {
+              const filtered = data.users.filter(user =>
+                user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                user.email.toLowerCase().includes(searchTerm.toLowerCase())
+              );
+              setUsers(filtered);
             }
-          })
-          .catch(error => {
-            console.error("Error refetching users:", error);
-            addToast('Error refreshing user list', 'error');
-          });
-      }, 500); // Small delay to ensure deletion is processed
+          }
+        })
+        .catch((error: unknown) => {
+          console.error("Error refetching users:", error);
+          addToast('Error refreshing user list', 'error');
+        });
     },
     onError: (error) => {
       console.error("Delete user error:", error);
@@ -170,7 +154,6 @@ const UserManagement: React.FC = () => {
 
   const [forceDeleteUser, { loading: forceDeleteLoading }] = useMutation(FORCE_DELETE_USER, {
     onCompleted: (data: { forceDeleteUser: { id: string } }) => {
-      console.log("User force deleted successfully:", data);
       
       // Close all modals
       setIsForceDeleteModalOpen(false);
@@ -268,8 +251,6 @@ const UserManagement: React.FC = () => {
       // Don't send empty password
       if (!input.password) {
         const { password, ...rest } = input;
-        console.log("Updating user with ID:", selectedUserId);
-        console.log("Update payload:", rest);
         
         updateUser({ 
           variables: { id: selectedUserId, input: rest },
@@ -297,8 +278,6 @@ const UserManagement: React.FC = () => {
           }
         });
       } else {
-        console.log("Updating user with ID and password:", selectedUserId);
-        console.log("Update payload with password:", {...input, password: "[REDACTED]"});
         
         updateUser({ 
           variables: { id: selectedUserId, input: input },
@@ -328,7 +307,6 @@ const UserManagement: React.FC = () => {
       }
     } else {
       // Create new user
-      console.log("Creating new user:", { ...formData, password: "[REDACTED]" });
       
       createUser({ 
         variables: { input: formData },
@@ -385,7 +363,6 @@ const UserManagement: React.FC = () => {
 
   const confirmDelete = () => {
     if (userToDelete) {
-      console.log("Deleting user with ID:", userToDelete);
       
       deleteUser({ 
         variables: { id: userToDelete },
@@ -416,7 +393,6 @@ const UserManagement: React.FC = () => {
 
   const confirmForceDelete = () => {
     if (userToDelete) {
-      console.log("Force deleting user with ID:", userToDelete);
       
       forceDeleteUser({ 
         variables: { id: userToDelete },
@@ -495,7 +471,6 @@ const UserManagement: React.FC = () => {
 
   // Add a function to explicitly refresh the user list
   const refreshUserList = () => {
-    console.log("Manually refreshing user list");
     
     // Track the initial user count for comparison
     const initialUserCount = allUsers.length;
@@ -505,7 +480,6 @@ const UserManagement: React.FC = () => {
       fetchPolicy: 'network-only' 
     }).then((result: { data?: { users: User[] } }) => {
       if (result.data && result.data.users) {
-        console.log("Refreshed user list:", result.data.users.length);
         
         // Check if data has changed by comparing lengths and IDs
         const hasDataChanged = 
@@ -539,7 +513,6 @@ const UserManagement: React.FC = () => {
 
   // Add a refresh button to the UI to manually refresh the user list
   const manualRefresh = () => {
-    console.log("Manual refresh requested");
     
     // Track the initial user count to detect changes
     const initialUserCount = allUsers.length;
@@ -562,7 +535,7 @@ const UserManagement: React.FC = () => {
           }
         }
       })
-      .catch((error: Error) => {
+      .catch((error: unknown) => {
         console.error("Manual refresh error:", error);
         addToast('Error refreshing user list', 'error');
       });

@@ -1,49 +1,27 @@
-import { ApolloClient, InMemoryCache, ApolloClientOptions } from '@apollo/client';
+import { ApolloClient, InMemoryCache, ApolloClientOptions, NormalizedCacheObject } from '@apollo/client';
 import { from } from '@apollo/client/core';
 import { HttpLink } from '@apollo/client/link/http';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import { ServerError } from '@apollo/client/link/utils';
 
-// Get API URL from environment variables and ensure it's properly formatted
 const API_URL = "/api/graphql";
 
-if (!API_URL) {
-  console.error('VITE_API_URL environment variable is not set');
-}
-
-// Log the API URL for debugging
-console.log('Using Apollo API URL:', API_URL);
-
-// Error handling link
-const errorLink = onError(({ graphQLErrors, networkError, operation, response }) => {
-  console.log('🔍 Apollo operation error details:');
-  console.log('- Operation:', operation.operationName);
-  console.log('- Variables:', JSON.stringify(operation.variables));
-  console.log('- Request URL:', operation.getContext().uri);
-  
+const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (graphQLErrors) {
-    graphQLErrors.forEach(({ message, locations, path, extensions }) => {
-      console.error(`❌ [GraphQL error]: Message: ${message}, Path: ${path}`);
-      console.error('  Locations:', JSON.stringify(locations));
-      console.error('  Extensions:', JSON.stringify(extensions));
+    graphQLErrors.forEach(({ message, path }) => {
+      console.error(`[GraphQL error]: ${message}, Path: ${path}`);
     });
   }
-  
+
   if (networkError) {
-    console.error(`❌ [Network error]:`, networkError);
-    // @ts-ignore
-    if (networkError.statusCode) {
-      // @ts-ignore
-      console.error(`  Status code: ${networkError.statusCode}`);
+    console.error(`[Network error]:`, networkError);
+    if ((networkError as ServerError).statusCode) {
+      console.error(`Status code: ${(networkError as ServerError).statusCode}`);
     }
-  }
-  
-  if (response) {
-    console.log('  Response:', response);
   }
 });
 
-// Add a link to always send the x-apollo-operation-name header
 const operationNameLink = setContext((_, { headers }) => ({
   headers: {
     ...headers,
@@ -51,21 +29,13 @@ const operationNameLink = setContext((_, { headers }) => ({
   }
 }));
 
-// Create an http link with proper configuration
 const httpLink = new HttpLink({
   uri: API_URL,
   credentials: 'include',
-  fetch: (uri, options) => {
-    // Log the actual request URL
-    console.log('Making request to:', uri);
-    return fetch(uri, options);
-  }
 });
 
-// Auth link to set the authorization header
 const authLink = setContext((_, { headers }) => {
   const token = localStorage.getItem('token');
-  
   return {
     headers: {
       ...headers,
@@ -75,24 +45,22 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
-// Create Apollo client with appropriate configuration
-const clientOptions = {
+const clientOptions: ApolloClientOptions<NormalizedCacheObject> = {
   link: from([errorLink, operationNameLink, authLink, httpLink]),
   cache: new InMemoryCache(),
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'network-only' as const, 
-      errorPolicy: 'all' as const,
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all',
     },
     query: {
-      fetchPolicy: 'network-only' as const,
-      errorPolicy: 'all' as const,
+      fetchPolicy: 'network-only',
+      errorPolicy: 'all',
     },
     mutate: {
-      fetchPolicy: 'no-cache' as const,
-      errorPolicy: 'all' as const,
+      errorPolicy: 'all',
     },
   }
 };
 
-export const client = new ApolloClient(clientOptions as any); 
+export const client = new ApolloClient(clientOptions);

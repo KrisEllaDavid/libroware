@@ -57,7 +57,6 @@ const Navigation: React.FC = () => {
   };
 
   const closeMenu = () => {
-    console.log("Closing menu");
     setIsMenuOpen(false);
     document.body.classList.remove("mobile-menu-open");
   };
@@ -65,12 +64,8 @@ const Navigation: React.FC = () => {
   const closeButtonHandler = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log("Close button clicked with special handler");
-    // Force menu to close with a slight delay to ensure state updates
-    setTimeout(() => {
-      setIsMenuOpen(false);
-      document.body.classList.remove("mobile-menu-open");
-    }, 10);
+    setIsMenuOpen(false);
+    document.body.classList.remove("mobile-menu-open");
   };
 
   const openMenu = () => {
@@ -81,10 +76,7 @@ const Navigation: React.FC = () => {
   // Handle navigation with menu closing
   const handleNavigation = (path: string) => {
     closeMenu();
-    // Use setTimeout to ensure menu closes before navigation
-    setTimeout(() => {
-      navigate(path);
-    }, 50);
+    navigate(path);
   };
 
   // Determine the dashboard link destination based on user role
@@ -341,9 +333,7 @@ const Navigation: React.FC = () => {
                 className="w-full text-left block py-2 px-3 text-base font-medium text-emerald-100 hover:text-white hover:bg-emerald-700 hover:scale-105 transform transition-all duration-200 rounded-md hover:shadow-md relative z-[101]"
                 onClick={() => {
                   closeMenu();
-                  setTimeout(() => {
-                    logout();
-                  }, 50);
+                  logout();
                 }}
                 tabIndex={isMenuOpen ? 0 : -1}
               >
