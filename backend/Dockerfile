@@ -5,7 +5,7 @@ RUN apt-get update -y && apt-get install -y openssl
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
 RUN npm ci
 
