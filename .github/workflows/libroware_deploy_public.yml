@@ -21,12 +21,12 @@ jobs:
 
       - name: Clone repo on server
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} '
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} "
             set -e
             cd /home/${{ secrets.PUBLIC_SERVER_USER }}
             rm -rf libroware
             git clone https://github.com/KrisEllaDavid/libroware.git
-          '
+          "
 
       - name: Write environment file
         env:
@@ -37,9 +37,9 @@ jobs:
 
       - name: Start application
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} '
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.PUBLIC_SERVER_USER }}@${{ secrets.PUBLIC_SERVER_HOST }} "
             set -e
             cd /home/${{ secrets.PUBLIC_SERVER_USER }}/libroware
             chmod +x deploy.sh
             ./deploy.sh
-          '
+          "

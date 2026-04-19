@@ -28,26 +28,25 @@ jobs:
 
       - name: Clone repo on server
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 checkme-server@${{ secrets.SERVER_HOST }} '
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
             set -e
-            DEPLOY_DIR=$(pwd)
-            echo "Deploying to: $DEPLOY_DIR"
+            cd /home/${{ secrets.SERVER_USER }}
             rm -rf libroware
             git clone https://github.com/KrisEllaDavid/libroware.git
-          '
+          "
 
       - name: Write environment file
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
-          echo "$ENV_FILE" | ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes checkme-server@${{ secrets.SERVER_HOST }} \
-            'cat > $(pwd)/libroware/.env && chmod 600 $(pwd)/libroware/.env'
+          echo "$ENV_FILE" | ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
+            "cat > /home/${{ secrets.SERVER_USER }}/libroware/.env && chmod 600 /home/${{ secrets.SERVER_USER }}/libroware/.env"
 
       - name: Start application
         run: |
-          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 checkme-server@${{ secrets.SERVER_HOST }} '
+          ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=yes -o ServerAliveInterval=60 ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} "
             set -e
-            cd $(pwd)/libroware
+            cd /home/${{ secrets.SERVER_USER }}/libroware
             chmod +x deploy.sh
             ./deploy.sh
-          '
+          "
