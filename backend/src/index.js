@@ -73,6 +73,9 @@ async function startServer() {
   // Create Express app
   const app = express();
 
+  // Trust proxy — required for accurate IP identification when behind a proxy
+  app.set("trust proxy", 1);
+
   // Create Apollo Server
   const server = new ApolloServer({
     typeDefs,
