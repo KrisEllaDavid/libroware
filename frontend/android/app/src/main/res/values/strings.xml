@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Libroware</string>
+    <string name="title_activity_main">Libroware</string>
+    <string name="package_name">com.libroware.app</string>
+    <string name="custom_url_scheme">com.libroware.app</string>
+</resources>
