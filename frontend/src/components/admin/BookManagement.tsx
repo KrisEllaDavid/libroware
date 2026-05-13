@@ -11,6 +11,7 @@ import FileUpload from "../common/FileUpload";
 import { useToast } from "../../context/ToastContext";
 import BookQRModal from "./BookQRModal";
 import QRLabelSheet from "./QRLabelSheet";
+import ISBNLookup from "./ISBNLookup";
 
 interface Author {
   id: string;
@@ -565,6 +566,30 @@ const BookManagement: React.FC<BookManagementProps> = ({
         size="lg"
       >
         <div className="space-y-4">
+          {/* ISBN auto-fill — only shown when creating a new book */}
+          {!isEditing && (
+            <ISBNLookup
+              onData={(data) => {
+                // Pre-fill form fields from lookup result
+                setFormData(prev => ({
+                  ...prev,
+                  title:       data.title       || prev.title,
+                  isbn:        data.isbn        || prev.isbn,
+                  description: data.description || prev.description,
+                  publishedAt: data.publishedAt || prev.publishedAt,
+                  coverImage:  data.coverImage  || prev.coverImage,
+                  pageCount:   data.pageCount   || prev.pageCount,
+                }));
+                // Show matched authors as a toast note
+                if (data.authors.length > 0) {
+                  addToast(
+                    `Authors found: ${data.authors.join(', ')} — please select or create them below`,
+                    'info'
+                  );
+                }
+              }}
+            />
+          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FloatingInput
               id="title"
