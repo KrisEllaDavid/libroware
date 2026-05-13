@@ -5,7 +5,7 @@ import BookManagement from "./admin/BookManagement";
 import AuthorManagement from "./admin/AuthorManagement";
 import CategoryManagement from "./admin/CategoryManagement";
 import FinesManagement from "./admin/FinesManagement";
-import Dashboard from "./dashboard/Dashboard";
+import AnalyticsDashboard from "./dashboard/AnalyticsDashboard";
 import PendingRequests from "./admin/PendingRequests";
 import BorrowHistory from "./admin/BorrowHistory";
 import { useLocation, Navigate } from "react-router-dom";
@@ -108,7 +108,7 @@ const AdminPanel: React.FC = () => {
         case "home":
           return (
             <div className={transitionClass}>
-              <Dashboard />
+              <AnalyticsDashboard />
             </div>
           );
         case "users":

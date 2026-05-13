@@ -7,6 +7,7 @@ const reviewResolvers      = require("./review");
 const uploadResolvers      = require("./upload");
 const fineResolvers        = require("./fine");
 const reservationResolvers = require("./reservation");
+const analyticsResolvers   = require("./analytics");
 
 module.exports = {
   Query: {
@@ -18,6 +19,7 @@ module.exports = {
     ...reviewResolvers.Query,
     ...fineResolvers.Query,
     ...reservationResolvers.Query,
+    ...analyticsResolvers.Query,
   },
 
   Mutation: {

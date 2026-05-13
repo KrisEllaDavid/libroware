@@ -115,6 +115,38 @@ type Review {
   updatedAt: String!
 }
 
+type DashboardStats {
+  totalBooks:        Int!
+  availableBooks:    Int!
+  borrowedBooks:     Int!
+  overdueBooks:      Int!
+  totalUsers:        Int!
+  activeUsers:       Int!
+  totalBorrows:      Int!
+  borrowsThisMonth:  Int!
+  totalReservations: Int!
+  outstandingFines:  Float!
+  collectedFines:    Float!
+  waivedFines:       Float!
+}
+
+type MonthPoint {
+  month:   String!
+  borrows: Int!
+  returns: Int!
+}
+
+type BookBorrowStat {
+  bookId: ID!
+  title:  String!
+  count:  Int!
+}
+
+type CategoryBorrowStat {
+  category: String!
+  count:    Int!
+}
+
 input UserCreateInput {
   email: String!
   password: String!
@@ -240,6 +272,12 @@ type Query {
   # Review queries
   review(id: ID!): Review
   bookReviews(bookId: ID!, skip: Int, take: Int): [Review!]!
+
+  # Analytics
+  dashboardStats: DashboardStats!
+  borrowTrends(months: Int): [MonthPoint!]!
+  topBorrowedBooks(take: Int): [BookBorrowStat!]!
+  categoryBorrowStats: [CategoryBorrowStat!]!
 
   # Fine queries
   fine(borrowId: ID!): Fine

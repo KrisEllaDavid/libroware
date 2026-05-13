@@ -1,5 +1,36 @@
 import { gql } from '@apollo/client';
 
+// Analytics Queries
+export const GET_DASHBOARD_STATS = gql`
+  query GetDashboardStats {
+    dashboardStats {
+      totalBooks availableBooks borrowedBooks overdueBooks
+      totalUsers activeUsers
+      totalBorrows borrowsThisMonth
+      totalReservations
+      outstandingFines collectedFines waivedFines
+    }
+  }
+`;
+
+export const GET_BORROW_TRENDS = gql`
+  query GetBorrowTrends($months: Int) {
+    borrowTrends(months: $months) { month borrows returns }
+  }
+`;
+
+export const GET_TOP_BORROWED_BOOKS = gql`
+  query GetTopBorrowedBooks($take: Int) {
+    topBorrowedBooks(take: $take) { bookId title count }
+  }
+`;
+
+export const GET_CATEGORY_BORROW_STATS = gql`
+  query GetCategoryBorrowStats {
+    categoryBorrowStats { category count }
+  }
+`;
+
 // Fine Queries
 export const GET_USER_FINES = gql`
   query GetUserFines($userId: ID!, $skip: Int, $take: Int) {
