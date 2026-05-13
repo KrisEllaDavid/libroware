@@ -5,13 +5,9 @@ import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current working directory.
-  const env = loadEnv(mode, process.cwd());
-
-  // Use the loaded environment variables
-  const apiUrl = env.VITE_API_URL;
+  loadEnv(mode, process.cwd());
+  const isElectron = mode === "electron";
 
   return {
     plugins: [react()],
@@ -20,14 +16,22 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "./src"),
       },
     },
+    // Electron needs relative paths for assets; web uses absolute
+    base: isElectron ? "./" : "/",
+    define: {
+      "import.meta.env.VITE_ELECTRON": JSON.stringify(String(isElectron)),
+    },
+    build: {
+      outDir: "dist",
+    },
     server: {
       port: 3000,
-      // Only use proxy in development local mode
       proxy:
         mode === "development"
           ? {
-              "/graphql": {
+              "/api/graphql": {
                 target: "http://localhost:4000",
+                rewrite: (p) => p.replace(/^\/api\/graphql/, "/graphql"),
                 changeOrigin: true,
               },
             }

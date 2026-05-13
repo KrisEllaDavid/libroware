@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AdminPanel from "./components/AdminPanel";
 import LoginPage from "./components/LoginPage";
 import UserProfile from "./components/UserProfile";
@@ -14,11 +14,24 @@ import { ToastProvider } from "./context/ToastContext";
 import ToastNotification from "./components/common/ToastNotification";
 import SplashScreen from "./components/SplashScreen";
 import AboutPage from "./components/AboutPage";
+import ElectronSettings from "./components/ElectronSettings";
+
+// Electron: listen for navigate events from main process (e.g. open Settings)
+const useElectronNav = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (!api?.onNavigate) return;
+    const cleanup = api.onNavigate((route: string) => navigate(route));
+    return cleanup;
+  }, [navigate]);
+};
 
 // Component that conditionally renders based on auth state
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, isAdmin, isLibrarian } = useAuth();
   const [showSplash, setShowSplash] = useState(true);
+  useElectronNav();
 
   // Handler for when splash screen animation completes
   const handleSplashFinish = () => {
@@ -70,6 +83,7 @@ const AppContent: React.FC = () => {
           />
           <Route path="/books" element={<UserBookView />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/electron-settings" element={<ElectronSettings />} />
           <Route path="/" element={<Navigate to={defaultPath} replace />} />
           <Route path="*" element={<Navigate to={defaultPath} replace />} />
         </Routes>

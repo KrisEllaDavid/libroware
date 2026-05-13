@@ -24,6 +24,21 @@ build
 out
 .next
 
+# Electron build output
+frontend/dist-desktop/
+
+# Android (generated Gradle files, but keep src)
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/build/
+frontend/android/local.properties
+frontend/android/libroware-release.jks
+
+# iOS (generated Xcode build artifacts)
+frontend/ios/App/Pods/
+frontend/ios/App/App.xcworkspace/xcuserdata/
+frontend/ios/App/build/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -58,3 +73,4 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/ 
+docs/

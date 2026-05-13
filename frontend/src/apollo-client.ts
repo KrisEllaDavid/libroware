@@ -4,8 +4,7 @@ import { HttpLink } from '@apollo/client/link/http';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { ServerError } from '@apollo/client/link/utils';
-
-const API_URL = "/api/graphql";
+import { getApiUrl } from './config/api';
 
 const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (graphQLErrors) {
@@ -30,7 +29,7 @@ const operationNameLink = setContext((_, { headers }) => ({
 }));
 
 const httpLink = new HttpLink({
-  uri: API_URL,
+  uri: getApiUrl,
   credentials: 'include',
 });
 

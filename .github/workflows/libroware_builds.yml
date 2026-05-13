@@ -1,0 +1,156 @@
+name: Build Native Apps
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_windows:
+        description: "Windows — Electron installer (.exe)"
+        type: boolean
+        default: true
+      build_android:
+        description: "Android — Signed release APK"
+        type: boolean
+        default: true
+      build_ios:
+        description: "iOS — Unsigned debug IPA"
+        type: boolean
+        default: false
+
+jobs:
+  # ── Windows (Electron NSIS installer) ──────────────────────────────────────
+  windows:
+    name: Windows Electron Build
+    if: ${{ inputs.build_windows }}
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build Electron (Windows)
+        working-directory: frontend
+        run: npm run desktop:win
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: libroware-windows-${{ github.run_number }}
+          path: frontend/dist-desktop/*.exe
+          retention-days: 30
+
+  # ── Android (signed release APK) ──────────────────────────────────────────
+  android:
+    name: Android APK Build
+    if: ${{ inputs.build_android }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build web assets
+        working-directory: frontend
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Decode release keystore
+        working-directory: frontend/android
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > libroware-release.jks
+
+      - name: Build signed release APK
+        working-directory: frontend/android
+        run: ./gradlew assembleRelease
+        env:
+          KEYSTORE_PATH:  libroware-release.jks
+          KEY_ALIAS:      ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD:   ${{ secrets.ANDROID_KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: libroware-android-${{ github.run_number }}
+          path: frontend/android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+
+  # ── iOS (unsigned debug IPA) ───────────────────────────────────────────────
+  ios:
+    name: iOS IPA Build
+    if: ${{ inputs.build_ios }}
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm install
+
+      - name: Build web assets
+        working-directory: frontend
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync ios
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Build unsigned IPA
+        working-directory: frontend/ios/App
+        run: |
+          xcodebuild \
+            -workspace App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -destination generic/platform=iOS \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            ONLY_ACTIVE_ARCH=NO \
+            -archivePath ${{ runner.temp }}/Libroware.xcarchive \
+            archive
+          xcodebuild \
+            -exportArchive \
+            -archivePath ${{ runner.temp }}/Libroware.xcarchive \
+            -exportOptionsPlist ../../ExportOptions.plist \
+            -exportPath ${{ runner.temp }}/ipa
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: libroware-ios-${{ github.run_number }}
+          path: ${{ runner.temp }}/ipa/*.ipa
+          retention-days: 30
