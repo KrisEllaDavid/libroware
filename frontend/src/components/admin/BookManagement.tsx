@@ -9,6 +9,8 @@ import FloatingDropdown from "../FloatingDropdown";
 import DeleteConfirmation from "../DeleteConfirmation";
 import FileUpload from "../common/FileUpload";
 import { useToast } from "../../context/ToastContext";
+import BookQRModal from "./BookQRModal";
+import QRLabelSheet from "./QRLabelSheet";
 
 interface Author {
   id: string;
@@ -80,6 +82,8 @@ const BookManagement: React.FC<BookManagementProps> = ({
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [showNewAuthorModal, setShowNewAuthorModal] = useState(false);
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [qrBook, setQrBook] = useState<Book | null>(null);
+  const [showLabelSheet, setShowLabelSheet] = useState(false);
 
   // GraphQL queries
   const {
@@ -323,6 +327,18 @@ const BookManagement: React.FC<BookManagementProps> = ({
             </div>
             <button
               type="button"
+              onClick={() => setShowLabelSheet(true)}
+              disabled={books.length === 0}
+              className="inline-flex items-center px-3 py-2 border border-emerald-500 text-sm leading-4 font-medium rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 w-full sm:w-auto justify-center transition-all"
+              title="Print QR labels for all books"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+              </svg>
+              Print QR Labels
+            </button>
+            <button
+              type="button"
               onClick={handleCreate}
               className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 w-full sm:w-auto justify-center"
             >
@@ -476,6 +492,16 @@ const BookManagement: React.FC<BookManagementProps> = ({
                     </td>
                     <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-center space-x-2">
+                        <button
+                          onClick={() => setQrBook(book)}
+                          className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          aria-label={`QR code for ${book.title}`}
+                          title="Show QR Code"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                          </svg>
+                        </button>
                         <button
                           onClick={() => handleEdit(book)}
                           className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"

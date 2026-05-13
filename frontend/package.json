@@ -130,7 +130,7 @@
     "electron-builder": "^26.0.0",
     "file-saver": "^2.0.5",
     "postcss": "^8.4.31",
-    "vite": "^8.0.12"
+    "vite": "^7.0.0"
   },
   "resolutions": {
     "@babel/plugin-transform-private-methods": "^7.22.5",
