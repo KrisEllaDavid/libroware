@@ -36,6 +36,7 @@ services:
       - NODE_ENV=${NODE_ENV:-production}
       - JWT_SECRET=${JWT_SECRET:-libroware-jwt-secret-key}
       - CLOUDINARY_URL=${CLOUDINARY_URL}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
     ports:
       - "5000:5000"
     networks:
