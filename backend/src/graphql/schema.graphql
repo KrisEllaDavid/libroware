@@ -9,6 +9,7 @@ type User {
   borrowedBooks: [Borrow!]!
   createdAt: String!
   updatedAt: String!
+  deletedAt: String
 }
 
 enum Role {
@@ -33,6 +34,7 @@ type Book {
   reviews: [Review!]!
   createdAt: String!
   updatedAt: String!
+  deletedAt: String
 }
 
 type Author {
