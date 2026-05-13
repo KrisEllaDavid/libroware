@@ -7,7 +7,7 @@ import imageCompression from 'browser-image-compression';
 
 interface ProfileEditorProps {
   onClose: () => void;
-  onUpdate: () => void;
+  onUpdate: (updated?: Partial<{ firstName: string; lastName: string; email: string; profilePicture: string }>) => void;
 }
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
@@ -138,8 +138,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
           addToast('Profile updated successfully', 'success');
         }
 
-        // Call onUpdate callback to refresh parent component
-        onUpdate();
+        // Pass updated fields to parent so it can update context without reload
+        onUpdate(data.updateUser);
         onClose();
       }
     } catch (error) {

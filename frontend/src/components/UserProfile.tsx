@@ -3,6 +3,7 @@ import { useQuery } from "@apollo/client/react";
 import { useParams, Link } from "react-router-dom";
 import { GET_USER, USER_BORROWS } from "../graphql/queries";
 import { useAuth } from "../context/AuthContext";
+import { User } from "../types";
 import UserBorrows from "./user/UserBorrows";
 import BorrowStatistics from "./user/BorrowStatistics";
 import ProfileEditor from "./ProfileEditor";
@@ -11,7 +12,7 @@ import ProfileEditor from "./ProfileEditor";
 const UserProfile: React.FC = () => {
   const params = useParams();
   const id = params?.id;
-  const { user: currentUser, isAuthenticated } = useAuth();
+  const { user: currentUser, isAuthenticated, updateUser } = useAuth();
   const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   // Use the current user's ID if no ID is provided in the URL
@@ -41,6 +42,7 @@ const UserProfile: React.FC = () => {
     data: userData,
     loading: userLoading,
     error: userError,
+    refetch,
   } = useQuery(GET_USER, {
     variables: { id: userId },
     fetchPolicy: "cache-and-network",
@@ -78,10 +80,10 @@ const UserProfile: React.FC = () => {
     user = userData.user;
   }
 
-  // Handle refreshing user data after profile update
-  const handleProfileUpdate = () => {
-    // Refresh the page to get updated data
-    window.location.reload();
+  // Update AuthContext + Apollo cache instead of reloading the page
+  const handleProfileUpdate = (updated?: Partial<User>) => {
+    if (updated) updateUser(updated);
+    refetch();
   };
 
   // Safely handle user data for display

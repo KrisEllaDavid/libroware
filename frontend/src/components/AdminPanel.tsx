@@ -103,77 +103,24 @@ const AdminPanel: React.FC = () => {
   };
 
   const renderTabContent = () => {
-    // Apply transition classes based on direction
-    const transitionClass = `transform transition-all duration-300 ${
-      activeTab === "right" ? "translate-x-0" : "-translate-x-0"
-    }`;
-
-    // Add error catching wrapper for tab content
     try {
       switch (activeTab) {
         case "home":
-          return (
-            <div className={transitionClass}>
-              <AnalyticsDashboard />
-            </div>
-          );
+          return <AnalyticsDashboard />;
         case "users":
-          return (
-            <div className={transitionClass}>
-              <UserManagement />
-            </div>
-          );
+          return <UserManagement />;
         case "books":
-          return (
-            <div className={transitionClass}>
-              <BookManagement
-                onAuthorCreate={() => handleTabChange("authors")}
-                onCategoryCreate={() => handleTabChange("categories")}
-              />
-            </div>
-          );
-        case "authors":
-          return (
-            <div className={transitionClass}>
-              <AuthorManagement />
-            </div>
-          );
-        case "categories":
-          return (
-            <div className={transitionClass}>
-              <CategoryManagement />
-            </div>
-          );
-        case "pending":
-          return (
-            <div className={transitionClass}>
-              <PendingRequests />
-            </div>
-          );
-        case "history":
-          return (
-            <div className={transitionClass}>
-              <BorrowHistory />
-            </div>
-          );
-        case "fines":
-          return (
-            <div className={transitionClass}>
-              <FinesManagement />
-            </div>
-          );
-        case "deleted":
-          return (
-            <div className={transitionClass}>
-              <DeletedRecords />
-            </div>
-          );
-        case "audit":
-          return (
-            <div className={transitionClass}>
-              <AuditLogViewer />
-            </div>
-          );
+          return <BookManagement
+            onAuthorCreate={() => handleTabChange("authors")}
+            onCategoryCreate={() => handleTabChange("categories")}
+          />;
+        case "authors":    return <AuthorManagement />;
+        case "categories": return <CategoryManagement />;
+        case "pending":    return <PendingRequests />;
+        case "history":    return <BorrowHistory />;
+        case "fines":      return <FinesManagement />;
+        case "deleted":    return <DeletedRecords />;
+        case "audit":      return <AuditLogViewer />;
         default:
           return null;
       }

@@ -13,6 +13,7 @@ interface AuthContextType {
   token: string | null;
   login: (token: string, user: User) => void;
   logout: () => void;
+  updateUser: (partial: Partial<User>) => void;
   isAdmin: () => boolean;
   isLibrarian: () => boolean;
   isUser: () => boolean;
@@ -65,6 +66,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  const updateUser = (partial: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const updated = { ...prev, ...partial };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const isAdmin = () => user?.role?.toUpperCase() === "ADMIN";
 
   const isLibrarian = () => {
@@ -82,6 +92,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         token,
         login,
         logout,
+        updateUser,
         isAdmin,
         isLibrarian,
         isUser,
