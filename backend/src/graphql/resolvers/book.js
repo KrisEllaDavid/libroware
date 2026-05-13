@@ -32,6 +32,17 @@ module.exports = {
       });
     },
 
+    deletedBooks: async (_, { skip = 0, take = 50 }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Not authorized");
+      return prisma.book.findMany({
+        where:   { deletedAt: { not: null } },
+        skip, take,
+        orderBy: { deletedAt: "desc" },
+        include: { authors: true, categories: true },
+      });
+    },
+
     booksByCategory: async (
       _,
       { categoryId, skip = 0, take = 10 },
@@ -180,6 +191,42 @@ module.exports = {
         where: { id },
         data: { deletedAt: new Date() },
         include: { authors: true, categories: true },
+      });
+    },
+
+    restoreBook: async (_, { id }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Only admins can restore books");
+
+      const book = await prisma.book.findUnique({ where: { id } });
+      if (!book) throw new Error("Book not found");
+      if (!book.deletedAt) throw new Error("Book is not deleted");
+
+      return prisma.book.update({
+        where:   { id },
+        data:    { deletedAt: null },
+        include: { authors: true, categories: true },
+      });
+    },
+
+    hardDeleteBook: async (_, { id }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Only admins can permanently delete books");
+
+      const book = await prisma.book.findUnique({ where: { id } });
+      if (!book) throw new Error("Book not found");
+
+      const activeBorrows = await prisma.borrow.count({
+        where: { bookId: id, status: "BORROWED" },
+      });
+      if (activeBorrows > 0)
+        throw new Error("Cannot permanently delete a book with active borrows");
+
+      return prisma.$transaction(async (tx) => {
+        await tx.reservation.deleteMany({ where: { bookId: id } });
+        await tx.review.deleteMany({ where: { bookId: id } });
+        await tx.borrow.deleteMany({ where: { bookId: id } });
+        return tx.book.delete({ where: { id } });
       });
     },
   },

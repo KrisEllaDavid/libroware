@@ -273,6 +273,10 @@ type Query {
   review(id: ID!): Review
   bookReviews(bookId: ID!, skip: Int, take: Int): [Review!]!
 
+  # Deleted records (admin only)
+  deletedUsers(skip: Int, take: Int): [User!]!
+  deletedBooks(skip: Int, take: Int): [Book!]!
+
   # Analytics
   dashboardStats: DashboardStats!
   borrowTrends(months: Int): [MonthPoint!]!
@@ -326,6 +330,12 @@ type Mutation {
   createReview(input: ReviewCreateInput!): Review!
   updateReview(id: ID!, input: ReviewUpdateInput!): Review!
   deleteReview(id: ID!): Review!
+
+  # Restore / hard-delete (admin only)
+  restoreUser(id: ID!): User!
+  hardDeleteUser(id: ID!): User!
+  restoreBook(id: ID!): Book!
+  hardDeleteBook(id: ID!): Book!
 
   # Fine mutations
   waiveFine(borrowId: ID!): Fine!

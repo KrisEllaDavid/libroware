@@ -229,6 +229,20 @@ export const RETURN_BOOK = gql`
   }
 `;
 
+// Restore / hard-delete mutations
+export const RESTORE_USER = gql`
+  mutation RestoreUser($id: ID!) { restoreUser(id: $id) { id email firstName lastName deletedAt } }
+`;
+export const HARD_DELETE_USER = gql`
+  mutation HardDeleteUser($id: ID!) { hardDeleteUser(id: $id) { id email } }
+`;
+export const RESTORE_BOOK = gql`
+  mutation RestoreBook($id: ID!) { restoreBook(id: $id) { id title isbn deletedAt } }
+`;
+export const HARD_DELETE_BOOK = gql`
+  mutation HardDeleteBook($id: ID!) { hardDeleteBook(id: $id) { id title } }
+`;
+
 // Fine Mutations
 export const WAIVE_FINE = gql`
   mutation WaiveFine($borrowId: ID!) {

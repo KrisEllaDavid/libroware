@@ -43,7 +43,8 @@
       "categories":  "Catégories",
       "pending":     "Demandes en attente",
       "history":     "Historique des emprunts",
-      "fines":       "Amendes"
+      "fines":       "Amendes",
+      "deleted":     "Corbeille"
     }
   },
   "dashboard": {

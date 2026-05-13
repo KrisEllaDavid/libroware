@@ -4,6 +4,7 @@ import { HttpLink } from '@apollo/client/link/http';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { ServerError } from '@apollo/client/link/utils';
+import { persistCache, IndexedDBWrapper } from 'apollo3-cache-persist';
 import { getApiUrl } from './config/api';
 
 const errorLink = onError(({ graphQLErrors, networkError }) => {
@@ -44,16 +45,20 @@ const authLink = setContext((_, { headers }) => {
   };
 });
 
+export const cache = new InMemoryCache();
+
 const clientOptions: ApolloClientOptions<NormalizedCacheObject> = {
   link: from([errorLink, operationNameLink, authLink, httpLink]),
-  cache: new InMemoryCache(),
+  cache,
   defaultOptions: {
     watchQuery: {
-      fetchPolicy: 'network-only',
+      // Return cached data immediately and update in background when online.
+      // When offline, the network fetch fails silently but cached data is still shown.
+      fetchPolicy: 'cache-and-network',
       errorPolicy: 'all',
     },
     query: {
-      fetchPolicy: 'network-only',
+      fetchPolicy: 'cache-first',
       errorPolicy: 'all',
     },
     mutate: {
@@ -63,3 +68,16 @@ const clientOptions: ApolloClientOptions<NormalizedCacheObject> = {
 };
 
 export const client = new ApolloClient(clientOptions);
+
+// Call once at app startup to hydrate the Apollo cache from IndexedDB.
+// The splash screen buys enough time for this to complete before any queries fire.
+export const initCache = async (): Promise<void> => {
+  try {
+    await persistCache({
+      cache,
+      storage: new IndexedDBWrapper('libroware-apollo-cache'),
+    });
+  } catch (err) {
+    console.error('Apollo cache persistence init failed:', err);
+  }
+};

@@ -9,6 +9,7 @@
   "main": "electron/main.cjs",
   "dependencies": {
     "@apollo/client": "^3.13.8",
+    "apollo3-cache-persist": "^0.15.0",
     "@capacitor/app": "^6.0.0",
     "@capacitor/core": "^6.2.0",
     "@capacitor/splash-screen": "^6.0.0",

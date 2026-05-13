@@ -1,5 +1,24 @@
 import { gql } from '@apollo/client';
 
+// Deleted records queries
+export const GET_DELETED_USERS = gql`
+  query GetDeletedUsers($skip: Int, $take: Int) {
+    deletedUsers(skip: $skip, take: $take) {
+      id email firstName lastName role deletedAt createdAt
+    }
+  }
+`;
+
+export const GET_DELETED_BOOKS = gql`
+  query GetDeletedBooks($skip: Int, $take: Int) {
+    deletedBooks(skip: $skip, take: $take) {
+      id title isbn deletedAt createdAt
+      authors { name }
+      categories { name }
+    }
+  }
+`;
+
 // Analytics Queries
 export const GET_DASHBOARD_STATS = gql`
   query GetDashboardStats {

@@ -31,6 +31,16 @@ module.exports = {
         orderBy: { createdAt: "desc" },
       });
     },
+
+    deletedUsers: async (_, { skip = 0, take = 50 }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Not authorized");
+      return prisma.user.findMany({
+        where:   { deletedAt: { not: null } },
+        skip, take,
+        orderBy: { deletedAt: "desc" },
+      });
+    },
   },
 
   Mutation: {
@@ -170,6 +180,33 @@ module.exports = {
       return prisma.user.update({
         where: { id },
         data: { deletedAt: new Date() },
+      });
+    },
+
+    restoreUser: async (_, { id }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Only admins can restore users");
+
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user) throw new Error("User not found");
+      if (!user.deletedAt) throw new Error("User is not deleted");
+
+      return prisma.user.update({ where: { id }, data: { deletedAt: null } });
+    },
+
+    hardDeleteUser: async (_, { id }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Only admins can permanently delete users");
+
+      const user = await prisma.user.findUnique({ where: { id } });
+      if (!user) throw new Error("User not found");
+
+      return prisma.$transaction(async (tx) => {
+        await tx.fine.deleteMany({ where: { userId: id } });
+        await tx.reservation.deleteMany({ where: { userId: id } });
+        await tx.borrow.deleteMany({ where: { userId: id } });
+        await tx.review.deleteMany({ where: { userId: id } });
+        return tx.user.delete({ where: { id } });
       });
     },
 

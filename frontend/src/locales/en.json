@@ -43,7 +43,8 @@
       "categories":  "Categories",
       "pending":     "Pending Requests",
       "history":     "Borrow History",
-      "fines":       "Fines"
+      "fines":       "Fines",
+      "deleted":     "Recycle Bin"
     }
   },
   "dashboard": {

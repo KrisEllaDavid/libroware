@@ -5,6 +5,7 @@ import BookManagement from "./admin/BookManagement";
 import AuthorManagement from "./admin/AuthorManagement";
 import CategoryManagement from "./admin/CategoryManagement";
 import FinesManagement from "./admin/FinesManagement";
+import DeletedRecords from "./admin/DeletedRecords";
 import AnalyticsDashboard from "./dashboard/AnalyticsDashboard";
 import PendingRequests from "./admin/PendingRequests";
 import BorrowHistory from "./admin/BorrowHistory";
@@ -43,6 +44,7 @@ const AdminPanel: React.FC = () => {
           "pending",
           "history",
           "fines",
+          "deleted",
         ].includes(queryTab)
       ) {
         return queryTab;
@@ -158,6 +160,12 @@ const AdminPanel: React.FC = () => {
               <FinesManagement />
             </div>
           );
+        case "deleted":
+          return (
+            <div className={transitionClass}>
+              <DeletedRecords />
+            </div>
+          );
         default:
           return null;
       }
@@ -192,6 +200,7 @@ const AdminPanel: React.FC = () => {
           {renderTabButton("pending",    t('admin.tabs.pending'))}
           {renderTabButton("history",    t('admin.tabs.history'))}
           {renderTabButton("fines",      t('admin.tabs.fines'))}
+          {isAdmin() && renderTabButton("deleted", "🗑 Recycle Bin")}
         </div>
       </div>
 
