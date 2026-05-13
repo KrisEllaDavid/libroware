@@ -15,6 +15,8 @@ import ToastNotification from "./components/common/ToastNotification";
 import SplashScreen from "./components/SplashScreen";
 import AboutPage from "./components/AboutPage";
 import ElectronSettings from "./components/ElectronSettings";
+import OfflineBanner from "./components/common/OfflineBanner";
+import { NetworkProvider } from "./context/NetworkContext";
 
 // Electron: listen for navigate events from main process (e.g. open Settings)
 const useElectronNav = () => {
@@ -42,57 +44,52 @@ const AppContent: React.FC = () => {
     setShowSplash(false);
   };
 
-  // Render splash screen if needed
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} duration={5000} />;
   }
 
-  // If not authenticated, show login page
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-
-  // If user needs to change password
-  if (user?.requiresPasswordChange) {
-    return <UserSetupForm />;
-  }
-
-  // Determine the default redirect path based on user role
   const defaultPath = isAdmin()
     ? "/admin?tab=users"
     : isLibrarian()
     ? "/admin"
     : "/dashboard";
 
-  // Otherwise show routes with navigation
   return (
     <>
-      <Navigation />
-      <main className="pt-20 px-4 container mx-auto">
-        <Routes>
-          <Route path="/admin/*" element={<AdminPanel />} />
-          <Route path="/profile" element={<UserProfile />} />
-          <Route path="/profile/:id" element={<UserProfile />} />
-          <Route path="/activity" element={<UserActivity />} />
-          <Route
-            path="/dashboard"
-            element={
-              /* Redirect admins and librarians to admin panel */
-              isAdmin() || isLibrarian() ? (
-                <Navigate to={defaultPath} replace />
-              ) : (
-                <UserDashboard />
-              )
-            }
-          />
-          <Route path="/books" element={<UserBookView />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/electron-settings" element={<ElectronSettings />} />
-          <Route path="/" element={<Navigate to={defaultPath} replace />} />
-          <Route path="*" element={<Navigate to={defaultPath} replace />} />
-        </Routes>
-      </main>
-      <ToastNotification />
+      <OfflineBanner />
+      {!isAuthenticated ? (
+        <LoginPage />
+      ) : user?.requiresPasswordChange ? (
+        <UserSetupForm />
+      ) : (
+        <>
+          <Navigation />
+          <main className="pt-20 px-4 container mx-auto">
+            <Routes>
+              <Route path="/admin/*" element={<AdminPanel />} />
+              <Route path="/profile" element={<UserProfile />} />
+              <Route path="/profile/:id" element={<UserProfile />} />
+              <Route path="/activity" element={<UserActivity />} />
+              <Route
+                path="/dashboard"
+                element={
+                  isAdmin() || isLibrarian() ? (
+                    <Navigate to={defaultPath} replace />
+                  ) : (
+                    <UserDashboard />
+                  )
+                }
+              />
+              <Route path="/books" element={<UserBookView />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/electron-settings" element={<ElectronSettings />} />
+              <Route path="/" element={<Navigate to={defaultPath} replace />} />
+              <Route path="*" element={<Navigate to={defaultPath} replace />} />
+            </Routes>
+          </main>
+          <ToastNotification />
+        </>
+      )}
     </>
   );
 };
@@ -102,9 +99,11 @@ const App: React.FC = () => {
     <ThemeProvider>
       <AuthProvider>
         <ToastProvider>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-            <AppContent />
-          </div>
+          <NetworkProvider>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+              <AppContent />
+            </div>
+          </NetworkProvider>
         </ToastProvider>
       </AuthProvider>
     </ThemeProvider>
