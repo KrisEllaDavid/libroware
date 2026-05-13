@@ -1,68 +1,61 @@
-/**
- * Librarian User Creation Script
- * This script creates a librarian user for the Libroware application.
- */
-
 const { PrismaClient } = require("../../generated/prisma");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+
 const prisma = new PrismaClient();
 
-// Librarian configuration
-const LIBRARIAN = {
-  email: "head.librarian@libroware.com",
-  password: "Librarian123!",
-  firstName: "Head",
-  lastName: "Librarian",
-  role: "LIBRARIAN",
-  requiresPasswordChange: true,
-  profilePicture:
-    "https://ui-avatars.com/api/?name=Head+Librarian&background=FFA500&color=fff",
-};
+function generatePassword() {
+  return crypto.randomBytes(16).toString("base64url");
+}
 
-// Create librarian user
+function parseArgs() {
+  const args = process.argv.slice(2);
+  const parsed = {};
+  args.forEach((arg) => {
+    const [key, value] = arg.split("=");
+    if (key && value) parsed[key] = value;
+  });
+  return parsed;
+}
+
 async function createLibrarian() {
+  const args = parseArgs();
+
+  const email     = args.email     || process.env.LIBRARIAN_EMAIL    || "head.librarian@libroware.com";
+  const password  = args.password  || process.env.LIBRARIAN_PASSWORD || generatePassword();
+  const firstName = args.firstName || "Head";
+  const lastName  = args.lastName  || "Librarian";
+
   console.log("Creating librarian user...");
 
   try {
-    // Check if librarian already exists
-    const existingLibrarian = await prisma.user.findUnique({
-      where: { email: LIBRARIAN.email },
-    });
-
-    if (existingLibrarian) {
-      console.log("Librarian user already exists:", existingLibrarian.email);
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      console.log("Librarian already exists:", email);
       return;
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(LIBRARIAN.password, 10);
+    const hashed = await bcrypt.hash(password, 10);
 
-    // Create librarian user
     const librarian = await prisma.user.create({
       data: {
-        email: LIBRARIAN.email,
-        password: hashedPassword,
-        firstName: LIBRARIAN.firstName,
-        lastName: LIBRARIAN.lastName,
-        role: LIBRARIAN.role,
-        profilePicture: LIBRARIAN.profilePicture,
-        requiresPasswordChange: LIBRARIAN.requiresPasswordChange,
+        email,
+        password: hashed,
+        firstName,
+        lastName,
+        role: "LIBRARIAN",
+        requiresPasswordChange: true,
+        profilePicture: `https://ui-avatars.com/api/?name=${firstName}+${lastName}&background=059669&color=fff`,
       },
     });
 
-    console.log("Librarian user created successfully:");
-    console.log("Email:", librarian.email);
-    console.log("Password:", LIBRARIAN.password);
-    console.log("Role:", librarian.role);
-  } catch (error) {
-    console.error("Error creating librarian user:", error);
+    console.log("Librarian user created:");
+    console.log("  Email:   ", librarian.email);
+    console.log("  Password:", password, "← change this on first login");
+    console.log("  Role:    ", librarian.role);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-// Run the script
-createLibrarian().catch((error) => {
-  console.error("Script failed:", error);
-  process.exit(1);
-});
+createLibrarian().catch((e) => { console.error(e); process.exit(1); });

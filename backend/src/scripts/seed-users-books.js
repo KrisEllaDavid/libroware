@@ -1,49 +1,38 @@
 const { PrismaClient } = require("../../generated/prisma");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
+
 const prisma = new PrismaClient();
+
+function generatePassword() {
+  return crypto.randomBytes(16).toString("base64url");
+}
 
 async function seedUsersAndBooks() {
   try {
     console.log("Starting to seed users and books...");
 
-    // Create users if they don't exist
+    // Passwords are generated at seed time and printed once — all accounts
+    // have requiresPasswordChange: true so users must set their own on first login
+    const passwords = {
+      admin:     generatePassword(),
+      librarian: generatePassword(),
+      users:     generatePassword(),
+    };
+
     const testUsers = [
-      {
-        email: "admin@libroware.com",
-        password: "admin123",
-        firstName: "Admin",
-        lastName: "User",
-        role: "ADMIN",
-      },
-      {
-        email: "librarian@libroware.com",
-        password: "librarian123",
-        firstName: "Librarian",
-        lastName: "Staff",
-        role: "LIBRARIAN",
-      },
-      {
-        email: "user1@example.com",
-        password: "user123",
-        firstName: "John",
-        lastName: "Doe",
-        role: "USER",
-      },
-      {
-        email: "user2@example.com",
-        password: "user123",
-        firstName: "Jane",
-        lastName: "Smith",
-        role: "USER",
-      },
-      {
-        email: "user3@example.com",
-        password: "user123",
-        firstName: "Robert",
-        lastName: "Johnson",
-        role: "USER",
-      },
+      { email: "admin@libroware.com",    password: passwords.admin,     firstName: "Admin",     lastName: "User",     role: "ADMIN",     requiresPasswordChange: true },
+      { email: "librarian@libroware.com",password: passwords.librarian, firstName: "Librarian", lastName: "Staff",    role: "LIBRARIAN", requiresPasswordChange: true },
+      { email: "user1@example.com",      password: passwords.users,     firstName: "John",      lastName: "Doe",      role: "USER",      requiresPasswordChange: true },
+      { email: "user2@example.com",      password: passwords.users,     firstName: "Jane",      lastName: "Smith",    role: "USER",      requiresPasswordChange: true },
+      { email: "user3@example.com",      password: passwords.users,     firstName: "Robert",    lastName: "Johnson",  role: "USER",      requiresPasswordChange: true },
     ];
+
+    console.log("\n=== SEED CREDENTIALS (change on first login) ===");
+    console.log(`admin@libroware.com     : ${passwords.admin}`);
+    console.log(`librarian@libroware.com : ${passwords.librarian}`);
+    console.log(`user1-3@example.com     : ${passwords.users}`);
+    console.log("================================================\n");
 
     for (const userData of testUsers) {
       const existingUser = await prisma.user.findUnique({

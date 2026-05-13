@@ -16,7 +16,7 @@ node_modules
 coverage
 .nyc_output
 
-# Build
+# Build outputs
 dist
 dist-ssr
 *.local
@@ -27,50 +27,80 @@ out
 # Electron build output
 frontend/dist-desktop/
 
-# Android (generated Gradle files, but keep src)
+# Android (generated Gradle files, keep src)
 frontend/android/.gradle/
 frontend/android/app/build/
 frontend/android/build/
 frontend/android/local.properties
-frontend/android/libroware-release.jks
 
 # iOS (generated Xcode build artifacts)
 frontend/ios/App/Pods/
 frontend/ios/App/App.xcworkspace/xcuserdata/
 frontend/ios/App/build/
 
-# Editor directories and files
+# Editor directories
 .vscode/*
 !.vscode/extensions.json
 !.vscode/launch.json
 !.vscode/settings.json
 .idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
 
-# Environment variables
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.prod
+# ── Secrets & confidential files ─────────────────────────────────────────────
 
-# Misc
-.cache
-.turbo
-.vercel
-.netlify
+# Environment variables — never commit real .env files
+.env
+.env.*
+!.env.example
+
+# SSL / TLS certificates and private keys
 *.pem
+*.key
+*.p12
+*.pfx
+*.cert
+*.crt
+*.cer
+*.der
+*.csr
+
+# SSH keys
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.ppk
+
+# Android release keystore
+*.jks
+*.keystore
+
+# Any file explicitly named "secret"
+*.secret
+secrets.json
+secrets.yaml
+secrets.yml
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Generated binary docs
+docs/Libroware_RSD.docx
+
+# OS files
 .DS_Store
 .Spotlight-V100
 .Trashes
 Thumbs.db
 ehthumbs.db
 Desktop.ini
-$RECYCLE.BIN/ 
-docs/
+$RECYCLE.BIN/
+
+# Misc build tools
+.cache
+.turbo
+.vercel
+.netlify
