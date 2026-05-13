@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMutation } from '@apollo/client/react';
+import { useTranslation } from 'react-i18next';
 import { UPDATE_USER } from '../graphql/mutations';
 import FloatingInput from './FloatingInput';
 import { useAuth } from '../context/AuthContext';
@@ -10,6 +11,7 @@ interface PasswordData {
 }
 
 const UserSetupForm: React.FC = () => {
+  const { t } = useTranslation();
   const { user, login: authLogin } = useAuth();
   const [passwordData, setPasswordData] = useState<PasswordData>({ 
     password: '', 
@@ -48,22 +50,19 @@ const UserSetupForm: React.FC = () => {
     
     // Basic validation
     if (!passwordData.password.trim()) {
-      setError('Password is required');
+      setError(t('setup.required'));
       return;
     }
-    
     if (passwordData.password.length < 8) {
-      setError('Password must be at least 8 characters');
+      setError(t('setup.minLength'));
       return;
     }
-    
     if (passwordData.password !== passwordData.confirmPassword) {
-      setError('Passwords do not match');
+      setError(t('setup.mismatch'));
       return;
     }
-
     if (!user?.id) {
-      setError('User information is missing. Please try logging in again.');
+      setError(t('setup.missingUser'));
       return;
     }
 
@@ -86,10 +85,10 @@ const UserSetupForm: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
       <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
         <div>
-          <h1 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">Welcome to Libroware</h1>
-          <h2 className="mt-6 text-center text-2xl font-bold text-gray-900 dark:text-white">Set Your Password</h2>
+          <h1 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">{t('setup.welcome')}</h1>
+          <h2 className="mt-6 text-center text-2xl font-bold text-gray-900 dark:text-white">{t('setup.setPassword')}</h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            Your account has been created. Please set a password to continue.
+            {t('setup.subtitle')}
           </p>
         </div>
         
@@ -109,7 +108,7 @@ const UserSetupForm: React.FC = () => {
                 value={passwordData.password}
                 onChange={handleChange}
                 required
-                label="New Password"
+                label={t('setup.newPassword')}
               />
             </div>
             
@@ -121,7 +120,7 @@ const UserSetupForm: React.FC = () => {
                 value={passwordData.confirmPassword}
                 onChange={handleChange}
                 required
-                label="Confirm Password"
+                label={t('setup.confirmPass')}
               />
             </div>
           </div>
@@ -132,7 +131,7 @@ const UserSetupForm: React.FC = () => {
               disabled={loading}
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all"
             >
-              {loading ? 'Setting Password...' : 'Set Password'}
+              {loading ? t('setup.setting') : t('setup.setBtn')}
             </button>
           </div>
         </form>

@@ -2,10 +2,30 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
+import { useTranslation } from "react-i18next";
+
+const LangToggle: React.FC = () => {
+  const { i18n, t } = useTranslation();
+  const toggle = () => {
+    const next = i18n.language === 'en' ? 'fr' : 'en';
+    i18n.changeLanguage(next);
+    localStorage.setItem('libroware_lang', next);
+  };
+  return (
+    <button
+      onClick={toggle}
+      className="px-2 py-1 text-xs font-bold rounded border border-white/30 text-white hover:bg-white/10 transition-all"
+      title={t('lang.switch')}
+    >
+      {t('lang.current')}
+    </button>
+  );
+};
 
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, logout, isAdmin, isLibrarian } = useAuth();
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const menuRef = useRef<HTMLDivElement>(null);
@@ -136,6 +156,7 @@ const Navigation: React.FC = () => {
             </div>
 
             <div className="hidden sm:flex sm:items-center space-x-4">
+              <LangToggle />
               <ThemeToggle />
 
               {/* Profile dropdown */}

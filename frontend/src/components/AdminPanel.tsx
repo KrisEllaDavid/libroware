@@ -9,6 +9,7 @@ import AnalyticsDashboard from "./dashboard/AnalyticsDashboard";
 import PendingRequests from "./admin/PendingRequests";
 import BorrowHistory from "./admin/BorrowHistory";
 import { useLocation, Navigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const AdminPanel: React.FC = () => {
   const { isAdmin, isLibrarian, user } = useAuth();
@@ -53,6 +54,7 @@ const AdminPanel: React.FC = () => {
   };
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
+  const { t } = useTranslation();
 
   // Update URL when tab changes
   useEffect(() => {
@@ -182,14 +184,14 @@ const AdminPanel: React.FC = () => {
       {/* Make the tabs stick to the top of the viewport when scrolling, accounting for the main nav */}
       <div className="sticky top-16 z-50 bg-white dark:bg-gray-900 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-3 shadow-md transition-all duration-200">
         <div className="flex overflow-x-auto space-x-2">
-          {renderTabButton("home", "Dashboard")}
-          {renderTabButton("users", "Users")}
-          {renderTabButton("books", "Books")}
-          {renderTabButton("authors", "Authors")}
-          {renderTabButton("categories", "Categories")}
-          {renderTabButton("pending", "Pending Requests")}
-          {renderTabButton("history", "Borrow History")}
-          {renderTabButton("fines", "Fines")}
+          {renderTabButton("home",       t('admin.tabs.home'))}
+          {renderTabButton("users",      t('admin.tabs.users'))}
+          {renderTabButton("books",      t('admin.tabs.books'))}
+          {renderTabButton("authors",    t('admin.tabs.authors'))}
+          {renderTabButton("categories", t('admin.tabs.categories'))}
+          {renderTabButton("pending",    t('admin.tabs.pending'))}
+          {renderTabButton("history",    t('admin.tabs.history'))}
+          {renderTabButton("fines",      t('admin.tabs.fines'))}
         </div>
       </div>
 

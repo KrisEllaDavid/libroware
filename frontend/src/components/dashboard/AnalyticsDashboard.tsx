@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useQuery } from '@apollo/client';
 import {
   GET_DASHBOARD_STATS,
@@ -54,6 +55,7 @@ const Skeleton: React.FC<{ className?: string }> = ({ className = '' }) => (
 
 // ── Main dashboard ─────────────────────────────────────────────────────────
 const AnalyticsDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const { data: statsData, loading: statsLoading } = useQuery(GET_DASHBOARD_STATS, { fetchPolicy: 'network-only' });
   const { data: trendsData, loading: trendsLoading } = useQuery(GET_BORROW_TRENDS, { variables: { months: 12 }, fetchPolicy: 'network-only' });
   const { data: topData,    loading: topLoading }    = useQuery(GET_TOP_BORROWED_BOOKS, { variables: { take: 8 }, fetchPolicy: 'network-only' });
@@ -75,12 +77,12 @@ const AnalyticsDashboard: React.FC = () => {
           Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-28" />)
         ) : s ? (
           <>
-            <KPI label="Total Books"    value={s.totalBooks}       sub={`${availPct}% available`}         color={EMERALD} icon={<BookIcon />} />
-            <KPI label="Active Borrows" value={s.borrowedBooks}    sub={`${s.overdueBooks} overdue`}       color={BLUE}    icon={<BorrowIcon />} />
-            <KPI label="Members"        value={s.totalUsers}        sub={`${s.activeUsers} active (30d)`}  color={PURPLE}  icon={<UsersIcon />} />
-            <KPI label="This Month"     value={s.borrowsThisMonth}  sub={`${s.totalBorrows} all time`}     color={AMBER}   icon={<TrendIcon />} />
-            <KPI label="Reservations"   value={s.totalReservations} sub="pending"                          color="#06B6D4" icon={<ClockIcon />} />
-            <KPI label="Outstanding"    value={`${s.outstandingFines.toLocaleString()} F`} sub={`${s.collectedFines.toLocaleString()} collected`} color={RED} icon={<FineIcon />} />
+            <KPI label={t('dashboard.totalBooks')}    value={s.totalBooks}       sub={`${availPct}% ${t('dashboard.availableBooks')}`}         color={EMERALD} icon={<BookIcon />} />
+            <KPI label={t('dashboard.activeBorrows')} value={s.borrowedBooks}    sub={`${s.overdueBooks} ${t('dashboard.overdue')}`}             color={BLUE}    icon={<BorrowIcon />} />
+            <KPI label={t('dashboard.members')}       value={s.totalUsers}        sub={`${s.activeUsers} ${t('dashboard.active30d')}`}           color={PURPLE}  icon={<UsersIcon />} />
+            <KPI label={t('dashboard.thisMonth')}     value={s.borrowsThisMonth}  sub={`${s.totalBorrows} ${t('dashboard.allTime')}`}            color={AMBER}   icon={<TrendIcon />} />
+            <KPI label={t('dashboard.reservations')}  value={s.totalReservations} sub={t('dashboard.pending')}                                   color="#06B6D4" icon={<ClockIcon />} />
+            <KPI label={t('dashboard.outstanding')}   value={`${s.outstandingFines.toLocaleString()} F`} sub={`${s.collectedFines.toLocaleString()} ${t('dashboard.collected')}`} color={RED} icon={<FineIcon />} />
           </>
         ) : null}
       </div>
@@ -89,7 +91,7 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
 
         {/* Borrow trends */}
-        <Section title="Borrow & Return Trends (12 months)">
+        <Section title={t('dashboard.trends')}>
           {trendsLoading ? <Skeleton className="h-52" /> : (
             <ResponsiveContainer width="100%" height={210}>
               <LineChart data={trends} margin={{ top: 4, right: 8, bottom: 0, left: -20 }}>
@@ -106,9 +108,9 @@ const AnalyticsDashboard: React.FC = () => {
         </Section>
 
         {/* Top borrowed books */}
-        <Section title="Top Borrowed Books">
+        <Section title={t('dashboard.topBooks')}>
           {topLoading ? <Skeleton className="h-52" /> : topBooks.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-10">No borrow data yet</p>
+            <p className="text-sm text-gray-400 text-center py-10">{t('dashboard.noData')}</p>
           ) : (
             <ResponsiveContainer width="100%" height={210}>
               <BarChart data={topBooks} layout="vertical" margin={{ top: 0, right: 20, bottom: 0, left: 4 }}>
@@ -127,9 +129,9 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
         {/* Category breakdown */}
-        <Section title="Borrows by Category">
+        <Section title={t('dashboard.byCategory')}>
           {catLoading ? <Skeleton className="h-52" /> : cats.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-10">No data yet</p>
+            <p className="text-sm text-gray-400 text-center py-10">{t('dashboard.noData')}</p>
           ) : (
             <ResponsiveContainer width="100%" height={210}>
               <PieChart>
@@ -147,31 +149,31 @@ const AnalyticsDashboard: React.FC = () => {
         </Section>
 
         {/* Inventory health */}
-        <Section title="Inventory Health">
+        <Section title={t('dashboard.inventory')}>
           {statsLoading ? <Skeleton className="h-52" /> : s ? (
             <div className="space-y-4 pt-2">
-              <Bar2 label="Available" value={s.availableBooks} total={s.totalBooks} color={EMERALD} />
-              <Bar2 label="Borrowed"  value={s.borrowedBooks}  total={s.totalBooks} color={BLUE} />
-              <Bar2 label="Overdue"   value={s.overdueBooks}   total={s.totalBooks} color={RED} />
+              <Bar2 label={t('dashboard.available')} value={s.availableBooks} total={s.totalBooks} color={EMERALD} />
+              <Bar2 label={t('dashboard.borrowed')}  value={s.borrowedBooks}  total={s.totalBooks} color={BLUE} />
+              <Bar2 label={t('dashboard.overdue')}   value={s.overdueBooks}   total={s.totalBooks} color={RED} />
               <div className="pt-3 border-t border-gray-100 dark:border-gray-700 text-xs text-gray-500 space-y-1">
-                <div className="flex justify-between"><span>Total copies</span><span className="font-medium">{s.totalBooks}</span></div>
-                <div className="flex justify-between"><span>Members</span><span className="font-medium">{s.totalUsers}</span></div>
-                <div className="flex justify-between"><span>Pending reservations</span><span className="font-medium text-amber-600">{s.totalReservations}</span></div>
+                <div className="flex justify-between"><span>{t('dashboard.totalCopies')}</span><span className="font-medium">{s.totalBooks}</span></div>
+                <div className="flex justify-between"><span>{t('dashboard.members')}</span><span className="font-medium">{s.totalUsers}</span></div>
+                <div className="flex justify-between"><span>{t('dashboard.pendingRes')}</span><span className="font-medium text-amber-600">{s.totalReservations}</span></div>
               </div>
             </div>
           ) : null}
         </Section>
 
         {/* Fine summary */}
-        <Section title="Fine Summary (FCFA)">
+        <Section title={t('dashboard.fineSummary')}>
           {statsLoading ? <Skeleton className="h-52" /> : s ? (
             <div className="space-y-3 pt-2">
-              <FineStat label="Outstanding" value={s.outstandingFines} color={RED} />
-              <FineStat label="Collected"   value={s.collectedFines}   color={EMERALD} />
-              <FineStat label="Waived"      value={s.waivedFines}      color={AMBER} />
+              <FineStat label={t('dashboard.outstanding')} value={s.outstandingFines} color={RED} />
+              <FineStat label={t('dashboard.collected')}   value={s.collectedFines}   color={EMERALD} />
+              <FineStat label={t('dashboard.waived')}      value={s.waivedFines}      color={AMBER} />
               <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
                 <div className="flex justify-between text-xs font-semibold text-gray-700 dark:text-gray-300">
-                  <span>Total issued</span>
+                  <span>{t('dashboard.totalIssued')}</span>
                   <span>{(s.outstandingFines + s.collectedFines + s.waivedFines).toLocaleString()} FCFA</span>
                 </div>
               </div>

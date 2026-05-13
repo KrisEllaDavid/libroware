@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useQuery } from "@apollo/client";
 import { gql } from "@apollo/client";
 import { useAuth } from "../../context/AuthContext";
+import { useTranslation } from "react-i18next";
 import UserActivity from "./UserActivity";
 import UserBorrows from "./UserBorrows";
 import BorrowStatistics from "./BorrowStatistics";
@@ -53,6 +54,7 @@ enum Tab {
 
 const UserDashboard: React.FC = () => {
   const { user } = useAuth();
+  const { t }    = useTranslation();
   const [activeTab, setActiveTab] = useState<Tab>(Tab.DASHBOARD);
   const [userStats, setUserStats] = useState<UserStats>({
     totalBorrows: 0,
@@ -188,7 +190,7 @@ const UserDashboard: React.FC = () => {
         return (
           <div className="mt-6">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Your Overview</h2>
+              <h2 className="text-xl font-semibold mb-4">{t('userDashboard.overview')}</h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
@@ -278,14 +280,14 @@ const UserDashboard: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <h1 className="text-2xl font-bold mb-6">User Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('userDashboard.title')}</h1>
 
       <div className="flex overflow-x-auto pb-2 mb-4 space-x-2">
-        {renderTabButton(Tab.DASHBOARD, "Dashboard")}
-        {renderTabButton(Tab.MY_BOOKS, "My Books")}
-        {renderTabButton(Tab.MY_REQUESTS, "My Requests")}
-        {renderTabButton(Tab.RESERVATIONS, "Reservations")}
-        {renderTabButton(Tab.BROWSE_BOOKS, "Browse Books")}
+        {renderTabButton(Tab.DASHBOARD,    t('userDashboard.tabs.dashboard'))}
+        {renderTabButton(Tab.MY_BOOKS,     t('userDashboard.tabs.myBooks'))}
+        {renderTabButton(Tab.MY_REQUESTS,  t('userDashboard.tabs.myRequests'))}
+        {renderTabButton(Tab.RESERVATIONS, t('userDashboard.tabs.reservations'))}
+        {renderTabButton(Tab.BROWSE_BOOKS, t('userDashboard.tabs.browse'))}
       </div>
 
       {renderTabContent()}
