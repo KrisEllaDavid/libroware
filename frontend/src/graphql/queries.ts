@@ -1,5 +1,43 @@
 import { gql } from '@apollo/client';
 
+// Fine Queries
+export const GET_USER_FINES = gql`
+  query GetUserFines($userId: ID!, $skip: Int, $take: Int) {
+    userFines(userId: $userId, skip: $skip, take: $take) {
+      id borrowId userId amount dailyRate daysOverdue waived waivedAt paidAt createdAt
+      borrow { id dueDate returnedAt book { id title } }
+    }
+  }
+`;
+
+export const GET_ALL_FINES = gql`
+  query GetAllFines($skip: Int, $take: Int, $waived: Boolean) {
+    allFines(skip: $skip, take: $take, waived: $waived) {
+      id borrowId userId amount dailyRate daysOverdue waived waivedAt paidAt createdAt
+      borrow { id dueDate returnedAt user { id firstName lastName email } book { id title } }
+    }
+  }
+`;
+
+// Reservation Queries
+export const GET_USER_RESERVATIONS = gql`
+  query GetUserReservations($userId: ID!, $skip: Int, $take: Int) {
+    userReservations(userId: $userId, skip: $skip, take: $take) {
+      id status expiresAt createdAt
+      book { id title coverImage authors { name } available }
+    }
+  }
+`;
+
+export const GET_BOOK_RESERVATIONS = gql`
+  query GetBookReservations($bookId: ID!, $skip: Int, $take: Int) {
+    bookReservations(bookId: $bookId, skip: $skip, take: $take) {
+      id status expiresAt createdAt
+      user { id firstName lastName email }
+    }
+  }
+`;
+
 // User Queries
 export const GET_USERS = gql`
   query GetUsers($skip: Int, $take: Int) {

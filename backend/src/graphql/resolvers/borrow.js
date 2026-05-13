@@ -1,3 +1,5 @@
+const { computeAndSaveFine } = require("./fine");
+
 module.exports = {
   Query: {
     borrow: async (_, { id }, { prisma }) => {
@@ -155,17 +157,39 @@ module.exports = {
       if (borrow.userId !== callerId && role !== "ADMIN" && role !== "LIBRARIAN")
         throw new Error("Not authorized");
 
+      const returnedAt = new Date();
+
       return prisma.$transaction(async (tx) => {
         await tx.book.update({
           where: { id: borrow.book.id },
           data: { available: { increment: 1 } },
         });
 
-        return tx.borrow.update({
+        const updated = await tx.borrow.update({
           where: { id },
-          data: { status: "RETURNED", returnedAt: new Date() },
+          data: { status: "RETURNED", returnedAt },
           include: { user: true, book: true },
         });
+
+        // Auto-compute fine if book was overdue
+        if (borrow.status === "OVERDUE" || returnedAt > new Date(borrow.dueDate)) {
+          await computeAndSaveFine({ ...updated, returnedAt }, tx);
+        }
+
+        // Fulfil next reservation in FIFO queue for this book
+        const nextReservation = await tx.reservation.findFirst({
+          where:   { bookId: borrow.bookId, status: "PENDING" },
+          orderBy: { createdAt: "asc" },
+        });
+        if (nextReservation) {
+          const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
+          await tx.reservation.update({
+            where: { id: nextReservation.id },
+            data:  { status: "FULFILLED", expiresAt },
+          });
+        }
+
+        return updated;
       });
     },
   },
@@ -180,6 +204,11 @@ module.exports = {
     book: async (parent, _, { prisma }) => {
       if (parent.book) return parent.book;
       return prisma.book.findUnique({ where: { id: parent.bookId } });
+    },
+
+    fine: async (parent, _, { prisma }) => {
+      if (parent.fine) return parent.fine;
+      return prisma.fine.findUnique({ where: { borrowId: parent.id } });
     },
 
     borrowedAt: (parent) =>

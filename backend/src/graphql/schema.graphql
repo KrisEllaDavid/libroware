@@ -61,6 +61,7 @@ type Borrow {
   returnedAt: String
   status: BorrowStatus!
   note: String
+  fine: Fine
   createdAt: String!
   updatedAt: String!
 }
@@ -69,6 +70,38 @@ enum BorrowStatus {
   BORROWED
   RETURNED
   OVERDUE
+}
+
+type Fine {
+  id: ID!
+  borrowId: ID!
+  userId: ID!
+  amount: Float!
+  dailyRate: Float!
+  daysOverdue: Int!
+  waived: Boolean!
+  waivedAt: String
+  paidAt: String
+  borrow: Borrow!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Reservation {
+  id: ID!
+  user: User!
+  book: Book!
+  status: ReservationStatus!
+  expiresAt: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+enum ReservationStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+  EXPIRED
 }
 
 type Review {
@@ -207,6 +240,16 @@ type Query {
   # Review queries
   review(id: ID!): Review
   bookReviews(bookId: ID!, skip: Int, take: Int): [Review!]!
+
+  # Fine queries
+  fine(borrowId: ID!): Fine
+  userFines(userId: ID!, skip: Int, take: Int): [Fine!]!
+  allFines(skip: Int, take: Int, waived: Boolean): [Fine!]!
+
+  # Reservation queries
+  reservation(id: ID!): Reservation
+  userReservations(userId: ID!, skip: Int, take: Int): [Reservation!]!
+  bookReservations(bookId: ID!, skip: Int, take: Int): [Reservation!]!
 }
 
 type Mutation {
@@ -245,6 +288,15 @@ type Mutation {
   createReview(input: ReviewCreateInput!): Review!
   updateReview(id: ID!, input: ReviewUpdateInput!): Review!
   deleteReview(id: ID!): Review!
+
+  # Fine mutations
+  waiveFine(borrowId: ID!): Fine!
+  markFinePaid(borrowId: ID!): Fine!
+  setFineRate(ratePerDay: Float!): Boolean!
+
+  # Reservation mutations
+  createReservation(bookId: ID!): Reservation!
+  cancelReservation(id: ID!): Reservation!
 }
 
 type UploadResponse {

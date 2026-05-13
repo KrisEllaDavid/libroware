@@ -4,6 +4,7 @@ import UserManagement from "./admin/UserManagement";
 import BookManagement from "./admin/BookManagement";
 import AuthorManagement from "./admin/AuthorManagement";
 import CategoryManagement from "./admin/CategoryManagement";
+import FinesManagement from "./admin/FinesManagement";
 import Dashboard from "./dashboard/Dashboard";
 import PendingRequests from "./admin/PendingRequests";
 import BorrowHistory from "./admin/BorrowHistory";
@@ -40,6 +41,7 @@ const AdminPanel: React.FC = () => {
           "categories",
           "pending",
           "history",
+          "fines",
         ].includes(queryTab)
       ) {
         return queryTab;
@@ -148,6 +150,12 @@ const AdminPanel: React.FC = () => {
               <BorrowHistory />
             </div>
           );
+        case "fines":
+          return (
+            <div className={transitionClass}>
+              <FinesManagement />
+            </div>
+          );
         default:
           return null;
       }
@@ -181,6 +189,7 @@ const AdminPanel: React.FC = () => {
           {renderTabButton("categories", "Categories")}
           {renderTabButton("pending", "Pending Requests")}
           {renderTabButton("history", "Borrow History")}
+          {renderTabButton("fines", "Fines")}
         </div>
       </div>
 

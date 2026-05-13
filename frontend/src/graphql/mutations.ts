@@ -229,6 +229,49 @@ export const RETURN_BOOK = gql`
   }
 `;
 
+// Fine Mutations
+export const WAIVE_FINE = gql`
+  mutation WaiveFine($borrowId: ID!) {
+    waiveFine(borrowId: $borrowId) {
+      id borrowId waived waivedAt amount daysOverdue
+    }
+  }
+`;
+
+export const MARK_FINE_PAID = gql`
+  mutation MarkFinePaid($borrowId: ID!) {
+    markFinePaid(borrowId: $borrowId) {
+      id borrowId paidAt amount daysOverdue waived
+    }
+  }
+`;
+
+export const SET_FINE_RATE = gql`
+  mutation SetFineRate($ratePerDay: Float!) {
+    setFineRate(ratePerDay: $ratePerDay)
+  }
+`;
+
+// Reservation Mutations
+export const CREATE_RESERVATION = gql`
+  mutation CreateReservation($bookId: ID!) {
+    createReservation(bookId: $bookId) {
+      id
+      status
+      expiresAt
+      book { id title coverImage authors { name } }
+    }
+  }
+`;
+
+export const CANCEL_RESERVATION = gql`
+  mutation CancelReservation($id: ID!) {
+    cancelReservation(id: $id) {
+      id status
+    }
+  }
+`;
+
 // Auth Mutations
 export const LOGIN = gql`
   mutation Login($input: LoginInput!) {

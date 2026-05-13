@@ -9,41 +9,44 @@ datasource db {
 }
 
 model User {
-  id                     String    @id @default(uuid())
-  email                  String    @unique
+  id                     String        @id @default(uuid())
+  email                  String        @unique
   password               String
   firstName              String
   lastName               String
-  role                   Role      @default(USER)
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
+  role                   Role          @default(USER)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
   deletedAt              DateTime?
   profilePicture         String?
-  requiresPasswordChange Boolean?  @default(true)
+  requiresPasswordChange Boolean?      @default(true)
   borrowedBooks          Borrow[]
-  reviews                Review[]  @relation("UserReviews")
+  reviews                Review[]      @relation("UserReviews")
+  fines                  Fine[]
+  reservations           Reservation[]
 
   @@index([role])
   @@index([deletedAt])
 }
 
 model Book {
-  id          String     @id @default(uuid())
-  title       String
-  isbn        String     @unique
-  description String?
-  publishedAt DateTime
-  coverImage  String?
-  pageCount   Int
-  quantity    Int        @default(1)
-  available   Int        @default(1)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  deletedAt   DateTime?
-  borrows     Borrow[]
-  reviews     Review[]
-  authors     Author[]   @relation("BookToAuthor")
-  categories  Category[] @relation("BookToCategory")
+  id           String        @id @default(uuid())
+  title        String
+  isbn         String        @unique
+  description  String?
+  publishedAt  DateTime
+  coverImage   String?
+  pageCount    Int
+  quantity     Int           @default(1)
+  available    Int           @default(1)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
+  borrows      Borrow[]
+  reviews      Review[]
+  reservations Reservation[]
+  authors      Author[]      @relation("BookToAuthor")
+  categories   Category[]    @relation("BookToCategory")
 
   @@index([deletedAt])
 }
@@ -78,6 +81,43 @@ model Borrow {
   updatedAt  DateTime     @updatedAt
   book       Book         @relation(fields: [bookId], references: [id])
   user       User         @relation(fields: [userId], references: [id])
+  fine       Fine?
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([status])
+}
+
+model Fine {
+  id         String    @id @default(uuid())
+  borrowId   String    @unique
+  userId     String
+  amount     Float
+  dailyRate  Float
+  daysOverdue Int
+  waived     Boolean   @default(false)
+  waivedBy   String?
+  waivedAt   DateTime?
+  paidAt     DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  borrow     Borrow    @relation(fields: [borrowId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([borrowId])
+}
+
+model Reservation {
+  id        String            @id @default(uuid())
+  userId    String
+  bookId    String
+  status    ReservationStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+  book      Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([bookId])
@@ -111,6 +151,13 @@ enum BorrowStatus {
   BORROWED
   RETURNED
   OVERDUE
+}
+
+enum ReservationStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+  EXPIRED
 }
 
 model AuditLog {

@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { useAuth } from '../../context/AuthContext';
+import { useToast } from '../../context/ToastContext';
+import { CREATE_RESERVATION } from '../../graphql/mutations';
 import Modal from '../Modal';
 
 // GraphQL queries and mutations
@@ -63,7 +65,8 @@ interface BorrowInput {
 }
 
 const UserBookView: React.FC = () => {
-  const { user } = useAuth();
+  const { user }     = useAuth();
+  const { addToast } = useToast();
 
   // Helper functions defined before using them in state initialization
   // Calculate due date with customizable days from today
@@ -106,11 +109,17 @@ const UserBookView: React.FC = () => {
       setSelectedBook(null);
       setBorrowType('BORROW');
       setNote('');
-      refetch(); // Refresh the book list
+      refetch();
     },
     onError: (error: any) => {
       setSubmitError(error.message);
     }
+  });
+
+  // Reservation mutation
+  const [createReservation, { loading: reservingId }] = useMutation(CREATE_RESERVATION, {
+    onCompleted: () => { addToast('Reservation created — you will be notified when a copy is available', 'success'); },
+    onError: (e: any) => addToast(e.message, 'error'),
   });
 
   // Handle book selection
@@ -146,7 +155,6 @@ const UserBookView: React.FC = () => {
       dueDate: dueDate.toISOString()
     };
 
-    console.log('Submitting borrow request:', input);
     createBorrow({ variables: { input } });
   };
 
@@ -165,7 +173,7 @@ const UserBookView: React.FC = () => {
         const matchesCategory = selectedCategory === '' || 
           book.categories.some(category => category.id === selectedCategory);
 
-        return matchesSearch && matchesCategory && book.available > 0;
+        return matchesSearch && matchesCategory;
       })
       .sort((a: Book, b: Book) => a.title.localeCompare(b.title));
   };
@@ -277,20 +285,30 @@ const UserBookView: React.FC = () => {
                   <span className="font-medium">Available:</span> {book.available} of {book.quantity}
                 </div>
                 <div className="flex space-x-2 mt-auto">
-                  <button
-                    onClick={() => handleBookSelect(book, 'BORROW')}
-                    disabled={book.available <= 0}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Borrow
-                  </button>
-                  <button
-                    onClick={() => handleBookSelect(book, 'READ')}
-                    disabled={book.available <= 0}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Read
-                  </button>
+                  {book.available > 0 ? (
+                    <>
+                      <button
+                        onClick={() => handleBookSelect(book, 'BORROW')}
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-all"
+                      >
+                        Borrow
+                      </button>
+                      <button
+                        onClick={() => handleBookSelect(book, 'READ')}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-all"
+                      >
+                        Read
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => createReservation({ variables: { bookId: book.id } })}
+                      disabled={!!reservingId}
+                      className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 transition-all"
+                    >
+                      Reserve
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

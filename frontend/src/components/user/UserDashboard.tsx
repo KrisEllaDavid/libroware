@@ -6,6 +6,7 @@ import UserActivity from "./UserActivity";
 import UserBorrows from "./UserBorrows";
 import BorrowStatistics from "./BorrowStatistics";
 import UserBookView from "./UserBookView";
+import UserReservations from "./UserReservations";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -43,9 +44,10 @@ interface UserStats {
 
 // Define tabs
 enum Tab {
-  DASHBOARD = "dashboard",
-  MY_BOOKS = "my-books",
-  MY_REQUESTS = "my-requests",
+  DASHBOARD    = "dashboard",
+  MY_BOOKS     = "my-books",
+  MY_REQUESTS  = "my-requests",
+  RESERVATIONS = "reservations",
   BROWSE_BOOKS = "browse-books",
 }
 
@@ -247,6 +249,13 @@ const UserDashboard: React.FC = () => {
           </div>
         );
 
+      case Tab.RESERVATIONS:
+        return (
+          <div className="mt-6">
+            <UserReservations />
+          </div>
+        );
+
       case Tab.BROWSE_BOOKS:
         return (
           <div className="mt-6">
@@ -275,6 +284,7 @@ const UserDashboard: React.FC = () => {
         {renderTabButton(Tab.DASHBOARD, "Dashboard")}
         {renderTabButton(Tab.MY_BOOKS, "My Books")}
         {renderTabButton(Tab.MY_REQUESTS, "My Requests")}
+        {renderTabButton(Tab.RESERVATIONS, "Reservations")}
         {renderTabButton(Tab.BROWSE_BOOKS, "Browse Books")}
       </div>
 
