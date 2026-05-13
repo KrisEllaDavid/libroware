@@ -248,10 +248,12 @@ type Query {
   me: User
   user(id: ID!): User
   users(skip: Int, take: Int): [User!]!
+  usersCount: Int!
 
   # Book queries
   book(id: ID!): Book
   books(skip: Int, take: Int, searchTitle: String): [Book!]!
+  booksCount(searchTitle: String): Int!
   booksByAuthor(authorId: ID!, skip: Int, take: Int): [Book!]!
   booksByCategory(categoryId: ID!, skip: Int, take: Int): [Book!]!
 
@@ -266,6 +268,7 @@ type Query {
   # Borrow queries
   borrow(id: ID!): Borrow
   borrows(skip: Int, take: Int, status: BorrowStatus): [Borrow!]!
+  borrowsCount(status: BorrowStatus): Int!
   userBorrows(userId: ID!, status: BorrowStatus, skip: Int, take: Int): [Borrow!]!
   overdueBorrows: [Borrow!]!
 

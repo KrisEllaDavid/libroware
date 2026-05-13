@@ -32,6 +32,12 @@ module.exports = {
       });
     },
 
+    booksCount: async (_, { searchTitle }, { prisma }) => {
+      const where = { deletedAt: null };
+      if (searchTitle) where.title = { contains: searchTitle, mode: "insensitive" };
+      return prisma.book.count({ where });
+    },
+
     deletedBooks: async (_, { skip = 0, take = 50 }, { userId, role, prisma }) => {
       if (!userId) throw new Error("Not authenticated");
       if (role !== "ADMIN") throw new Error("Not authorized");

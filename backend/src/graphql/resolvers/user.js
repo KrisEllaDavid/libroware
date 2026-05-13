@@ -32,6 +32,12 @@ module.exports = {
       });
     },
 
+    usersCount: async (_, __, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN") throw new Error("Not authorized");
+      return prisma.user.count({ where: { deletedAt: null } });
+    },
+
     deletedUsers: async (_, { skip = 0, take = 50 }, { userId, role, prisma }) => {
       if (!userId) throw new Error("Not authenticated");
       if (role !== "ADMIN") throw new Error("Not authorized");

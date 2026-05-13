@@ -12,6 +12,7 @@ import { useToast } from "../../context/ToastContext";
 import BookQRModal from "./BookQRModal";
 import QRLabelSheet from "./QRLabelSheet";
 import ISBNLookup from "./ISBNLookup";
+import Pagination from "../common/Pagination";
 
 interface Author {
   id: string;
@@ -76,6 +77,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(0);
   const [authors, setAuthors] = useState<Author[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -93,7 +95,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
     data,
     refetch,
   } = useQuery(GET_BOOKS, {
-    variables: { skip: 0, take: 50, searchTitle: searchTerm || undefined },
+    variables: { skip: page * 25, take: 25, searchTitle: searchTerm || undefined },
   });
 
   const { data: authorsData } = useQuery(GET_AUTHORS, {
@@ -283,6 +285,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
+    setPage(0);
   };
 
   const handleShowAuthorCreate = () => {
@@ -770,6 +773,14 @@ const BookManagement: React.FC<BookManagementProps> = ({
           )}
         </div>
       </Modal>
+
+      {/* Pagination */}
+      <Pagination
+        page={page}
+        pageSize={25}
+        total={data?.booksCount ?? 0}
+        onPage={(p) => setPage(p)}
+      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmation

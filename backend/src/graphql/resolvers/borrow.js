@@ -63,6 +63,13 @@ module.exports = {
       });
     },
 
+    borrowsCount: async (_, { status }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN") throw new Error("Not authorized");
+      const where = status ? { status } : {};
+      return prisma.borrow.count({ where });
+    },
+
     overdueBorrows: async (_, __, { userId, role, prisma }) => {
       if (!userId) throw new Error("Not authenticated");
       if (role !== "ADMIN" && role !== "LIBRARIAN")

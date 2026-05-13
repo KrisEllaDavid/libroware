@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
+import Pagination from '../common/Pagination';
+
+const PAGE_SIZE = 25;
 
 // GraphQL queries
 const GET_BORROWS = gql`
-  query GetAllBorrows($status: BorrowStatus) {
-    borrows(status: $status) {
+  query GetAllBorrows($status: BorrowStatus, $skip: Int, $take: Int) {
+    borrowsCount(status: $status)
+    borrows(status: $status, skip: $skip, take: $take) {
       id
       user {
         id
@@ -83,19 +87,20 @@ const BorrowHistory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [borrows, setBorrows] = useState<Borrow[]>([]);
   const [useFallbackQuery, setUseFallbackQuery] = useState(false);
-  
+  const [page, setPage] = useState(0);
+
   // Get borrows based on status filter
-  const status = filter === 'returned' ? 'RETURNED' : 
+  const status = filter === 'returned' ? 'RETURNED' :
                 filter === 'active' ? 'BORROWED' : undefined;
-  
+
   // Fetch borrow history with status filter
-  const { 
-    loading: primaryLoading, 
-    error: primaryError, 
+  const {
+    loading: primaryLoading,
+    error: primaryError,
     data: primaryData,
     refetch: primaryRefetch
   } = useQuery(GET_BORROWS, {
-    variables: { status },
+    variables: { status, skip: page * PAGE_SIZE, take: PAGE_SIZE },
     fetchPolicy: 'network-only',
     skip: useFallbackQuery
   });
@@ -247,7 +252,7 @@ const BorrowHistory: React.FC = () => {
               )}
               {filter !== 'all' && (
                 <button
-                  onClick={() => setFilter('all')}
+                  onClick={() => { setFilter('all'); setPage(0); }}
                   className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
                 >
                   View All Borrows
@@ -385,7 +390,7 @@ const BorrowHistory: React.FC = () => {
             </div>
             <div className="w-full sm:w-auto flex space-x-2">
               <button
-                onClick={() => setFilter('all')}
+                onClick={() => { setFilter('all'); setPage(0); }}
                 className={`px-3 py-1 text-sm rounded-md ${
                   filter === 'all'
                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
@@ -395,7 +400,7 @@ const BorrowHistory: React.FC = () => {
                 All
               </button>
               <button
-                onClick={() => setFilter('active')}
+                onClick={() => { setFilter('active'); setPage(0); }}
                 className={`px-3 py-1 text-sm rounded-md ${
                   filter === 'active'
                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
@@ -405,7 +410,7 @@ const BorrowHistory: React.FC = () => {
                 Active
               </button>
               <button
-                onClick={() => setFilter('returned')}
+                onClick={() => { setFilter('returned'); setPage(0); }}
                 className={`px-3 py-1 text-sm rounded-md ${
                   filter === 'returned'
                     ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
@@ -419,6 +424,13 @@ const BorrowHistory: React.FC = () => {
         </div>
         
         {renderContent()}
+
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={primaryData?.borrowsCount ?? 0}
+          onPage={(p) => setPage(p)}
+        />
       </div>
     </div>
   );

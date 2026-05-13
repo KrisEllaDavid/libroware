@@ -101,6 +101,7 @@ export const GET_BOOK_RESERVATIONS = gql`
 // User Queries
 export const GET_USERS = gql`
   query GetUsers($skip: Int, $take: Int) {
+    usersCount
     users(skip: $skip, take: $take) {
       id
       email
@@ -141,6 +142,7 @@ export const GET_USER = gql`
 // Book Queries
 export const GET_BOOKS = gql`
   query GetBooks($skip: Int, $take: Int, $searchTitle: String) {
+    booksCount(searchTitle: $searchTitle)
     books(skip: $skip, take: $take, searchTitle: $searchTitle) {
       id
       title
@@ -248,6 +250,7 @@ export const GET_CATEGORY = gql`
 // Borrow Queries
 export const GET_BORROWS = gql`
   query GetBorrows($skip: Int, $take: Int, $status: BorrowStatus) {
+    borrowsCount(status: $status)
     borrows(skip: $skip, take: $take, status: $status) {
       id
       user {

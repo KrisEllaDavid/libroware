@@ -11,6 +11,7 @@ import FileUpload from '../common/FileUpload';
 import { User, Role } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import Pagination from '../common/Pagination';
 
 interface UserFormData {
   email: string;
@@ -32,6 +33,8 @@ const initialFormData: UserFormData = {
   requiresPasswordChange: true,
 };
 
+const PAGE_SIZE = 25;
+
 const UserManagement: React.FC = () => {
   const { user: currentUser, isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
@@ -44,11 +47,12 @@ const UserManagement: React.FC = () => {
   const [userToDelete, setUserToDelete] = useState<string | null>(null);
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(0);
   const { toasts, addToast } = useToast();
 
   // GraphQL queries and mutations
   const { loading, error: queryError, data, refetch } = useQuery(GET_USERS, {
-    variables: { skip: 0, take: 50 },
+    variables: { skip: page * PAGE_SIZE, take: PAGE_SIZE },
     fetchPolicy: 'network-only', // Always fetch fresh data
     onCompleted: (data: { users: User[] }) => {
       setAllUsers(data.users);
@@ -615,6 +619,14 @@ const UserManagement: React.FC = () => {
         </div>
         
         {renderContent()}
+
+        {/* Pagination */}
+        <Pagination
+          page={page}
+          pageSize={PAGE_SIZE}
+          total={data?.usersCount ?? 0}
+          onPage={(p) => { setPage(p); refetch({ skip: p * PAGE_SIZE, take: PAGE_SIZE }); }}
+        />
       </div>
 
       {/* Add/Edit User Modal */}
