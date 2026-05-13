@@ -9,7 +9,7 @@ import "@/index.css";
 import "@/global.css";
 
 // Hydrate the Apollo cache from IndexedDB before first render.
-// The splash screen (5s) gives more than enough time for this to finish.
+// The splash screen (5 s) gives more than enough time for this to complete.
 initCache().then(() => {
   ReactDOM.createRoot(document.getElementById("root")!).render(
     <React.StrictMode>

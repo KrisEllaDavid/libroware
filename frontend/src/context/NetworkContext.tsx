@@ -20,9 +20,11 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      setLastSyncedAt(new Date());
-      // Refetch all active queries so the UI syncs fresh data as soon as connectivity returns.
-      client.reFetchObservableQueries().catch(() => {});
+      // Refetch all active queries to sync fresh data as soon as connectivity returns.
+      // apollo3-cache-persist automatically saves the updated cache after each write.
+      client.reFetchObservableQueries()
+        .then(() => setLastSyncedAt(new Date()))
+        .catch(() => {});
     };
 
     const handleOffline = () => setIsOnline(false);
