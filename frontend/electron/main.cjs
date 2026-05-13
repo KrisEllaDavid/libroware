@@ -36,8 +36,7 @@ const SETTINGS_PATH = path.join(app.getPath("userData"), "settings.json");
 
 const DEFAULT_SETTINGS = {
   apiUrl: "http://185.217.125.37:3030/api/graphql",
-  // To switch to domain, change the line above to:
-  // "https://libroware.mathurinella.com/api/graphql"
+  // To switch to your domain later, change the line above to your domain URL
 };
 
 function loadSettings() {

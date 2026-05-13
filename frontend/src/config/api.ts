@@ -3,7 +3,7 @@
 // Electron and mobile apps read this at runtime; the web build uses it at
 // build-time via VITE_API_URL or falls back to the relative proxy path.
 
-// Change this one line when switching to the domain (https://libroware.mathurinella.com/api/graphql)
+// Change this one line when your domain is ready (e.g. "https://yourdomain.com/api/graphql")
 export const REMOTE_URL = "http://185.217.125.37:3030/api/graphql";
 export const LOCAL_URL  = "http://localhost:5000/graphql";
 
