@@ -755,6 +755,16 @@ const BookManagement: React.FC<BookManagementProps> = ({
         onCancel={cancelDelete}
         isLoading={deleteLoading}
       />
+
+      {/* QR Code modal for a single book */}
+      {qrBook && (
+        <BookQRModal book={qrBook} onClose={() => setQrBook(null)} />
+      )}
+
+      {/* QR Label Sheet for all books */}
+      {showLabelSheet && (
+        <QRLabelSheet books={books} onClose={() => setShowLabelSheet(false)} />
+      )}
     </div>
   );
 };
