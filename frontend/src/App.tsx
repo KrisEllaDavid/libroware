@@ -27,14 +27,18 @@ const useElectronNav = () => {
   }, [navigate]);
 };
 
+// Tracks whether the splash has already played in this page session.
+// Module-level so it survives component remounts without triggering the splash again.
+let _splashDone = false;
+
 // Component that conditionally renders based on auth state
 const AppContent: React.FC = () => {
   const { isAuthenticated, user, isAdmin, isLibrarian } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(!_splashDone);
   useElectronNav();
 
-  // Handler for when splash screen animation completes
   const handleSplashFinish = () => {
+    _splashDone = true;
     setShowSplash(false);
   };
 

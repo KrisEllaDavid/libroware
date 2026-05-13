@@ -22,9 +22,8 @@
     
     /* Paths and Types */
     "typeRoots": ["./node_modules/@types", "./src/types"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true
