@@ -1,5 +1,15 @@
 import { gql } from '@apollo/client';
 
+// Audit log queries
+export const GET_AUDIT_LOGS = gql`
+  query GetAuditLogs($skip: Int, $take: Int, $model: String, $action: String, $userId: ID) {
+    auditLogs(skip: $skip, take: $take, model: $model, action: $action, userId: $userId) {
+      id model action recordId userId createdAt
+    }
+    auditLogCount(model: $model, action: $action, userId: $userId)
+  }
+`;
+
 // Deleted records queries
 export const GET_DELETED_USERS = gql`
   query GetDeletedUsers($skip: Int, $take: Int) {

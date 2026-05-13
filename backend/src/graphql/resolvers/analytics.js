@@ -128,6 +128,37 @@ module.exports = {
       }));
     },
 
+    // ── Audit log ─────────────────────────────────────────────────────────
+    auditLogs: async (_, { skip = 0, take = 50, model, action, userId: targetUserId }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Not authorized");
+
+      const where = {
+        ...(model  && { model }),
+        ...(action && { action }),
+        ...(targetUserId && { userId: targetUserId }),
+      };
+
+      return prisma.auditLog.findMany({
+        where,
+        skip, take,
+        orderBy: { createdAt: "desc" },
+      });
+    },
+
+    auditLogCount: async (_, { model, action, userId: targetUserId }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN") throw new Error("Not authorized");
+
+      const where = {
+        ...(model  && { model }),
+        ...(action && { action }),
+        ...(targetUserId && { userId: targetUserId }),
+      };
+
+      return prisma.auditLog.count({ where });
+    },
+
     // ── Borrow count broken down by category ───────────────────────────────
     categoryBorrowStats: async (_, __, { userId, role, prisma }) => {
       if (!userId) throw new Error("Not authenticated");

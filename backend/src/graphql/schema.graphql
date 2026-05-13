@@ -277,6 +277,10 @@ type Query {
   deletedUsers(skip: Int, take: Int): [User!]!
   deletedBooks(skip: Int, take: Int): [Book!]!
 
+  # Audit log (admin only)
+  auditLogs(skip: Int, take: Int, model: String, action: String, userId: ID): [AuditLog!]!
+  auditLogCount(model: String, action: String, userId: ID): Int!
+
   # Analytics
   dashboardStats: DashboardStats!
   borrowTrends(months: Int): [MonthPoint!]!
@@ -345,6 +349,15 @@ type Mutation {
   # Reservation mutations
   createReservation(bookId: ID!): Reservation!
   cancelReservation(id: ID!): Reservation!
+}
+
+type AuditLog {
+  id:        ID!
+  model:     String!
+  action:    String!
+  recordId:  String!
+  userId:    ID
+  createdAt: String!
 }
 
 type UploadResponse {
