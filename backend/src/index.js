@@ -4,6 +4,7 @@ const { expressMiddleware } = require("@apollo/server/express4");
 const { readFileSync } = require("fs");
 const { join } = require("path");
 const { AsyncLocalStorage } = require("async_hooks");
+const crypto = require("crypto");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
@@ -94,20 +95,37 @@ async function startServer() {
     res.send("Libroware API server. Use /graphql for the GraphQL endpoint.");
   });
 
-  // Rate limiting — 100 requests per 15 min per IP globally,
-  // tighter 10 req/15 min for auth operations
+  // Rate limiting.
+  // Key by the caller's auth token when present (hashed, never stored raw) so that
+  // one busy logged-in user can't exhaust the shared quota for everyone else behind
+  // the same NAT/campus IP — and so a single user's burst of parallel GraphQL queries
+  // (dashboards, cache-and-network refetches on reconnect, etc.) doesn't get them
+  // blocked alongside unrelated users. Unauthenticated requests fall back to IP.
+  const tokenOrIpKey = (req) => {
+    const auth = req.headers.authorization;
+    if (auth) return crypto.createHash("sha256").update(auth).digest("hex");
+    return req.ip;
+  };
+
+  // Generous global cap — a normal SPA session (dashboard widgets, lists, refetch-on-
+  // reconnect) can easily fire dozens of GraphQL operations in a short burst. This
+  // exists to catch runaway loops/abuse, not to throttle normal usage.
   const globalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+    windowMs: 60 * 1000,
+    max: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: tokenOrIpKey,
   });
 
+  // Tighter limit on login/signup, keyed by IP + the email being attempted so that
+  // brute-forcing one account doesn't lock out every other user on the same shared IP.
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: 20,
     standardHeaders: true,
     legacyHeaders: false,
+    keyGenerator: (req) => `${req.ip}:${req.body?.variables?.input?.email || ""}`,
     message: { errors: [{ message: "Too many attempts, please try again later." }] },
   });
 

@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { useMutation } from "@apollo/client/react";
 import { RETURN_BOOK } from "../../graphql/mutations";
 import { USER_BORROWS } from "../../graphql/queries";
 import { useToast } from "../../context/ToastContext";
+import { useOfflineMutation } from "../../offline/useOfflineMutation";
+import { useQueuedMutations } from "../../offline/useQueuedMutations";
+import { adjustBookAvailable, setBorrowReturned } from "../../offline/cacheUpdates";
 
 interface UserBorrowsProps {
   userId: string;
@@ -37,7 +39,17 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
   const [returningBorrowId, setReturningBorrowId] = useState<string | null>(null);
   const { addToast } = useToast();
 
-  const [returnBook] = useMutation(RETURN_BOOK, {
+  const queuedReturns = useQueuedMutations("RETURN_BOOK");
+
+  const [returnBook] = useOfflineMutation(RETURN_BOOK, {
+    type: "RETURN_BOOK",
+    applyOptimistic: (cache, variables: { id: string }) => {
+      const borrow = borrows.find((b) => b.id === variables.id);
+      setBorrowReturned(cache, variables.id, new Date().toISOString());
+      if (borrow) adjustBookAvailable(cache, borrow.book.id, 1);
+    },
+    queuedMessage: "Return saved — it will sync when you're back online.",
+  }, {
     onCompleted: () => {
       setReturningBorrowId(null);
       refetch();
@@ -48,12 +60,16 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
       addToast(`Failed to return book: ${error.message}`, "error");
     },
     refetchQueries: [{ query: USER_BORROWS, variables: { userId } }],
+    onQueued: () => setReturningBorrowId(null),
   });
 
   const handleReturnBook = (borrowId: string) => {
     setReturningBorrowId(borrowId);
     returnBook({ variables: { id: borrowId } });
   };
+
+  const isReturnQueued = (borrowId: string) =>
+    queuedReturns.some((q) => (q.variables as { id: string }).id === borrowId);
 
   const filteredBorrows = borrows.filter((borrow) => {
     if (filter === "active" && borrow.returnedAt !== null) return false;
@@ -223,10 +239,14 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                 <div className="p-4 pt-0">
                   <button
                     onClick={() => handleReturnBook(borrow.id)}
-                    disabled={returningBorrowId === borrow.id}
+                    disabled={returningBorrowId === borrow.id || isReturnQueued(borrow.id)}
                     className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {returningBorrowId === borrow.id ? "Processing..." : "Return Book"}
+                    {isReturnQueued(borrow.id)
+                      ? "Returning... (will sync)"
+                      : returningBorrowId === borrow.id
+                      ? "Processing..."
+                      : "Return Book"}
                   </button>
                 </div>
               )}

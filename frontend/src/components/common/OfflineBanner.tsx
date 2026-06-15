@@ -9,9 +9,20 @@ const formatLastSynced = (date: Date): string => {
 };
 
 const OfflineBanner: React.FC = () => {
-  const { isOnline, lastSyncedAt } = useNetwork();
+  const { isOnline, lastSyncedAt, pendingCount, isSyncing } = useNetwork();
 
-  if (isOnline) return null;
+  if (isOnline && !isSyncing) return null;
+
+  if (isOnline) {
+    return (
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-blue-500 dark:bg-blue-600 text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
+        <span className="w-2 h-2 rounded-full bg-white opacity-80 animate-pulse shrink-0" />
+        <span>
+          Syncing {pendingCount} action{pendingCount === 1 ? '' : 's'}...
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 bg-amber-500 dark:bg-amber-600 text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
@@ -21,6 +32,11 @@ const OfflineBanner: React.FC = () => {
         {lastSyncedAt && (
           <span className="opacity-75 ml-1 text-xs">
             · Last synced {formatLastSynced(lastSyncedAt)}
+          </span>
+        )}
+        {pendingCount > 0 && (
+          <span className="opacity-75 ml-1 text-xs">
+            · {pendingCount} action{pendingCount === 1 ? '' : 's'} waiting to sync
           </span>
         )}
       </span>

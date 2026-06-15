@@ -97,6 +97,7 @@ All workflows are **manual only** (`workflow_dispatch`) — nothing runs on push
 Go to **GitHub → Actions → Build Native Apps → Run workflow** and select:
 
 - ☑ **Windows** — Electron NSIS installer (`.exe`)
+- ☑ **Linux** — Electron installer (`.deb` / `.AppImage`)
 - ☑ **Android** — Signed release APK
 - ☐ **iOS** — Unsigned debug IPA (uses macOS runner, slower)
 

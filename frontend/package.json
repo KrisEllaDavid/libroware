@@ -41,6 +41,7 @@
     "desktop:preview": "npm run build:electron && electron .",
     "desktop:win": "npm run build:electron && electron-builder --win nsis",
     "desktop:win:all": "npm run build:electron && electron-builder --win nsis msi",
+    "desktop:linux": "npm run build:electron && electron-builder --linux deb AppImage",
     "cap:sync": "cap sync",
     "cap:android": "cap open android",
     "cap:ios": "cap open ios",

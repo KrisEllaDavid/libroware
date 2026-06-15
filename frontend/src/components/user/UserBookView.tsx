@@ -3,7 +3,9 @@ import { useQuery, useMutation } from '@apollo/client';
 import { gql } from '@apollo/client';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
-import { CREATE_RESERVATION } from '../../graphql/mutations';
+import { CREATE_RESERVATION, CREATE_BORROW } from '../../graphql/mutations';
+import { useOfflineMutation } from '../../offline/useOfflineMutation';
+import { adjustBookAvailable } from '../../offline/cacheUpdates';
 import Modal from '../Modal';
 
 // GraphQL queries and mutations
@@ -24,21 +26,6 @@ const GET_BOOKS = gql`
       categories {
         id
         name
-      }
-    }
-  }
-`;
-
-const CREATE_BORROW = gql`
-  mutation CreateBorrow($input: BorrowCreateInput!) {
-    createBorrow(input: $input) {
-      id
-      status
-      borrowedAt
-      dueDate
-      book {
-        id
-        title
       }
     }
   }
@@ -102,8 +89,13 @@ const UserBookView: React.FC = () => {
   // Query for books data
   const { loading, error, data, refetch } = useQuery(GET_BOOKS);
 
-  // Create borrow mutation
-  const [createBorrow, { loading: borrowLoading }] = useMutation(CREATE_BORROW, {
+  // Create borrow mutation (queued for replay if offline)
+  const [createBorrow, { loading: borrowLoading }] = useOfflineMutation(CREATE_BORROW, {
+    type: 'CREATE_BORROW',
+    applyOptimistic: (cache, variables: { input: BorrowInput }) =>
+      adjustBookAvailable(cache, variables.input.bookId, -1),
+    queuedMessage: "Borrow request saved — it will be sent when you're back online.",
+  }, {
     onCompleted: () => {
       setShowModal(false);
       setSelectedBook(null);
@@ -113,7 +105,13 @@ const UserBookView: React.FC = () => {
     },
     onError: (error: any) => {
       setSubmitError(error.message);
-    }
+    },
+    onQueued: () => {
+      setShowModal(false);
+      setSelectedBook(null);
+      setBorrowType('BORROW');
+      setNote('');
+    },
   });
 
   // Reservation mutation
