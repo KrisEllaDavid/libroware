@@ -126,7 +126,7 @@
     "@capacitor/cli": "^8.3.4",
     "@capacitor/ios": "^6.0.0",
     "@types/file-saver": "^2.0.7",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^5.0.0",
     "autoprefixer": "^10.4.16",
     "cssnano": "^6.0.0",
     "electron": "^42.0.1",
