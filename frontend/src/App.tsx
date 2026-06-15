@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import AdminPanel from "./components/AdminPanel";
 import LoginPage from "./components/LoginPage";
@@ -39,10 +39,10 @@ const AppContent: React.FC = () => {
   const [showSplash, setShowSplash] = useState(!_splashDone);
   useElectronNav();
 
-  const handleSplashFinish = () => {
+  const handleSplashFinish = useCallback(() => {
     _splashDone = true;
     setShowSplash(false);
-  };
+  }, []);
 
   if (showSplash) {
     return <SplashScreen onFinish={handleSplashFinish} duration={5000} />;

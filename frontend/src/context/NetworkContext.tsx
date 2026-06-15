@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { client } from '../apollo-client';
 import { useToast } from './ToastContext';
 import { drainQueue } from '../offline/replayQueue';
@@ -25,6 +25,8 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
   const [isSyncing, setIsSyncing] = useState(false);
   const { addToast } = useToast();
+  const addToastRef = useRef(addToast);
+  addToastRef.current = addToast;
   const pendingCount = useQueuedMutations().length;
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // refetch below reflects the server state after those actions land.
       setIsSyncing(true);
       try {
-        await drainQueue(client, addToast);
+        await drainQueue(client, addToastRef.current);
       } finally {
         setIsSyncing(false);
       }
@@ -56,7 +58,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [addToast]);
+  }, []);
 
   return (
     <NetworkContext.Provider value={{ isOnline, lastSyncedAt, pendingCount, isSyncing }}>
