@@ -210,9 +210,6 @@ const Navigation: React.FC = () => {
                   <Link
                     to="/profile"
                     className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    role="menuitem"
-                    tabIndex={-1}
-                    id="user-menu-item-0"
                   >
                     Your Profile
                   </Link>
@@ -220,9 +217,6 @@ const Navigation: React.FC = () => {
                   <Link
                     to={dashboardLink}
                     className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    role="menuitem"
-                    tabIndex={-1}
-                    id="user-menu-item-1"
                   >
                     {isAdmin() || isLibrarian()
                       ? "Library Management"
@@ -232,9 +226,6 @@ const Navigation: React.FC = () => {
                   <Link
                     to="/about"
                     className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    role="menuitem"
-                    tabIndex={-1}
-                    id="user-menu-item-2"
                   >
                     About Libroware
                   </Link>
