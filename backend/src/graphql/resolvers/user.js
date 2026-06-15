@@ -6,6 +6,20 @@ if (!JWT_SECRET) throw new Error("JWT_SECRET environment variable is required");
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const COOKIE_OPTS = {
+  httpOnly: true,
+  sameSite: "strict",
+  // Enable secure flag only when HTTPS is in use. Set COOKIE_SECURE=true in .env
+  // once you have a TLS certificate (see SERVER_CONFIG.md §7).
+  secure: process.env.COOKIE_SECURE === "true",
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days — matches JWT expiry
+  path: "/",
+};
+
+function setAuthCookie(res, token) {
+  if (res) res.cookie("auth_token", token, COOKIE_OPTS);
+}
+
 module.exports = {
   Query: {
     me: async (_, __, { userId, prisma }) => {
@@ -50,7 +64,8 @@ module.exports = {
   },
 
   Mutation: {
-    signup: async (_, { input }, { prisma }) => {
+    signup: async (_, { input }, context) => {
+      const { prisma } = context;
       const { email, password, firstName, lastName } = input;
 
       if (!EMAIL_REGEX.test(email)) throw new Error("Invalid email format");
@@ -83,10 +98,12 @@ module.exports = {
         { expiresIn: "7d" }
       );
 
+      setAuthCookie(context.res, token);
       return { token, user };
     },
 
-    login: async (_, { input }, { prisma }) => {
+    login: async (_, { input }, context) => {
+      const { prisma } = context;
       const { email, password } = input;
 
       const user = await prisma.user.findUnique({ where: { email } });
@@ -106,7 +123,13 @@ module.exports = {
         { expiresIn: "7d" }
       );
 
+      setAuthCookie(context.res, token);
       return { token, user };
+    },
+
+    logout: (_, __, { res }) => {
+      if (res) res.clearCookie("auth_token", { path: "/" });
+      return true;
     },
 
     createUser: async (_, { input }, { userId, role, prisma }) => {

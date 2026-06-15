@@ -307,6 +307,7 @@ type Mutation {
   # Auth mutations
   signup(input: UserCreateInput!): AuthPayload!
   login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
 
   # User mutations
   createUser(input: UserCreateInput!): User!

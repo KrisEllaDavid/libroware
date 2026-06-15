@@ -6,10 +6,12 @@ const { join } = require("path");
 const { AsyncLocalStorage } = require("async_hooks");
 const crypto = require("crypto");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
 const rateLimit = require("express-rate-limit");
 const jwt = require("jsonwebtoken");
 const resolvers = require("./graphql/resolvers");
 const { PrismaClient } = require("../generated/prisma");
+const { startNotificationScheduler } = require("./services/scheduler");
 
 require("dotenv").config();
 
@@ -77,6 +79,9 @@ async function startServer() {
   // Trust proxy — required for accurate IP identification when behind a proxy
   app.set("trust proxy", 1);
 
+  // Parse cookies for httpOnly JWT auth
+  app.use(cookieParser());
+
   // Create Apollo Server
   const server = new ApolloServer({
     typeDefs,
@@ -136,8 +141,9 @@ async function startServer() {
 
   // Populate audit context with the requesting userId for every /graphql request
   app.use("/graphql", (req, res, next) => {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    const { userId } = getUser(token);
+    const cookieToken = req.cookies?.auth_token;
+    const bearerToken = req.headers.authorization?.replace("Bearer ", "") || null;
+    const { userId } = getUser(cookieToken || bearerToken);
     auditContext.run({ userId }, next);
   });
 
@@ -166,18 +172,19 @@ async function startServer() {
       next();
     },
     expressMiddleware(server, {
-      context: async ({ req }) => {
-        // Get token from Authorization header
-        const token = req.headers.authorization?.replace("Bearer ", "");
+      context: async ({ req, res }) => {
+        // Cookie-first auth: httpOnly cookie for web, bearer header for Electron/Capacitor
+        const cookieToken = req.cookies?.auth_token;
+        const bearerToken = req.headers.authorization?.replace("Bearer ", "") || null;
+        const token = cookieToken || bearerToken;
 
-        // Get userId and role from token
         const { userId, role } = getUser(token);
 
-        // Return context with userId, role and prisma client
         return {
           userId,
           role,
           prisma,
+          res,
         };
       },
     })
@@ -196,6 +203,8 @@ async function startServer() {
       `For external access, use your device's network IP address with port ${PORT}`
     );
   });
+
+  startNotificationScheduler(prisma);
 }
 
 // Start server and catch any errors
