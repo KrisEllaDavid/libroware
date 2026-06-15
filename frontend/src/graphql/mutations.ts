@@ -286,6 +286,43 @@ export const CANCEL_RESERVATION = gql`
   }
 `;
 
+// Review Mutations
+export const CREATE_REVIEW = gql`
+  mutation CreateReview($input: ReviewCreateInput!) {
+    createReview(input: $input) {
+      id
+      userEmail
+      userName
+      rating
+      comment
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const UPDATE_REVIEW = gql`
+  mutation UpdateReview($id: ID!, $input: ReviewUpdateInput!) {
+    updateReview(id: $id, input: $input) {
+      id
+      userEmail
+      userName
+      rating
+      comment
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_REVIEW = gql`
+  mutation DeleteReview($id: ID!) {
+    deleteReview(id: $id) {
+      id
+    }
+  }
+`;
+
 // Auth Mutations
 export const LOGIN = gql`
   mutation Login($input: LoginInput!) {
@@ -302,4 +339,10 @@ export const LOGIN = gql`
       }
     }
   }
-`; 
+`;
+
+export const LOGOUT = gql`
+  mutation Logout {
+    logout
+  }
+`;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useQuery, useMutation } from '@apollo/client';
+import { useTranslation } from 'react-i18next';
 import { GET_USER_RESERVATIONS } from '../../graphql/queries';
 import { CANCEL_RESERVATION } from '../../graphql/mutations';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +28,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 const UserReservations: React.FC = () => {
+  const { t } = useTranslation();
   const { user }    = useAuth();
   const { addToast } = useToast();
 
@@ -37,19 +39,19 @@ const UserReservations: React.FC = () => {
   });
 
   const [cancelReservation] = useMutation(CANCEL_RESERVATION, {
-    onCompleted: () => { addToast('Reservation cancelled', 'success'); refetch(); },
+    onCompleted: () => { addToast(t('reservations.cancelled'), 'success'); refetch(); },
     onError:     (e) => addToast(e.message, 'error'),
   });
 
   const reservations: Reservation[] = data?.userReservations ?? [];
 
-  if (loading) return <div className="text-center py-8 text-gray-400">Loading reservations…</div>;
+  if (loading) return <div className="text-center py-8 text-gray-400">{t('reservations.loading')}</div>;
 
   if (reservations.length === 0) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400 text-sm">No reservations yet.</p>
-        <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">Reserve a book when all copies are borrowed.</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('reservations.noReservations')}</p>
+        <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">{t('reservations.hint')}</p>
       </div>
     );
   }
@@ -79,25 +81,25 @@ const UserReservations: React.FC = () => {
                   <p className="text-xs text-gray-400 mt-0.5">{r.book.authors.map(a => a.name).join(', ')}</p>
                 </div>
                 <span className={`px-2 py-0.5 text-xs rounded-full font-medium flex-shrink-0 ${STATUS_STYLES[r.status] ?? ''}`}>
-                  {r.status}
+                  {t(`reservations.${r.status}`)}
                 </span>
               </div>
 
               {r.status === 'FULFILLED' && (
                 <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  A copy is ready — collect before {expires.toLocaleDateString()}
+                  {t('reservations.collectBefore', { date: expires.toLocaleDateString() })}
                 </p>
               )}
               {isPending && isExpiringSoon && (
                 <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                  Expires {expires.toLocaleString()}
+                  {t('reservations.expiresLabel', { date: expires.toLocaleString() })}
                 </p>
               )}
               {isPending && (
                 <button
                   onClick={() => cancelReservation({ variables: { id: r.id } })}
                   className="mt-3 text-xs px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                  Cancel
+                  {t('reservations.cancel')}
                 </button>
               )}
             </div>

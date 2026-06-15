@@ -322,4 +322,19 @@ export const GET_OVERDUE_BORROWS = gql`
       status
     }
   }
-`; 
+`;
+
+// Review queries
+export const BOOK_REVIEWS = gql`
+  query BookReviews($bookId: ID!, $skip: Int, $take: Int) {
+    bookReviews(bookId: $bookId, skip: $skip, take: $take) {
+      id
+      userEmail
+      userName
+      rating
+      comment
+      createdAt
+      updatedAt
+    }
+  }
+`;

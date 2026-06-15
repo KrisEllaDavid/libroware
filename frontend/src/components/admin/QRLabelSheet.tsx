@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslation } from 'react-i18next';
 
 interface Book {
   id: string;
@@ -17,6 +18,7 @@ interface Props {
 const PRINT_STYLE_ID = 'libroware-qr-print-style';
 
 const QRLabelSheet: React.FC<Props> = ({ books, onClose }) => {
+  const { t } = useTranslation();
   const sheetId = 'qr-label-sheet';
 
   useEffect(() => {
@@ -52,12 +54,12 @@ const QRLabelSheet: React.FC<Props> = ({ books, onClose }) => {
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">QR Label Sheet</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{books.length} books — print all labels at once</p>
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{t('qr.title')}</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{t('qr.subtitle', { count: books.length })}</p>
             </div>
             <button onClick={handlePrint}
               className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-all">
-              Print All
+              {t('qr.printAll')}
             </button>
           </div>
 
@@ -68,7 +70,7 @@ const QRLabelSheet: React.FC<Props> = ({ books, onClose }) => {
                 <div key={book.id} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 flex flex-col items-center text-center">
                   <QRCodeSVG value={book.isbn} size={100} level="M" includeMargin />
                   <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mt-2 line-clamp-2 leading-tight">{book.title}</p>
-                  <p className="text-xs text-gray-400 font-mono mt-0.5">ISBN: {book.isbn}</p>
+                  <p className="text-xs text-gray-400 font-mono mt-0.5">{t('browseBooks.isbnLabel')} {book.isbn}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{book.authors.map(a => a.name).join(', ')}</p>
                 </div>
               ))}
@@ -78,7 +80,7 @@ const QRLabelSheet: React.FC<Props> = ({ books, onClose }) => {
           <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex justify-end">
             <button onClick={onClose}
               className="px-4 py-2 text-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-              Close
+              {t('qr.close')}
             </button>
           </div>
         </div>
@@ -87,14 +89,14 @@ const QRLabelSheet: React.FC<Props> = ({ books, onClose }) => {
       {/* Print-only layer (hidden on screen, shown during window.print()) */}
       <div id={sheetId} style={{ display: 'none' }}>
         <h1 style={{ fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
-          Libroware — Book QR Labels ({books.length} books)
+          {t('qr.printHeading', { count: books.length })}
         </h1>
         <div className="print-grid">
           {books.map(book => (
             <div key={book.id} className="print-label">
               <QRCodeSVG value={book.isbn} size={120} level="M" includeMargin />
               <p className="print-title">{book.title}</p>
-              <p className="print-isbn">ISBN: {book.isbn}</p>
+              <p className="print-isbn">{t('browseBooks.isbnLabel')} {book.isbn}</p>
               <p className="print-author">{book.authors.map(a => a.name).join(', ')}</p>
             </div>
           ))}

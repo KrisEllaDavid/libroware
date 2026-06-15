@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   book: {
@@ -12,6 +13,7 @@ interface Props {
 }
 
 const BookQRModal: React.FC<Props> = ({ book, onClose }) => {
+  const { t } = useTranslation();
   const printRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = () => {
@@ -49,19 +51,19 @@ const BookQRModal: React.FC<Props> = ({ book, onClose }) => {
             style={{ display: 'block', margin: '0 auto' }}
           />
           <p className="title">{book.title}</p>
-          <p className="isbn">ISBN: {book.isbn}</p>
+          <p className="isbn">{t('browseBooks.isbnLabel')} {book.isbn}</p>
         </div>
 
-        <p className="text-xs text-gray-400 text-center">QR encodes the ISBN — scan with any library or barcode app</p>
+        <p className="text-xs text-gray-400 text-center">{t('qr.encodes')}</p>
 
         <div className="flex gap-3 w-full">
           <button onClick={onClose}
             className="flex-1 py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-            Close
+            {t('qr.close')}
           </button>
           <button onClick={handlePrint}
             className="flex-1 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-all">
-            Print
+            {t('qr.print')}
           </button>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -41,9 +42,11 @@ interface BorrowStatisticsProps {
 }
 
 const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
+  const { t } = useTranslation();
+
   // Process monthly activity data
   const monthlyActivity = () => {
-    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthNames = t('borrowStats.monthsShort', { returnObjects: true }) as string[];
     const currentYear = new Date().getFullYear();
     
     const borrowsByMonth = Array(12).fill(0);
@@ -97,14 +100,14 @@ const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
     labels: activity.labels,
     datasets: [
       {
-        label: 'Books Borrowed',
+        label: t('borrowStats.booksBorrowed'),
         data: activity.borrowed,
         backgroundColor: 'rgba(53, 162, 235, 0.5)',
         borderColor: 'rgb(53, 162, 235)',
         borderWidth: 1,
       },
       {
-        label: 'Books Returned',
+        label: t('borrowStats.booksReturned'),
         data: activity.returned,
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
         borderColor: 'rgb(75, 192, 192)',
@@ -155,7 +158,7 @@ const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
       },
       title: {
         display: true,
-        text: 'Monthly Borrowing Activity',
+        text: t('borrowStats.monthlyActivityChartTitle'),
       },
     },
     scales: {
@@ -176,31 +179,31 @@ const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
       },
       title: {
         display: true,
-        text: 'Book Categories Distribution',
+        text: t('borrowStats.categoryChartTitle'),
       },
     },
   };
   
   return (
     <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">Your Borrowing Statistics</h2>
-      
+      <h2 className="text-xl font-semibold mb-4">{t('borrowStats.title')}</h2>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div>
-          <h3 className="text-lg font-medium mb-2">Monthly Activity</h3>
+          <h3 className="text-lg font-medium mb-2">{t('borrowStats.monthlyActivity')}</h3>
           <div className="h-80">
             <Bar options={barOptions} data={barChartData} />
           </div>
         </div>
-        
+
         <div>
-          <h3 className="text-lg font-medium mb-2">Categories Distribution</h3>
+          <h3 className="text-lg font-medium mb-2">{t('borrowStats.categoriesDistribution')}</h3>
           <div className="h-80">
             {categories.labels.length > 0 ? (
               <Pie options={pieOptions} data={pieChartData} />
             ) : (
               <div className="flex h-full items-center justify-center text-gray-500">
-                No category data available
+                {t('borrowStats.noCategoryData')}
               </div>
             )}
           </div>

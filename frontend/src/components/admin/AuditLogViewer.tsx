@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@apollo/client';
+import { useTranslation } from 'react-i18next';
 import { GET_AUDIT_LOGS } from '../../graphql/queries';
 
 const PAGE_SIZE = 30;
@@ -14,6 +15,7 @@ const MODELS = ['', 'User', 'Book', 'Borrow'];
 const ACTIONS = ['', 'CREATE', 'UPDATE', 'DELETE'];
 
 const AuditLogViewer: React.FC = () => {
+  const { t } = useTranslation();
   const [page, setPage]       = useState(0);
   const [model, setModel]     = useState('');
   const [action, setAction]   = useState('');
@@ -47,55 +49,55 @@ const AuditLogViewer: React.FC = () => {
     <div className="space-y-5">
       {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-gray-900 dark:text-white">Audit Log</h2>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('auditLog.title')}</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-          Every CREATE, UPDATE and DELETE on critical records — {total.toLocaleString()} entries total
+          {t('auditLog.subtitle', { count: total.toLocaleString() })}
         </p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-end">
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Model</label>
+          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('auditLog.modelLabel')}</label>
           <select value={model} onChange={e => { setModel(e.target.value); setPage(0); }}
             className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            {MODELS.map(m => <option key={m} value={m}>{m || 'All models'}</option>)}
+            {MODELS.map(m => <option key={m} value={m}>{m || t('auditLog.allModels')}</option>)}
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Action</label>
+          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('auditLog.actionLabel')}</label>
           <select value={action} onChange={e => { setAction(e.target.value); setPage(0); }}
             className="px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-            {ACTIONS.map(a => <option key={a} value={a}>{a || 'All actions'}</option>)}
+            {ACTIONS.map(a => <option key={a} value={a}>{a || t('auditLog.allActions')}</option>)}
           </select>
         </div>
         <div className="flex-1 min-w-40">
-          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">Actor User ID</label>
-          <input type="text" value={userId} placeholder="Filter by user ID…"
+          <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{t('auditLog.actorLabel')}</label>
+          <input type="text" value={userId} placeholder={t('auditLog.actorPlaceholder')}
             onChange={e => { setUserId(e.target.value); setPage(0); }}
             className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500" />
         </div>
         {(model || action || userId) && (
           <button onClick={resetFilters}
             className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all">
-            Clear filters
+            {t('auditLog.clearFilters')}
           </button>
         )}
       </div>
 
       {/* Table */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Loading…</div>
+        <div className="text-center py-12 text-gray-400">{t('auditLog.loading')}</div>
       ) : logs.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-          <p className="text-gray-400 text-sm">No audit entries match your filters</p>
+          <p className="text-gray-400 text-sm">{t('auditLog.noEntries')}</p>
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 dark:bg-gray-750">
               <tr>
-                {['Timestamp', 'Action', 'Model', 'Record ID', 'Actor'].map(h => (
+                {[t('auditLog.colTimestamp'), t('auditLog.colAction'), t('auditLog.colModel'), t('auditLog.colRecordId'), t('auditLog.colActor')].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
@@ -112,7 +114,7 @@ const AuditLogViewer: React.FC = () => {
                   <td className="px-4 py-3 text-sm font-medium text-gray-900 dark:text-white">{log.model}</td>
                   <td className="px-4 py-3 text-xs text-gray-400 font-mono truncate max-w-[160px]" title={log.recordId}>{log.recordId}</td>
                   <td className="px-4 py-3 text-xs text-gray-400 font-mono truncate max-w-[160px]" title={log.userId ?? '—'}>
-                    {log.userId ?? <span className="italic text-gray-300">system</span>}
+                    {log.userId ?? <span className="italic text-gray-300">{t('auditLog.system')}</span>}
                   </td>
                 </tr>
               ))}
@@ -123,16 +125,16 @@ const AuditLogViewer: React.FC = () => {
           {pages > 1 && (
             <div className="px-4 py-3 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between">
               <span className="text-xs text-gray-400">
-                Page {page + 1} of {pages} · {total.toLocaleString()} entries
+                {t('auditLog.pageInfo', { page: page + 1, pages, count: total.toLocaleString() })}
               </span>
               <div className="flex gap-2">
                 <button disabled={page === 0} onClick={() => setPage(p => p - 1)}
                   className="px-3 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                  Previous
+                  {t('auditLog.previous')}
                 </button>
                 <button disabled={page >= pages - 1} onClick={() => setPage(p => p + 1)}
                   className="px-3 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                  Next
+                  {t('auditLog.next')}
                 </button>
               </div>
             </div>

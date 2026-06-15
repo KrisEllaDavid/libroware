@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { RETURN_BOOK } from "../../graphql/mutations";
 import { USER_BORROWS } from "../../graphql/queries";
 import { useToast } from "../../context/ToastContext";
@@ -34,6 +35,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
   error,
   refetch,
 }) => {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<"all" | "active" | "returned">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [returningBorrowId, setReturningBorrowId] = useState<string | null>(null);
@@ -48,7 +50,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
       setBorrowReturned(cache, variables.id, new Date().toISOString());
       if (borrow) adjustBookAvailable(cache, borrow.book.id, 1);
     },
-    queuedMessage: "Return saved — it will sync when you're back online.",
+    queuedMessage: t("userBorrows.returnQueued"),
   }, {
     onCompleted: () => {
       setReturningBorrowId(null);
@@ -57,7 +59,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
     onError: (error: any) => {
       setReturningBorrowId(null);
       console.error("Error returning book:", error);
-      addToast(`Failed to return book: ${error.message}`, "error");
+      addToast(t("userBorrows.failedReturn", { message: error.message }), "error");
     },
     refetchQueries: [{ query: USER_BORROWS, variables: { userId } }],
     onQueued: () => setReturningBorrowId(null),
@@ -90,11 +92,11 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
   });
 
   if (loading)
-    return <div className="text-center py-4">Loading your borrows...</div>;
+    return <div className="text-center py-4">{t("userBorrows.loading")}</div>;
   if (error)
     return (
       <div className="text-red-500 py-4">
-        Error loading borrows: {error.message}
+        {t("userBorrows.errorLoading", { message: error.message })}
       </div>
     );
 
@@ -102,14 +104,14 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
         <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 sm:mb-0">
-          My Books
+          {t("userDashboard.tabs.myBooks")}
         </h2>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <div className="relative">
             <input
               type="text"
-              placeholder="Search books..."
+              placeholder={t("books.search")}
               className="pl-8 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-emerald-500 focus:border-emerald-500 w-full sm:w-64"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -139,7 +141,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                   : "bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
               }`}
             >
-              All
+              {t("userBorrows.filterAll")}
             </button>
             <button
               onClick={() => setFilter("active")}
@@ -149,7 +151,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                   : "bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
               }`}
             >
-              Active
+              {t("userBorrows.filterActive")}
             </button>
             <button
               onClick={() => setFilter("returned")}
@@ -159,7 +161,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                   : "bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
               }`}
             >
-              Returned
+              {t("userBorrows.filterReturned")}
             </button>
           </div>
         </div>
@@ -168,8 +170,8 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
       {filteredBorrows.length === 0 ? (
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           {searchTerm
-            ? "No books match your search."
-            : "You haven't borrowed any books yet."}
+            ? t("userBorrows.noMatch")
+            : t("userBorrows.noBorrows")}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -187,7 +189,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                   />
                 ) : (
                   <div className="text-gray-400 dark:text-gray-500">
-                    No cover available
+                    {t("userBorrows.noCover")}
                   </div>
                 )}
               </div>
@@ -202,16 +204,16 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
 
                 <div className="mt-3 space-y-1 text-sm">
                   <p className="text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">Borrowed:</span>{" "}
+                    <span className="font-medium">{t("userBorrows.borrowedLabel")}</span>{" "}
                     {new Date(borrow.borrowedAt).toLocaleDateString()}
                   </p>
                   <p className="text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">Due:</span>{" "}
+                    <span className="font-medium">{t("userBorrows.dueLabel")}</span>{" "}
                     {new Date(borrow.dueDate).toLocaleDateString()}
                   </p>
                   {borrow.returnedAt && (
                     <p className="text-gray-600 dark:text-gray-400">
-                      <span className="font-medium">Returned:</span>{" "}
+                      <span className="font-medium">{t("userBorrows.returnedLabel")}</span>{" "}
                       {new Date(borrow.returnedAt).toLocaleDateString()}
                     </p>
                   )}
@@ -225,12 +227,12 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                         : "text-emerald-600 dark:text-emerald-400"
                     }`}
                   >
-                    Status:{" "}
+                    {t("userBorrows.statusLabel")}{" "}
                     {borrow.status === "OVERDUE"
-                      ? "Overdue"
+                      ? t("borrows.OVERDUE")
                       : borrow.returnedAt
-                      ? "Returned"
-                      : "Active"}
+                      ? t("borrows.RETURNED")
+                      : t("userBorrows.statusActive")}
                   </p>
                 </div>
               </div>
@@ -243,10 +245,10 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                     className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {isReturnQueued(borrow.id)
-                      ? "Returning... (will sync)"
+                      ? t("userBorrows.returningSync")
                       : returningBorrowId === borrow.id
-                      ? "Processing..."
-                      : "Return Book"}
+                      ? t("borrows.processing")
+                      : t("userBorrows.returnBook")}
                   </button>
                 </div>
               )}
