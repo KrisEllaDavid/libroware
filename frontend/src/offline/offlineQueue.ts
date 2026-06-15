@@ -34,7 +34,12 @@ const readQueue = (): QueuedMutation[] => {
   }
 };
 
+// Stable in-memory reference so useSyncExternalStore's Object.is check sees
+// the same value between writes and doesn't loop infinitely.
+let _cachedQueue: QueuedMutation[] = readQueue();
+
 const writeQueue = (queue: QueuedMutation[]): void => {
+  _cachedQueue = queue;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
   } catch {
@@ -43,7 +48,7 @@ const writeQueue = (queue: QueuedMutation[]): void => {
   listeners.forEach((listener) => listener());
 };
 
-export const getQueue = (): QueuedMutation[] => readQueue();
+export const getQueue = (): QueuedMutation[] => _cachedQueue;
 
 export const enqueue = (item: Pick<QueuedMutation, "type" | "variables">): QueuedMutation => {
   const queued: QueuedMutation = {
@@ -53,16 +58,16 @@ export const enqueue = (item: Pick<QueuedMutation, "type" | "variables">): Queue
     createdAt: Date.now(),
     retryCount: 0,
   };
-  writeQueue([...readQueue(), queued]);
+  writeQueue([..._cachedQueue, queued]);
   return queued;
 };
 
 export const dequeue = (id: string): void => {
-  writeQueue(readQueue().filter((item) => item.id !== id));
+  writeQueue(_cachedQueue.filter((item) => item.id !== id));
 };
 
 export const updateRetryCount = (id: string, retryCount: number): void => {
-  writeQueue(readQueue().map((item) => (item.id === id ? { ...item, retryCount } : item)));
+  writeQueue(_cachedQueue.map((item) => (item.id === id ? { ...item, retryCount } : item)));
 };
 
 export const subscribe = (listener: Listener): (() => void) => {
