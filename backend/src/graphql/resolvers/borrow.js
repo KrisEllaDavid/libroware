@@ -1,9 +1,9 @@
 const { computeAndSaveFine } = require("./fine");
+const { createNotification, createNotificationsForStaff } = require("./notification");
 
 module.exports = {
   Query: {
     borrow: async (_, { id }, { prisma }) => {
-      // Atomically mark as OVERDUE if past due date before returning
       await prisma.borrow.updateMany({
         where: { id, status: "BORROWED", dueDate: { lt: new Date() } },
         data: { status: "OVERDUE" },
@@ -22,9 +22,9 @@ module.exports = {
 
       const where = status ? { status } : {};
 
-      // Bulk-update overdue borrows before returning results
+      // Only flip BORROWED→OVERDUE (never touch PENDING_APPROVAL)
       await prisma.borrow.updateMany({
-        where: { ...where, status: "BORROWED", dueDate: { lt: new Date() } },
+        where: { status: "BORROWED", dueDate: { lt: new Date() } },
         data: { status: "OVERDUE" },
       });
 
@@ -43,17 +43,46 @@ module.exports = {
       { userId: callerId, role, prisma }
     ) => {
       if (!callerId) throw new Error("Not authenticated");
-      // Users can only see their own borrows; staff can see anyone's
       if (callerId !== userId && role !== "ADMIN" && role !== "LIBRARIAN")
         throw new Error("Not authorized");
 
-      const where = { userId, ...(status && { status }) };
+      // Find borrows about to flip so we can notify the user
+      const toBeOverdue = await prisma.borrow.findMany({
+        where: { userId, status: "BORROWED", dueDate: { lt: new Date() } },
+        include: { book: { select: { title: true } } },
+      });
 
       await prisma.borrow.updateMany({
         where: { userId, status: "BORROWED", dueDate: { lt: new Date() } },
         data: { status: "OVERDUE" },
       });
 
+      // Create one overdue notification per newly-flipped borrow (deduped per 24h)
+      if (toBeOverdue.length > 0) {
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        for (const b of toBeOverdue) {
+          const alreadyNotified = await prisma.notification.findFirst({
+            where: {
+              userId,
+              type: "OVERDUE_REMINDER",
+              data: { path: ["borrowId"], equals: b.id },
+              createdAt: { gt: dayAgo },
+            },
+          });
+          if (!alreadyNotified) {
+            await createNotification(prisma, {
+              userId,
+              type: "OVERDUE_REMINDER",
+              title: "Book Overdue",
+              message: `Your borrowed book "${b.book.title}" is now overdue. Please return it as soon as possible.`,
+              link: "/dashboard",
+              data: { borrowId: b.id, bookTitle: b.book.title },
+            });
+          }
+        }
+      }
+
+      const where = { userId, ...(status && { status }) };
       return prisma.borrow.findMany({
         where,
         skip,
@@ -75,7 +104,6 @@ module.exports = {
       if (role !== "ADMIN" && role !== "LIBRARIAN")
         throw new Error("Not authorized");
 
-      // Single bulk update then fetch — no per-row loop
       await prisma.borrow.updateMany({
         where: { status: "BORROWED", dueDate: { lt: new Date() } },
         data: { status: "OVERDUE" },
@@ -95,7 +123,6 @@ module.exports = {
 
       const { userId, bookId, dueDate, note } = input;
 
-      // Users can only borrow for themselves; staff can borrow on behalf of anyone
       if (callerId !== userId && role !== "ADMIN" && role !== "LIBRARIAN")
         throw new Error("Not authorized to borrow on behalf of another user");
 
@@ -105,7 +132,8 @@ module.exports = {
       if (dueDateParsed <= new Date())
         throw new Error("dueDate must be in the future");
 
-      // Availability check and decrement inside one transaction to prevent race condition
+      const isStaff = role === "ADMIN" || role === "LIBRARIAN";
+
       return prisma.$transaction(async (tx) => {
         const user = await tx.user.findUnique({ where: { id: userId } });
         if (!user) throw new Error("User not found");
@@ -121,16 +149,39 @@ module.exports = {
           data: { available: { decrement: 1 } },
         });
 
-        return tx.borrow.create({
+        // Staff checkouts go directly to BORROWED; member requests need approval
+        const initialStatus = isStaff ? "BORROWED" : "PENDING_APPROVAL";
+
+        const borrow = await tx.borrow.create({
           data: {
             user: { connect: { id: userId } },
             book: { connect: { id: bookId } },
             dueDate: dueDateParsed,
-            status: "BORROWED",
+            status: initialStatus,
             ...(note && { note }),
           },
           include: { user: true, book: { include: { authors: true } } },
         });
+
+        if (!isStaff) {
+          const today = new Date();
+          const isSameDay =
+            dueDateParsed.toDateString() === today.toDateString();
+          const borrowKind = isSameDay ? "Read" : "Borrow";
+          await createNotificationsForStaff(tx, {
+            type: "BORROW_REQUEST",
+            title: `New ${borrowKind} Request`,
+            message: `${user.firstName} ${user.lastName} requested to ${borrowKind.toLowerCase()} "${book.title}"`,
+            link: "/admin?tab=pending",
+            data: {
+              borrowId: borrow.id,
+              bookTitle: book.title,
+              userName: `${user.firstName} ${user.lastName}`,
+            },
+          });
+        }
+
+        return borrow;
       });
     },
 
@@ -152,8 +203,6 @@ module.exports = {
           throw new Error("New due date must be in the future");
         data.dueDate = parsedDueDate;
 
-        // Extending a due date past today means it's no longer overdue —
-        // flip it back unless the caller is explicitly setting a status.
         if (borrow.status === "OVERDUE" && !input.status) {
           data.status = "BORROWED";
         }
@@ -166,6 +215,93 @@ module.exports = {
       });
     },
 
+    approveBorrow: async (_, { id }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN")
+        throw new Error("Not authorized");
+
+      const borrow = await prisma.borrow.findUnique({
+        where: { id },
+        include: { user: true, book: true },
+      });
+      if (!borrow) throw new Error("Borrow request not found");
+      if (borrow.status !== "PENDING_APPROVAL")
+        throw new Error("Borrow is not pending approval");
+
+      const updated = await prisma.borrow.update({
+        where: { id },
+        data: { status: "BORROWED" },
+        include: { user: true, book: true },
+      });
+
+      await createNotification(prisma, {
+        userId: borrow.userId,
+        type: "BORROW_APPROVED",
+        title: "Borrow Request Approved",
+        message: `Your request to borrow "${borrow.book.title}" has been approved. Due date: ${new Date(borrow.dueDate).toLocaleDateString()}.`,
+        link: "/dashboard",
+        data: { borrowId: borrow.id, bookTitle: borrow.book.title },
+      });
+
+      return updated;
+    },
+
+    rejectBorrow: async (_, { id, reason }, { userId, role, prisma }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN")
+        throw new Error("Not authorized");
+
+      const borrow = await prisma.borrow.findUnique({
+        where: { id },
+        include: { user: true, book: true },
+      });
+      if (!borrow) throw new Error("Borrow request not found");
+      if (borrow.status !== "PENDING_APPROVAL")
+        throw new Error("Borrow is not pending approval");
+
+      await prisma.$transaction(async (tx) => {
+        await tx.book.update({
+          where: { id: borrow.bookId },
+          data: { available: { increment: 1 } },
+        });
+        await tx.borrow.delete({ where: { id } });
+
+        await createNotification(tx, {
+          userId: borrow.userId,
+          type: "BORROW_REJECTED",
+          title: "Borrow Request Not Approved",
+          message: `Your request to borrow "${borrow.book.title}" was not approved.${reason ? ` Reason: ${reason}` : ""}`,
+          link: "/dashboard",
+          data: { bookTitle: borrow.book.title },
+        });
+      });
+
+      return true;
+    },
+
+    cancelBorrowRequest: async (_, { id }, { userId: callerId, prisma }) => {
+      if (!callerId) throw new Error("Not authenticated");
+
+      const borrow = await prisma.borrow.findUnique({
+        where: { id },
+        include: { book: true },
+      });
+      if (!borrow) throw new Error("Borrow request not found");
+      if (borrow.status !== "PENDING_APPROVAL")
+        throw new Error("Can only cancel pending requests");
+      if (borrow.userId !== callerId) throw new Error("Not authorized");
+
+      await prisma.$transaction(async (tx) => {
+        await tx.book.update({
+          where: { id: borrow.bookId },
+          data: { available: { increment: 1 } },
+        });
+        await tx.borrow.delete({ where: { id } });
+      });
+
+      return true;
+    },
+
     returnBook: async (_, { id }, { userId: callerId, role, prisma }) => {
       if (!callerId) throw new Error("Not authenticated");
 
@@ -176,8 +312,9 @@ module.exports = {
       if (!borrow) throw new Error("Borrow record not found");
       if (borrow.status === "RETURNED")
         throw new Error("Book is already returned");
+      if (borrow.status === "PENDING_APPROVAL")
+        throw new Error("Cannot return a book that is pending approval");
 
-      // Users can only return their own borrows
       if (borrow.userId !== callerId && role !== "ADMIN" && role !== "LIBRARIAN")
         throw new Error("Not authorized");
 
@@ -195,21 +332,37 @@ module.exports = {
           include: { user: true, book: true },
         });
 
-        // Auto-compute fine if book was overdue
         if (borrow.status === "OVERDUE" || returnedAt > new Date(borrow.dueDate)) {
-          await computeAndSaveFine({ ...updated, returnedAt }, tx);
+          const fine = await computeAndSaveFine({ ...updated, returnedAt }, tx);
+          if (fine) {
+            await createNotification(tx, {
+              userId: updated.userId,
+              type: "FINE_ISSUED",
+              title: "Late Return Fine Issued",
+              message: `A fine of ${fine.amount.toLocaleString()} FCFA has been recorded for the late return of "${updated.book.title}".`,
+              link: "/dashboard",
+              data: { borrowId: updated.id, bookTitle: updated.book.title, amount: fine.amount },
+            });
+          }
         }
 
-        // Fulfil next reservation in FIFO queue for this book
         const nextReservation = await tx.reservation.findFirst({
-          where:   { bookId: borrow.bookId, status: "PENDING" },
+          where: { bookId: borrow.bookId, status: "PENDING" },
           orderBy: { createdAt: "asc" },
         });
         if (nextReservation) {
           const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000);
           await tx.reservation.update({
             where: { id: nextReservation.id },
-            data:  { status: "FULFILLED", expiresAt },
+            data: { status: "FULFILLED", expiresAt },
+          });
+          await createNotification(tx, {
+            userId: nextReservation.userId,
+            type: "RESERVATION_READY",
+            title: "Your Reserved Book is Available",
+            message: `"${borrow.book.title}" is now available for pickup. Please collect it within 48 hours.`,
+            link: "/dashboard",
+            data: { reservationId: nextReservation.id, bookTitle: borrow.book.title },
           });
         }
 
@@ -219,7 +372,6 @@ module.exports = {
   },
 
   Borrow: {
-    // Fallback resolvers — only called if parent was fetched without include
     user: async (parent, _, { prisma }) => {
       if (parent.user) return parent.user;
       return prisma.user.findUnique({ where: { id: parent.userId } });

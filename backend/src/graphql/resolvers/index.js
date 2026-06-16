@@ -1,13 +1,14 @@
-const userResolvers        = require("./user");
-const bookResolvers        = require("./book");
-const authorResolvers      = require("./author");
-const categoryResolvers    = require("./category");
-const borrowResolvers      = require("./borrow");
-const reviewResolvers      = require("./review");
-const uploadResolvers      = require("./upload");
-const fineResolvers        = require("./fine");
-const reservationResolvers = require("./reservation");
-const analyticsResolvers   = require("./analytics");
+const userResolvers         = require("./user");
+const bookResolvers         = require("./book");
+const authorResolvers       = require("./author");
+const categoryResolvers     = require("./category");
+const borrowResolvers       = require("./borrow");
+const reviewResolvers       = require("./review");
+const uploadResolvers       = require("./upload");
+const fineResolvers         = require("./fine");
+const reservationResolvers  = require("./reservation");
+const analyticsResolvers    = require("./analytics");
+const notificationResolvers = require("./notification");
 
 module.exports = {
   Query: {
@@ -20,6 +21,7 @@ module.exports = {
     ...fineResolvers.Query,
     ...reservationResolvers.Query,
     ...analyticsResolvers.Query,
+    ...notificationResolvers.Query,
   },
 
   Mutation: {
@@ -32,14 +34,16 @@ module.exports = {
     ...uploadResolvers.Mutation,
     ...fineResolvers.Mutation,
     ...reservationResolvers.Mutation,
+    ...notificationResolvers.Mutation,
   },
 
-  User:        userResolvers.User,
-  Book:        bookResolvers.Book,
-  Author:      authorResolvers.Author,
-  Category:    categoryResolvers.Category,
-  Borrow:      borrowResolvers.Borrow,
-  Review:      reviewResolvers.Review,
-  Fine:        fineResolvers.Fine,
-  Reservation: reservationResolvers.Reservation,
+  User:         userResolvers.User,
+  Book:         bookResolvers.Book,
+  Author:       authorResolvers.Author,
+  Category:     categoryResolvers.Category,
+  Borrow:       borrowResolvers.Borrow,
+  Review:       reviewResolvers.Review,
+  Fine:         fineResolvers.Fine,
+  Reservation:  reservationResolvers.Reservation,
+  Notification: notificationResolvers.Notification,
 };

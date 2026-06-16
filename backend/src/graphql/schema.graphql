@@ -72,9 +72,30 @@ type Borrow {
 }
 
 enum BorrowStatus {
+  PENDING_APPROVAL
   BORROWED
   RETURNED
   OVERDUE
+}
+
+enum NotificationType {
+  BORROW_REQUEST
+  BORROW_APPROVED
+  BORROW_REJECTED
+  OVERDUE_REMINDER
+  RESERVATION_READY
+  FINE_ISSUED
+}
+
+type Notification {
+  id:        ID!
+  userId:    ID!
+  type:      NotificationType!
+  title:     String!
+  message:   String!
+  read:      Boolean!
+  link:      String
+  createdAt: String!
 }
 
 type Fine {
@@ -297,6 +318,10 @@ type Query {
   topBorrowedBooks(take: Int): [BookBorrowStat!]!
   categoryBorrowStats: [CategoryBorrowStat!]!
 
+  # Notification queries
+  notifications(skip: Int, take: Int, unreadOnly: Boolean): [Notification!]!
+  unreadNotificationsCount: Int!
+
   # Fine queries
   fine(borrowId: ID!): Fine
   userFines(userId: ID!, skip: Int, take: Int): [Fine!]!
@@ -341,6 +366,13 @@ type Mutation {
   createBorrow(input: BorrowCreateInput!): Borrow!
   updateBorrow(id: ID!, input: BorrowUpdateInput!): Borrow!
   returnBook(id: ID!): Borrow!
+  approveBorrow(id: ID!): Borrow!
+  rejectBorrow(id: ID!, reason: String): Boolean!
+  cancelBorrowRequest(id: ID!): Boolean!
+
+  # Notification mutations
+  markNotificationRead(id: ID!): Notification!
+  markAllNotificationsRead: Boolean!
 
   # Review mutations
   createReview(input: ReviewCreateInput!): Review!

@@ -9,21 +9,22 @@ datasource db {
 }
 
 model User {
-  id                     String        @id @default(uuid())
-  email                  String        @unique
+  id                     String         @id @default(uuid())
+  email                  String         @unique
   password               String
   firstName              String
   lastName               String
-  role                   Role          @default(USER)
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
+  role                   Role           @default(USER)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
   deletedAt              DateTime?
   profilePicture         String?
-  requiresPasswordChange Boolean?      @default(true)
+  requiresPasswordChange Boolean?       @default(true)
   borrowedBooks          Borrow[]
-  reviews                Review[]      @relation("UserReviews")
+  reviews                Review[]       @relation("UserReviews")
   fines                  Fine[]
   reservations           Reservation[]
+  notifications          Notification[]
 
   @@index([role])
   @@index([deletedAt])
@@ -148,9 +149,19 @@ enum Role {
 }
 
 enum BorrowStatus {
+  PENDING_APPROVAL
   BORROWED
   RETURNED
   OVERDUE
+}
+
+enum NotificationType {
+  BORROW_REQUEST
+  BORROW_APPROVED
+  BORROW_REJECTED
+  OVERDUE_REMINDER
+  RESERVATION_READY
+  FINE_ISSUED
 }
 
 enum ReservationStatus {
@@ -158,6 +169,22 @@ enum ReservationStatus {
   FULFILLED
   CANCELLED
   EXPIRED
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  message   String
+  read      Boolean          @default(false)
+  link      String?
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([userId, read])
 }
 
 model AuditLog {
