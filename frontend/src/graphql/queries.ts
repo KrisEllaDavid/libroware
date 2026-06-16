@@ -198,6 +198,36 @@ export const GET_BOOK_BY_ISBN = gql`
   }
 `;
 
+export const GET_BOOK_BY_ISBN_FULL = gql`
+  query GetBookByIsbnFull($isbn: String!) {
+    bookByIsbn(isbn: $isbn) {
+      id
+      title
+      isbn
+      description
+      quantity
+      available
+      coverImage
+      authors { id name }
+      categories { id name }
+    }
+  }
+`;
+
+export const GET_NOTIFICATIONS = gql`
+  query GetNotifications($skip: Int, $take: Int, $unreadOnly: Boolean) {
+    notifications(skip: $skip, take: $take, unreadOnly: $unreadOnly) {
+      id userId type title message read link createdAt
+    }
+  }
+`;
+
+export const GET_UNREAD_NOTIFICATIONS_COUNT = gql`
+  query GetUnreadNotificationsCount {
+    unreadNotificationsCount
+  }
+`;
+
 export const GET_BOOK = gql`
   query GetBook($id: ID!) {
     book(id: $id) {

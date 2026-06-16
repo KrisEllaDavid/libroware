@@ -39,3 +39,22 @@ export interface User {
   overdueBorrowCount?: number;
   outstandingFines?: number;
 }
+
+export type NotificationType =
+  | 'BORROW_REQUEST'
+  | 'BORROW_APPROVED'
+  | 'BORROW_REJECTED'
+  | 'OVERDUE_REMINDER'
+  | 'RESERVATION_READY'
+  | 'FINE_ISSUED';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  read: boolean;
+  link: string | null;
+  createdAt: string;
+}

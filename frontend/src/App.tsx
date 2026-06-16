@@ -17,6 +17,7 @@ import AboutPage from "./components/AboutPage";
 import ElectronSettings from "./components/ElectronSettings";
 import OfflineBanner from "./components/common/OfflineBanner";
 import { NetworkProvider } from "./context/NetworkContext";
+import NotificationsPage from "./components/NotificationsPage";
 
 // Electron: listen for navigate events from main process (e.g. open Settings)
 const useElectronNav = () => {
@@ -81,6 +82,7 @@ const AppContent: React.FC = () => {
                 }
               />
               <Route path="/books" element={<UserBookView />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/electron-settings" element={<ElectronSettings />} />
               <Route path="/" element={<Navigate to={defaultPath} replace />} />

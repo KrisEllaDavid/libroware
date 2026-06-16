@@ -233,9 +233,9 @@ const AuthorManagement: React.FC = () => {
             key={author.id}
             className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 sm:px-6 transition-colors"
           >
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="min-w-0">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors break-words">
                   {author.name}
                 </h4>
                 {author.createdAt && (
@@ -244,7 +244,7 @@ const AuthorManagement: React.FC = () => {
                   </p>
                 )}
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-shrink-0 space-x-2 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => handleEdit(author)}

@@ -112,6 +112,7 @@
     "networkError":   "Erreur réseau",
     "noBookFound":    "Aucun livre trouvé pour cet ISBN",
     "lookupFailed":   "Recherche échouée",
+    "rateLimited":    "Trop de recherches — veuillez patienter quelques secondes et réessayer",
     "cameraDenied":   "Accès à la caméra refusé ou indisponible"
   },
   "users": {
@@ -137,19 +138,32 @@
     "saving":         "Enregistrement..."
   },
   "borrows": {
-    "title":        "Historique des emprunts",
-    "member":       "Membre",
-    "book":         "Livre",
-    "borrowedAt":   "Emprunté le",
-    "dueDate":      "Date d'échéance",
-    "returnedAt":   "Retourné le",
-    "status":       "Statut",
-    "note":         "Note",
-    "return":       "Retourner",
-    "processing":   "Traitement...",
-    "BORROWED":     "Emprunté",
-    "RETURNED":     "Retourné",
-    "OVERDUE":      "En retard"
+    "title":            "Historique des emprunts",
+    "member":           "Membre",
+    "book":             "Livre",
+    "borrowedAt":       "Emprunté le",
+    "dueDate":          "Date d'échéance",
+    "returnedAt":       "Retourné le",
+    "status":           "Statut",
+    "note":             "Note",
+    "return":           "Retourner",
+    "processing":       "Traitement...",
+    "BORROWED":         "Emprunté",
+    "RETURNED":         "Retourné",
+    "OVERDUE":          "En retard",
+    "PENDING_APPROVAL": "En attente d'approbation"
+  },
+  "pending": {
+    "awaitingApproval": "En attente d'approbation",
+    "approve":          "Approuver",
+    "reject":           "Rejeter",
+    "rejectTitle":      "Rejeter la demande d'emprunt",
+    "rejectBody":       "Rejeter la demande de \"{{title}}\" par {{name}} ? Le livre sera de nouveau disponible.",
+    "rejectReasonLabel":"Motif (facultatif)",
+    "rejectReasonHint": "ex. Réservé pour un autre lecteur, problème de compte…",
+    "rejectBtn":        "Rejeter la demande",
+    "approvedToast":    "Demande approuvée pour {{name}}",
+    "rejectedToast":    "Demande rejetée"
   },
   "auditLog": {
     "title":          "Journal d'audit",
@@ -224,7 +238,9 @@
     "loading":        "Chargement de vos emprunts...",
     "errorLoading":   "Erreur lors du chargement des emprunts : {{message}}",
     "failedReturn":   "Échec du retour du livre : {{message}}",
-    "returnQueued":   "Retour enregistré — il sera synchronisé dès que vous serez de nouveau en ligne."
+    "returnQueued":      "Retour enregistré — il sera synchronisé dès que vous serez de nouveau en ligne.",
+    "cancelRequest":     "Annuler la demande",
+    "requestCancelled":  "Demande d'emprunt annulée"
   },
   "userFines": {
     "title":            "Mes amendes",
@@ -354,9 +370,14 @@
     "notesPlaceholder":"Ajoutez des notes sur cette demande d'emprunt...",
     "returnByLabel":"À retourner avant le :",
     "borrowPeriodHint":"Les livres peuvent être empruntés pour une durée maximale de deux semaines. Merci de respecter la date de retour sélectionnée.",
-    "readNow":     "Lire maintenant",
+    "readNow":           "Lire maintenant",
     "reservationCreated":"Réservation créée — vous serez averti(e) dès qu'un exemplaire sera disponible",
-    "borrowQueued":"Demande d'emprunt enregistrée — elle sera envoyée dès que vous serez de nouveau en ligne."
+    "borrowQueued":      "Demande d'emprunt enregistrée — elle sera envoyée dès que vous serez de nouveau en ligne.",
+    "approvalNotice":    "Votre demande sera examinée par un bibliothécaire avant d'être confirmée.",
+    "requestSubmitted":  "Demande soumise — en attente d'approbation d'un bibliothécaire.",
+    "scanBook":          "Scanner un livre",
+    "scanLooking":       "Recherche du livre…",
+    "scanNotInCatalog":  "Ce livre n'est pas dans notre catalogue."
   },
   "reviews": {
     "title":            "Avis",
@@ -395,6 +416,21 @@
     "search":     "Rechercher",
     "noData":     "Aucune donnée disponible",
     "retry":      "Réessayer"
+  },
+  "notifications": {
+    "title":           "Notifications",
+    "unreadCount":     "{{count}} non lue(s)",
+    "markAllRead":     "Tout marquer comme lu",
+    "filterAll":       "Toutes",
+    "filterUnread":    "Non lues",
+    "noNotifications": "Vous êtes à jour — aucune notification.",
+    "noUnread":        "Aucune notification non lue.",
+    "BORROW_REQUEST":  "Nouvelle demande d'emprunt",
+    "BORROW_APPROVED": "Demande approuvée",
+    "BORROW_REJECTED": "Demande rejetée",
+    "OVERDUE_REMINDER":"Rappel de retard",
+    "RESERVATION_READY":"Réservation disponible",
+    "FINE_ISSUED":     "Amende émise"
   },
   "lang": {
     "switch": "English",

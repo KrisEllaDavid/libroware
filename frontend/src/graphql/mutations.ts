@@ -323,6 +323,44 @@ export const DELETE_REVIEW = gql`
   }
 `;
 
+// Borrow Approval Mutations
+export const APPROVE_BORROW = gql`
+  mutation ApproveBorrow($id: ID!) {
+    approveBorrow(id: $id) {
+      id status dueDate
+      user { id firstName lastName }
+      book { id title }
+    }
+  }
+`;
+
+export const REJECT_BORROW = gql`
+  mutation RejectBorrow($id: ID!, $reason: String) {
+    rejectBorrow(id: $id, reason: $reason)
+  }
+`;
+
+export const CANCEL_BORROW_REQUEST = gql`
+  mutation CancelBorrowRequest($id: ID!) {
+    cancelBorrowRequest(id: $id)
+  }
+`;
+
+// Notification Mutations
+export const MARK_NOTIFICATION_READ = gql`
+  mutation MarkNotificationRead($id: ID!) {
+    markNotificationRead(id: $id) {
+      id read
+    }
+  }
+`;
+
+export const MARK_ALL_NOTIFICATIONS_READ = gql`
+  mutation MarkAllNotificationsRead {
+    markAllNotificationsRead
+  }
+`;
+
 // Auth Mutations
 export const LOGIN = gql`
   mutation Login($input: LoginInput!) {

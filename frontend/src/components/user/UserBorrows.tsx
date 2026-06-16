@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { RETURN_BOOK } from "../../graphql/mutations";
+import { useMutation } from "@apollo/client";
+import { RETURN_BOOK, CANCEL_BORROW_REQUEST } from "../../graphql/mutations";
 import { USER_BORROWS } from "../../graphql/queries";
 import { useToast } from "../../context/ToastContext";
 import { useOfflineMutation } from "../../offline/useOfflineMutation";
@@ -39,6 +40,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
   const [filter, setFilter] = useState<"all" | "active" | "returned">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [returningBorrowId, setReturningBorrowId] = useState<string | null>(null);
+  const [cancellingBorrowId, setCancellingBorrowId] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const queuedReturns = useQueuedMutations("RETURN_BOOK");
@@ -73,9 +75,26 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
   const isReturnQueued = (borrowId: string) =>
     queuedReturns.some((q) => (q.variables as { id: string }).id === borrowId);
 
+  const [cancelBorrowRequest] = useMutation(CANCEL_BORROW_REQUEST, {
+    onCompleted: () => {
+      setCancellingBorrowId(null);
+      addToast(t("userBorrows.requestCancelled"), "info");
+      refetch();
+    },
+    onError: (error: any) => {
+      setCancellingBorrowId(null);
+      addToast(error.message, "error");
+    },
+  });
+
+  const handleCancelRequest = (borrowId: string) => {
+    setCancellingBorrowId(borrowId);
+    cancelBorrowRequest({ variables: { id: borrowId } });
+  };
+
   const filteredBorrows = borrows.filter((borrow) => {
-    if (filter === "active" && borrow.returnedAt !== null) return false;
-    if (filter === "returned" && borrow.returnedAt === null) return false;
+    if (filter === "active" && (borrow.returnedAt !== null || borrow.status === "RETURNED")) return false;
+    if (filter === "returned" && borrow.status !== "RETURNED") return false;
 
     if (searchTerm.trim() !== "") {
       const searchLower = searchTerm.toLowerCase();
@@ -220,7 +239,9 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
 
                   <p
                     className={`font-medium ${
-                      borrow.status === "OVERDUE"
+                      borrow.status === "PENDING_APPROVAL"
+                        ? "text-amber-600 dark:text-amber-400"
+                        : borrow.status === "OVERDUE"
                         ? "text-red-600 dark:text-red-400"
                         : borrow.returnedAt
                         ? "text-green-600 dark:text-green-400"
@@ -228,7 +249,9 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                     }`}
                   >
                     {t("userBorrows.statusLabel")}{" "}
-                    {borrow.status === "OVERDUE"
+                    {borrow.status === "PENDING_APPROVAL"
+                      ? t("borrows.PENDING_APPROVAL")
+                      : borrow.status === "OVERDUE"
                       ? t("borrows.OVERDUE")
                       : borrow.returnedAt
                       ? t("borrows.RETURNED")
@@ -237,7 +260,19 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                 </div>
               </div>
 
-              {!borrow.returnedAt && (
+              {borrow.status === "PENDING_APPROVAL" ? (
+                <div className="p-4 pt-0">
+                  <button
+                    onClick={() => handleCancelRequest(borrow.id)}
+                    disabled={cancellingBorrowId === borrow.id}
+                    className="w-full py-2 px-4 border border-amber-400 rounded-md shadow-sm text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {cancellingBorrowId === borrow.id
+                      ? t("borrows.processing")
+                      : t("userBorrows.cancelRequest")}
+                  </button>
+                </div>
+              ) : !borrow.returnedAt ? (
                 <div className="p-4 pt-0">
                   <button
                     onClick={() => handleReturnBook(borrow.id)}
@@ -251,7 +286,7 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                       : t("userBorrows.returnBook")}
                   </button>
                 </div>
-              )}
+              ) : null}
             </div>
           ))}
         </div>

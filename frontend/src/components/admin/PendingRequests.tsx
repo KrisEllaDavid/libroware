@@ -3,28 +3,31 @@ import { useQuery, useMutation } from "@apollo/client";
 import { gql } from "@apollo/client";
 import Modal from "../Modal";
 import { SEARCH_MEMBERS, GET_BOOKS } from "../../graphql/queries";
-import { CREATE_BORROW } from "../../graphql/mutations";
+import { CREATE_BORROW, APPROVE_BORROW, REJECT_BORROW } from "../../graphql/mutations";
 import { useToast } from "../../context/ToastContext";
 
-// GraphQL queries and mutations
-const GET_PENDING_BORROWS = gql`
-  query GetPendingBorrows {
+// ── Approval requests ──────────────────────────────────────────────────────────
+const GET_APPROVAL_REQUESTS = gql`
+  query GetApprovalRequests {
+    borrows(status: PENDING_APPROVAL) {
+      id
+      borrowedAt
+      dueDate
+      note
+      status
+      user { id firstName lastName email }
+      book { id title isbn authors { name } coverImage }
+    }
+  }
+`;
+
+// ── Active borrows ─────────────────────────────────────────────────────────────
+const GET_ACTIVE_BORROWS = gql`
+  query GetActiveBorrows {
     borrows(status: BORROWED) {
       id
-      user {
-        id
-        firstName
-        lastName
-        email
-      }
-      book {
-        id
-        title
-        isbn
-        authors {
-          name
-        }
-      }
+      user { id firstName lastName email }
+      book { id title isbn authors { name } }
       borrowedAt
       dueDate
       status
@@ -32,25 +35,12 @@ const GET_PENDING_BORROWS = gql`
   }
 `;
 
-// Add query without status filter as fallback
 const GET_ALL_BORROWS = gql`
   query GetAllBorrows {
     borrows {
       id
-      user {
-        id
-        firstName
-        lastName
-        email
-      }
-      book {
-        id
-        title
-        isbn
-        authors {
-          name
-        }
-      }
+      user { id firstName lastName email }
+      book { id title isbn authors { name } }
       borrowedAt
       dueDate
       status
@@ -60,49 +50,200 @@ const GET_ALL_BORROWS = gql`
 
 const UPDATE_BORROW = gql`
   mutation UpdateBorrow($id: ID!, $input: BorrowUpdateInput!) {
-    updateBorrow(id: $id, input: $input) {
-      id
-      status
-      returnedAt
-    }
+    updateBorrow(id: $id, input: $input) { id status returnedAt }
   }
 `;
 
 const RETURN_BOOK = gql`
   mutation ReturnBook($id: ID!) {
-    returnBook(id: $id) {
-      id
-      status
-      returnedAt
-    }
+    returnBook(id: $id) { id status returnedAt }
   }
 `;
 
 const EXTEND_GRACE_DAYS = [3, 7, 14];
 
-type Borrow = {
+type ApprovalBorrow = {
   id: string;
-  user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  book: {
-    id: string;
-    title: string;
-    isbn: string;
-    authors: {
-      name: string;
-    }[];
-  };
+  borrowedAt: string;
+  dueDate: string;
+  note: string | null;
+  status: string;
+  user: { id: string; firstName: string; lastName: string; email: string };
+  book: { id: string; title: string; isbn: string; authors: { name: string }[]; coverImage: string | null };
+};
+
+type ActiveBorrow = {
+  id: string;
+  user: { id: string; firstName: string; lastName: string; email: string };
+  book: { id: string; title: string; isbn: string; authors: { name: string }[] };
   borrowedAt: string;
   dueDate: string;
   status: "BORROWED" | "RETURNED" | "OVERDUE";
 };
 
+// ── Approval section ──────────────────────────────────────────────────────────
+const ApprovalSection: React.FC<{ onRefetchActive: () => void }> = ({ onRefetchActive }) => {
+  const { addToast } = useToast();
+  const [rejectTarget, setRejectTarget] = useState<ApprovalBorrow | null>(null);
+  const [rejectReason, setRejectReason] = useState('');
+
+  const { data, loading, refetch } = useQuery(GET_APPROVAL_REQUESTS, {
+    fetchPolicy: 'network-only',
+    pollInterval: 15000,
+  });
+
+  const [approveBorrow, { loading: approveLoading }] = useMutation(APPROVE_BORROW, {
+    onCompleted: (d) => {
+      addToast(`"${d.approveBorrow.book.title}" approved for ${d.approveBorrow.user.firstName} ${d.approveBorrow.user.lastName}`, 'success');
+      refetch();
+      onRefetchActive();
+    },
+    onError: (e) => addToast(e.message, 'error'),
+  });
+
+  const [rejectBorrow, { loading: rejectLoading }] = useMutation(REJECT_BORROW, {
+    onCompleted: () => {
+      addToast('Request rejected', 'info');
+      setRejectTarget(null);
+      setRejectReason('');
+      refetch();
+      onRefetchActive();
+    },
+    onError: (e) => addToast(e.message, 'error'),
+  });
+
+  const formatDate = (s: string) =>
+    new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(s));
+
+  const requests: ApprovalBorrow[] = data?.borrows || [];
+
+  if (loading && requests.length === 0) {
+    return (
+      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 sm:rounded-md p-6 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-500 border-r-transparent" />
+        Loading approval requests…
+      </div>
+    );
+  }
+
+  if (requests.length === 0) return null;
+
+  return (
+    <>
+      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md">
+        <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex items-center gap-3">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white font-bold text-sm flex-shrink-0">
+            {requests.length}
+          </span>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+            Awaiting Approval
+          </h3>
+        </div>
+
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          {requests.map((req) => (
+            <div key={req.id} className="px-4 py-4 sm:px-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              {/* Book cover */}
+              <div className="flex-shrink-0">
+                {req.book.coverImage ? (
+                  <img src={req.book.coverImage} alt={req.book.title}
+                    className="h-16 w-12 object-cover rounded shadow" />
+                ) : (
+                  <div className="h-16 w-12 rounded shadow bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-gray-900 dark:text-white text-sm">{req.book.title}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{req.book.authors.map((a) => a.name).join(', ')}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                  <span className="font-medium text-gray-700 dark:text-gray-300">
+                    {req.user.firstName} {req.user.lastName}
+                  </span>{' '}
+                  · {req.user.email}
+                </p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                  Requested {formatDate(req.borrowedAt)} · due {formatDate(req.dueDate)}
+                </p>
+                {req.note && (
+                  <p className="mt-1 text-xs italic text-gray-500 dark:text-gray-400 line-clamp-2">"{req.note}"</p>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={() => approveBorrow({ variables: { id: req.id } })}
+                  disabled={approveLoading}
+                  className="px-4 py-1.5 text-sm font-medium rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors"
+                >
+                  Approve
+                </button>
+                <button
+                  onClick={() => { setRejectTarget(req); setRejectReason(''); }}
+                  disabled={approveLoading}
+                  className="px-4 py-1.5 text-sm font-medium rounded-md border border-red-400 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Reject Reason Modal */}
+      <Modal
+        isOpen={!!rejectTarget}
+        title="Reject Borrow Request"
+        confirmText={rejectLoading ? 'Rejecting…' : 'Reject Request'}
+        cancelText="Cancel"
+        onConfirm={() => {
+          if (!rejectTarget) return;
+          rejectBorrow({ variables: { id: rejectTarget.id, reason: rejectReason.trim() || undefined } });
+        }}
+        onCancel={() => { setRejectTarget(null); setRejectReason(''); }}
+        type="warning"
+        showToast={false}
+      >
+        {rejectTarget && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Reject the request for{' '}
+              <span className="font-medium text-gray-900 dark:text-white">"{rejectTarget.book.title}"</span>{' '}
+              by{' '}
+              <span className="font-medium text-gray-900 dark:text-white">
+                {rejectTarget.user.firstName} {rejectTarget.user.lastName}
+              </span>
+              ? The book will be made available again.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Reason <span className="text-gray-400 font-normal">(optional)</span>
+              </label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                rows={3}
+                placeholder="e.g. Book reserved for another patron, account issues…"
+                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+          </div>
+        )}
+      </Modal>
+    </>
+  );
+};
+
+// ── Active borrows section ─────────────────────────────────────────────────────
 const PendingRequests: React.FC = () => {
-  const [selectedBorrow, setSelectedBorrow] = useState<Borrow | null>(null);
+  const [selectedBorrow, setSelectedBorrow] = useState<ActiveBorrow | null>(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
   const [extendDays, setExtendDays] = useState<number>(EXTEND_GRACE_DAYS[0]);
@@ -113,25 +254,23 @@ const PendingRequests: React.FC = () => {
   const [selectedBook, setSelectedBook] = useState<{ id: string; title: string; available: number } | null>(null);
   const [checkoutDays, setCheckoutDays] = useState<number>(14);
   const [searchTerm, setSearchTerm] = useState("");
-  const [borrows, setBorrows] = useState<Borrow[]>([]);
+  const [borrows, setBorrows] = useState<ActiveBorrow[]>([]);
   const [useFallbackQuery, setUseFallbackQuery] = useState(false);
   const { addToast } = useToast();
 
-  console.log("🔄 PendingRequests component rendered");
-
-  // Fetch pending borrows with primary query
+  // Primary: only BORROWED status
   const {
     loading: primaryLoading,
     error: primaryError,
     data: primaryData,
     refetch: primaryRefetch,
-  } = useQuery(GET_PENDING_BORROWS, {
+  } = useQuery(GET_ACTIVE_BORROWS, {
     fetchPolicy: "network-only",
     notifyOnNetworkStatusChange: true,
     skip: useFallbackQuery,
   });
 
-  // Fallback query for all borrows
+  // Fallback: all borrows
   const {
     loading: fallbackLoading,
     error: fallbackError,
@@ -143,64 +282,35 @@ const PendingRequests: React.FC = () => {
     skip: !useFallbackQuery,
   });
 
-  // Fall back to the all-borrows query if the primary (pending) query fails
-  // (replaces the deprecated useQuery onError option)
   useEffect(() => {
     if (primaryError && !useFallbackQuery) {
-      console.error(
-        "❌ Error fetching pending borrows with primary query:",
-        primaryError
-      );
       setUseFallbackQuery(true);
     }
   }, [primaryError, useFallbackQuery]);
 
-  // Consolidated values
   const loading = useFallbackQuery ? fallbackLoading : primaryLoading;
   const error = useFallbackQuery ? fallbackError : primaryError;
   const data = useFallbackQuery ? fallbackData : primaryData;
   const refetch = useFallbackQuery ? fallbackRefetch : primaryRefetch;
 
-  // Update borrows state when data changes
   useEffect(() => {
-    try {
-      if (data && data.borrows) {
-        console.log(
-          "📊 Setting borrows state with",
-          data.borrows.length,
-          "items"
-        );
-
-        // Filter to only show borrowed books if using fallback query
-        if (useFallbackQuery) {
-          const borrowedBooks = data.borrows.filter(
-            (borrow: Borrow) =>
-              borrow.status === "BORROWED" || borrow.status === "OVERDUE"
-          );
-          setBorrows(borrowedBooks);
-        } else {
-          setBorrows(data.borrows);
-        }
-      }
-    } catch (error: any) {
-      console.error("❌ Error updating borrows state:", error);
+    if (data?.borrows) {
+      const filtered = useFallbackQuery
+        ? data.borrows.filter((b: ActiveBorrow) => b.status === "BORROWED" || b.status === "OVERDUE")
+        : data.borrows;
+      setBorrows(filtered);
     }
   }, [data, useFallbackQuery]);
 
-  // Mutations
   const [returnBook, { loading: returnLoading }] = useMutation(RETURN_BOOK, {
     onCompleted: () => {
-      console.log("✅ Book return completed successfully");
       setIsReturnModalOpen(false);
       setSelectedBorrow(null);
       refetch();
     },
-    onError: (error: any) => {
-      console.error("❌ Error returning book:", error);
-    },
+    onError: (e) => addToast(e.message, 'error'),
   });
 
-  // Front-desk checkout: search members and available books
   const { data: memberResults } = useQuery(SEARCH_MEMBERS, {
     variables: { search: memberSearch, take: 8 },
     skip: memberSearch.trim().length < 2,
@@ -214,15 +324,12 @@ const PendingRequests: React.FC = () => {
   });
 
   const [createBorrow, { loading: checkoutLoading }] = useMutation(CREATE_BORROW, {
-    onCompleted: (data: any) => {
-      addToast(`"${data.createBorrow.book.title}" checked out successfully`, "success");
+    onCompleted: (d) => {
+      addToast(`"${d.createBorrow.book.title}" checked out successfully`, "success");
       resetCheckout();
       refetch();
     },
-    onError: (error: any) => {
-      console.error("❌ Error checking out book:", error);
-      addToast(`Failed to check out book: ${error.message}`, "error");
-    },
+    onError: (e) => addToast(`Failed to check out book: ${e.message}`, "error"),
   });
 
   const [extendBorrow, { loading: extendLoading }] = useMutation(UPDATE_BORROW, {
@@ -232,58 +339,25 @@ const PendingRequests: React.FC = () => {
       setSelectedBorrow(null);
       refetch();
     },
-    onError: (error: any) => {
-      console.error("❌ Error extending due date:", error);
-      addToast(`Failed to extend due date: ${error.message}`, "error");
-    },
+    onError: (e) => addToast(`Failed to extend due date: ${e.message}`, "error"),
   });
 
-  // Handle return book
-  const handleReturn = (borrow: Borrow) => {
-    console.log("🔄 Handling return for book:", borrow.book.title);
-    setSelectedBorrow(borrow);
-    setIsReturnModalOpen(true);
-  };
+  const handleReturn = (borrow: ActiveBorrow) => { setSelectedBorrow(borrow); setIsReturnModalOpen(true); };
+  const confirmReturn = () => { if (selectedBorrow) returnBook({ variables: { id: selectedBorrow.id } }); };
 
-  // Confirm return
-  const confirmReturn = () => {
-    if (selectedBorrow) {
-      console.log("🔄 Confirming return for borrow ID:", selectedBorrow.id);
-      returnBook({
-        variables: {
-          id: selectedBorrow.id,
-        },
-      });
-    }
-  };
-
-  // Handle extend due date
-  const handleExtend = (borrow: Borrow) => {
-    setSelectedBorrow(borrow);
-    setExtendDays(EXTEND_GRACE_DAYS[0]);
-    setIsExtendModalOpen(true);
-  };
-
+  const handleExtend = (borrow: ActiveBorrow) => { setSelectedBorrow(borrow); setExtendDays(EXTEND_GRACE_DAYS[0]); setIsExtendModalOpen(true); };
   const confirmExtend = () => {
     if (!selectedBorrow) return;
     const base = isOverdue(selectedBorrow.dueDate) ? new Date() : new Date(selectedBorrow.dueDate);
     const newDueDate = new Date(base);
     newDueDate.setDate(newDueDate.getDate() + extendDays);
-    extendBorrow({
-      variables: {
-        id: selectedBorrow.id,
-        input: { dueDate: newDueDate.toISOString() },
-      },
-    });
+    extendBorrow({ variables: { id: selectedBorrow.id, input: { dueDate: newDueDate.toISOString() } } });
   };
 
-  // Front-desk checkout
   const resetCheckout = () => {
     setIsCheckoutModalOpen(false);
-    setMemberSearch("");
-    setSelectedMember(null);
-    setBookSearch("");
-    setSelectedBook(null);
+    setMemberSearch(""); setSelectedMember(null);
+    setBookSearch(""); setSelectedBook(null);
     setCheckoutDays(14);
   };
 
@@ -291,296 +365,136 @@ const PendingRequests: React.FC = () => {
     if (!selectedMember || !selectedBook) return;
     const dueDate = new Date();
     dueDate.setDate(dueDate.getDate() + checkoutDays);
-    createBorrow({
-      variables: {
-        input: {
-          userId: selectedMember.id,
-          bookId: selectedBook.id,
-          dueDate: dueDate.toISOString(),
-        },
-      },
-    });
+    createBorrow({ variables: { input: { userId: selectedMember.id, bookId: selectedBook.id, dueDate: dueDate.toISOString() } } });
   };
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  };
-
-  // Check if a book is overdue
-  const isOverdue = (dueDate: string) => {
-    const today = new Date();
-    const bookDueDate = new Date(dueDate);
-    return today > bookDueDate;
-  };
-
-  // Whole days late (0 if not overdue)
+  const formatDate = (s: string) =>
+    new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" }).format(new Date(s));
+  const isOverdue = (dueDate: string) => new Date() > new Date(dueDate);
   const daysOverdue = (dueDate: string) => {
     if (!isOverdue(dueDate)) return 0;
-    const msPerDay = 1000 * 60 * 60 * 24;
-    return Math.ceil((Date.now() - new Date(dueDate).getTime()) / msPerDay);
+    return Math.ceil((Date.now() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24));
   };
 
-  // Safe version of getFilteredBorrows that won't crash if borrows is undefined
-  const getFilteredBorrows = () => {
-    if (!borrows || !Array.isArray(borrows)) {
-      console.log("⚠️ Borrows is not available or not an array:", borrows);
-      return [];
-    }
-
-    console.log(
-      "🔍 Filtering",
-      borrows.length,
-      "borrows with search term:",
-      searchTerm
-    );
-
-    return borrows.filter((borrow: Borrow) => {
-      const matchesSearch =
-        searchTerm === "" ||
-        borrow.book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        borrow.user.firstName
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
-        borrow.user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        borrow.user.email.toLowerCase().includes(searchTerm.toLowerCase());
-
-      return matchesSearch;
-    });
-  };
-
-  let filteredBorrows: Borrow[] = [];
-  try {
-    filteredBorrows = getFilteredBorrows();
-    // Worst-overdue first, then soonest-due among the rest
-    filteredBorrows.sort((a, b) => {
+  const filteredBorrows = (borrows || [])
+    .filter((b) =>
+      searchTerm === '' ||
+      b.book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
       const aDays = daysOverdue(a.dueDate);
       const bDays = daysOverdue(b.dueDate);
       if (aDays !== bDays) return bDays - aDays;
       return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
     });
-  } catch (error) {
-    console.error("❌ Error filtering borrows:", error);
-  }
 
   const renderContent = () => {
-    // Always render something even if there's an error
-    try {
-      if (error) {
-        console.error("❌ GraphQL error in PendingRequests:", error);
-        return (
-          <div className="p-6 text-center">
-            <div className="text-red-500 mb-2">
-              Error loading pending requests:
-            </div>
-            <pre className="text-xs bg-red-50 dark:bg-red-900/20 p-3 rounded text-red-700 dark:text-red-300 overflow-auto max-h-40">
-              {error.message}
-            </pre>
-            <button
-              onClick={() => {
-                // Try fallback query if primary query fails
-                if (!useFallbackQuery) {
-                  setUseFallbackQuery(true);
-                } else {
-                  refetch();
-                }
-              }}
-              className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-            >
-              Try Again
-            </button>
-          </div>
-        );
-      }
-
-      if (loading) {
-        return (
-          <div className="p-6 text-center">
-            <div
-              className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]"
-              role="status"
-            >
-              <span className="sr-only">Loading...</span>
-            </div>
-            <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors">
-              {useFallbackQuery
-                ? "Loading all borrows (fallback)..."
-                : "Loading pending requests..."}
-            </p>
-          </div>
-        );
-      }
-
-      const hasFilteredBorrows = filteredBorrows && filteredBorrows.length > 0;
-
-      if (!hasFilteredBorrows) {
-        return (
-          <div className="p-6 text-center">
-            <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">
-              {searchTerm
-                ? "No requests match your search."
-                : useFallbackQuery
-                ? "No pending borrow requests found in all borrows."
-                : "No pending borrow requests found."}
-            </p>
-            {useFallbackQuery && (
-              <button
-                onClick={() => {
-                  setUseFallbackQuery(false);
-                  primaryRefetch();
-                }}
-                className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-              >
-                Try Original Query
-              </button>
-            )}
-          </div>
-        );
-      }
-
-      return (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Book
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  User
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Borrowed Date
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Due Date
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Status
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-              {filteredBorrows.map((borrow: Borrow) => (
-                <tr
-                  key={borrow.id}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  <td className="px-4 py-4 whitespace-normal">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
-                      {borrow.book.title}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      ISBN: {borrow.book.isbn}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 break-words">
-                      {borrow.book.authors
-                        .map((author) => author.name)
-                        .join(", ")}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-normal">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
-                      {borrow.user.firstName} {borrow.user.lastName}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {borrow.user.email}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">
-                    {formatDate(borrow.borrowedAt)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-normal">
-                    <span
-                      className={`text-sm ${
-                        isOverdue(borrow.dueDate)
-                          ? "text-red-600 dark:text-red-400 font-medium"
-                          : "text-gray-500 dark:text-gray-400"
-                      }`}
-                    >
-                      {formatDate(borrow.dueDate)}
-                      {isOverdue(borrow.dueDate) &&
-                        ` (${daysOverdue(borrow.dueDate)}d overdue)`}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-normal">
-                    <span
-                      className={`px-5 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${
-                        isOverdue(borrow.dueDate)
-                          ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                      }`}
-                    >
-                      {isOverdue(borrow.dueDate) ? "Overdue" : "Borrowed"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => handleExtend(borrow)}
-                      className="px-3 py-1 rounded-md text-emerald-700 dark:text-emerald-400 border border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
-                    >
-                      Extend
-                    </button>
-                    <button
-                      onClick={() => handleReturn(borrow)}
-                      disabled={returnLoading}
-                      className="px-3 py-1 rounded-md text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      Return
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      );
-    } catch (err) {
-      console.error("Unexpected error in renderContent:", err);
-      // Fallback minimal rendering to avoid breaking the entire page
+    if (error) {
       return (
         <div className="p-6 text-center">
-          <p className="text-red-500">
-            An unexpected error occurred. Please try again later.
-          </p>
+          <div className="text-red-500 mb-2">Error loading pending requests:</div>
+          <pre className="text-xs bg-red-50 dark:bg-red-900/20 p-3 rounded text-red-700 dark:text-red-300 overflow-auto max-h-40">
+            {error.message}
+          </pre>
+          <button
+            onClick={() => { if (!useFallbackQuery) setUseFallbackQuery(true); else refetch(); }}
+            className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
+          >
+            Try Again
+          </button>
         </div>
       );
     }
+
+    if (loading) {
+      return (
+        <div className="p-6 text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent" />
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading active borrows…</p>
+        </div>
+      );
+    }
+
+    if (filteredBorrows.length === 0) {
+      return (
+        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
+          {searchTerm ? "No borrows match your search." : "No active borrows."}
+        </div>
+      );
+    }
+
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+          <thead className="bg-gray-50 dark:bg-gray-800">
+            <tr>
+              {["Book", "User", "Borrowed Date", "Due Date", "Status", "Actions"].map((h, i) => (
+                <th key={h} scope="col"
+                  className={`px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${i === 5 ? 'text-right' : 'text-left'}`}>
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+            {filteredBorrows.map((borrow) => (
+              <tr key={borrow.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                <td className="px-4 py-4 whitespace-normal">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white break-words">{borrow.book.title}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">ISBN: {borrow.book.isbn}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 break-words">{borrow.book.authors.map((a) => a.name).join(', ')}</div>
+                </td>
+                <td className="px-4 py-4 whitespace-normal">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white break-words">{borrow.user.firstName} {borrow.user.lastName}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{borrow.user.email}</div>
+                </td>
+                <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">{formatDate(borrow.borrowedAt)}</td>
+                <td className="px-4 py-4 whitespace-normal">
+                  <span className={`text-sm ${isOverdue(borrow.dueDate) ? "text-red-600 dark:text-red-400 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
+                    {formatDate(borrow.dueDate)}
+                    {isOverdue(borrow.dueDate) && ` (${daysOverdue(borrow.dueDate)}d overdue)`}
+                  </span>
+                </td>
+                <td className="px-4 py-4 whitespace-normal">
+                  <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    isOverdue(borrow.dueDate)
+                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                  }`}>
+                    {isOverdue(borrow.dueDate) ? "Overdue" : "Borrowed"}
+                  </span>
+                </td>
+                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                  <button onClick={() => handleExtend(borrow)}
+                    className="px-3 py-1 rounded-md text-emerald-700 dark:text-emerald-400 border border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+                    Extend
+                  </button>
+                  <button onClick={() => handleReturn(borrow)} disabled={returnLoading}
+                    className="px-3 py-1 rounded-md text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                    Return
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   return (
     <div className="space-y-6">
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
+      {/* ── Awaiting Approval ── */}
+      <ApprovalSection onRefetchActive={() => refetch()} />
+
+      {/* ── Active Borrows ── */}
+      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md">
         <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            Pending Borrow Requests
+          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+            Active Borrows
           </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <div className="w-full sm:w-64">
@@ -600,7 +514,6 @@ const PendingRequests: React.FC = () => {
             </button>
           </div>
         </div>
-
         {renderContent()}
       </div>
 
@@ -608,7 +521,7 @@ const PendingRequests: React.FC = () => {
       <Modal
         isOpen={isReturnModalOpen}
         title="Return Book"
-        message={`Are you sure you want to mark the book "${selectedBorrow?.book.title}" as returned by ${selectedBorrow?.user.firstName} ${selectedBorrow?.user.lastName}?`}
+        message={`Are you sure you want to mark "${selectedBorrow?.book.title}" as returned by ${selectedBorrow?.user.firstName} ${selectedBorrow?.user.lastName}?`}
         confirmText={returnLoading ? "Processing..." : "Return Book"}
         cancelText="Cancel"
         onConfirm={confirmReturn}
@@ -631,37 +544,30 @@ const PendingRequests: React.FC = () => {
           <div className="space-y-4">
             <p className="text-sm text-gray-600 dark:text-gray-300">
               Extend <span className="font-medium">{selectedBorrow.book.title}</span> for{" "}
-              <span className="font-medium">
-                {selectedBorrow.user.firstName} {selectedBorrow.user.lastName}
-              </span>
+              <span className="font-medium">{selectedBorrow.user.firstName} {selectedBorrow.user.lastName}</span>
               {" "}— currently due {formatDate(selectedBorrow.dueDate)}
               {isOverdue(selectedBorrow.dueDate) && ` (${daysOverdue(selectedBorrow.dueDate)}d overdue)`}.
             </p>
             <div className="flex gap-2">
               {EXTEND_GRACE_DAYS.map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setExtendDays(d)}
+                <button key={d} type="button" onClick={() => setExtendDays(d)}
                   className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                     extendDays === d
                       ? "bg-emerald-600 text-white border-emerald-600"
                       : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
-                >
+                  }`}>
                   +{d} days
                 </button>
               ))}
             </div>
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              New due date: {formatDate(
-                (() => {
-                  const base = isOverdue(selectedBorrow.dueDate) ? new Date() : new Date(selectedBorrow.dueDate);
-                  const d = new Date(base);
-                  d.setDate(d.getDate() + extendDays);
-                  return d.toISOString();
-                })()
-              )}
+              New due date:{" "}
+              {formatDate((() => {
+                const base = isOverdue(selectedBorrow.dueDate) ? new Date() : new Date(selectedBorrow.dueDate);
+                const d = new Date(base);
+                d.setDate(d.getDate() + extendDays);
+                return d.toISOString();
+              })())}
             </p>
           </div>
         )}
@@ -680,16 +586,13 @@ const PendingRequests: React.FC = () => {
         size="lg"
       >
         <div className="space-y-5">
-          {/* Member picker */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Member</label>
             {selectedMember ? (
-              <div className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                <div>
-                  <div className="text-sm font-medium text-gray-900 dark:text-white">
-                    {selectedMember.firstName} {selectedMember.lastName}
-                  </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{selectedMember.email}</div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-gray-900 dark:text-white break-words">{selectedMember.firstName} {selectedMember.lastName}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 break-all">{selectedMember.email}</div>
                   {(selectedMember.overdueBorrowCount > 0 || selectedMember.outstandingFines > 0) && (
                     <div className="text-xs text-red-600 dark:text-red-400 mt-0.5">
                       {selectedMember.overdueBorrowCount > 0 && `${selectedMember.overdueBorrowCount} overdue book(s)`}
@@ -699,19 +602,15 @@ const PendingRequests: React.FC = () => {
                   )}
                 </div>
                 <button type="button" onClick={() => setSelectedMember(null)}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  className="flex-shrink-0 self-start sm:self-auto text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                   Change
                 </button>
               </div>
             ) : (
               <>
-                <input
-                  type="text"
-                  placeholder="Search by name or email…"
-                  value={memberSearch}
+                <input type="text" placeholder="Search by name or email…" value={memberSearch}
                   onChange={(e) => setMemberSearch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 {memberResults?.users?.length > 0 && (
                   <ul className="mt-1 border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700 max-h-40 overflow-y-auto">
                     {memberResults.users.map((u: any) => (
@@ -729,36 +628,27 @@ const PendingRequests: React.FC = () => {
             )}
           </div>
 
-          {/* Book picker */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Book</label>
             {selectedBook ? (
-              <div className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                <div className="text-sm font-medium text-gray-900 dark:text-white">{selectedBook.title}</div>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                <div className="text-sm font-medium text-gray-900 dark:text-white break-words min-w-0">{selectedBook.title}</div>
                 <button type="button" onClick={() => setSelectedBook(null)}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  className="flex-shrink-0 self-start sm:self-auto text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
                   Change
                 </button>
               </div>
             ) : (
               <>
-                <input
-                  type="text"
-                  placeholder="Search by title…"
-                  value={bookSearch}
+                <input type="text" placeholder="Search by title…" value={bookSearch}
                   onChange={(e) => setBookSearch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 {bookResults?.books?.length > 0 && (
                   <ul className="mt-1 border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700 max-h-40 overflow-y-auto">
                     {bookResults.books.map((b: any) => (
                       <li key={b.id}>
-                        <button
-                          type="button"
-                          disabled={b.available <= 0}
-                          onClick={() => setSelectedBook(b)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex justify-between"
-                        >
+                        <button type="button" disabled={b.available <= 0} onClick={() => setSelectedBook(b)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex justify-between">
                           <span className="text-gray-900 dark:text-white">{b.title}</span>
                           <span className={`text-xs ${b.available > 0 ? "text-gray-400" : "text-red-500"}`}>
                             {b.available > 0 ? `${b.available} available` : "unavailable"}
@@ -772,21 +662,16 @@ const PendingRequests: React.FC = () => {
             )}
           </div>
 
-          {/* Loan period */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loan period</label>
             <div className="flex gap-2">
               {[7, 14, 21, 30].map((d) => (
-                <button
-                  key={d}
-                  type="button"
-                  onClick={() => setCheckoutDays(d)}
+                <button key={d} type="button" onClick={() => setCheckoutDays(d)}
                   className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                     checkoutDays === d
                       ? "bg-emerald-600 text-white border-emerald-600"
                       : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}
-                >
+                  }`}>
                   {d} days
                 </button>
               ))}

@@ -493,33 +493,33 @@ const UserManagement: React.FC = () => {
       <ul className="divide-y divide-gray-200 dark:divide-gray-700">
         {users.map((user) => (
           <li key={user.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 sm:px-6 transition-colors">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-start min-w-0">
                 {user.profilePicture ? (
                   <img
                     src={user.profilePicture}
                     alt={`${user.firstName} ${user.lastName}`}
-                    className="h-10 w-10 rounded-full mr-4 object-cover"
+                    className="h-10 w-10 rounded-full mr-4 object-cover flex-shrink-0"
                   />
                 ) : (
-                  <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 mr-4 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 mr-4 flex items-center justify-center flex-shrink-0">
                     <span className="text-gray-500 dark:text-gray-300 text-sm font-medium">
                       {user.firstName[0]}{user.lastName[0]}
                     </span>
                   </div>
                 )}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors">
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors break-words">
                     {user.firstName} {user.lastName}
                     {user.requiresPasswordChange && (
-                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                      <span className="ml-2 inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                         New Account
                       </span>
                     )}
                   </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">{user.email}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors">
-                    <span className={`inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium ${
+                  <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors break-all">{user.email}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors flex flex-wrap items-center gap-2 mt-1">
+                    <span className={`inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium ${
                       user.role === 'ADMIN' 
                         ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
                         : user.role === 'LIBRARIAN'
@@ -529,17 +529,17 @@ const UserManagement: React.FC = () => {
                       {user.role}
                     </span>
                     {!!user.activeBorrowCount && (
-                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                      <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
                         {user.activeBorrowCount} active loan{user.activeBorrowCount === 1 ? '' : 's'}
                       </span>
                     )}
                     {!!user.overdueBorrowCount && (
-                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                      <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                         {user.overdueBorrowCount} overdue
                       </span>
                     )}
                     {!!user.outstandingFines && (
-                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                      <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
                         {user.outstandingFines.toLocaleString()} FCFA owed
                       </span>
                     )}
@@ -547,7 +547,7 @@ const UserManagement: React.FC = () => {
                 </div>
               </div>
               {canManageUser(user) && (
-                <div className="flex space-x-2">
+                <div className="flex flex-shrink-0 space-x-2 self-start sm:self-auto">
                   <button
                     type="button"
                     onClick={() => handleEdit(user)}

@@ -18,42 +18,46 @@ interface Props {
 
 type Step = 'idle' | 'scanning' | 'loading' | 'preview' | 'error';
 
-const GOOGLE_BOOKS = (isbn: string) =>
-  `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&maxResults=1`;
+const OPEN_LIBRARY = (isbn: string) =>
+  `https://openlibrary.org/api/books?bibkeys=ISBN:${isbn}&jscmd=data&format=json`;
+
+// Small in-memory cache so re-looking-up the same ISBN (e.g. after fixing a
+// typo and retrying) doesn't fire a second network request.
+const lookupCache = new Map<string, BookData>();
 
 async function fetchByISBN(isbn: string): Promise<BookData> {
   const clean = isbn.replace(/[^0-9X]/gi, '');
-  const res = await fetch(GOOGLE_BOOKS(clean));
-  if (!res.ok) throw new Error('network');
+
+  const cached = lookupCache.get(clean);
+  if (cached) return cached;
+
+  const res = await fetch(OPEN_LIBRARY(clean));
+  if (!res.ok) {
+    if (res.status === 429) throw new Error('ratelimited');
+    throw new Error('network');
+  }
+
   const json = await res.json();
-  if (!json.totalItems) throw new Error('notfound');
+  const record = json[`ISBN:${clean}`];
+  if (!record) throw new Error('notfound');
 
-  const info = json.items[0].volumeInfo;
-  const isbn13 = info.industryIdentifiers?.find((i: any) => i.type === 'ISBN_13')?.identifier
-               || info.industryIdentifiers?.[0]?.identifier
-               || clean;
+  const isbn13 = record.identifiers?.isbn_13?.[0] || record.identifiers?.isbn_10?.[0] || clean;
+  const cover = record.cover?.large || record.cover?.medium || record.cover?.small || '';
+  const year = (record.publish_date || '').match(/\d{4}/)?.[0] || new Date().getFullYear().toString();
 
-  // Attempt to get a larger cover image (strip zoom parameter)
-  const cover = (info.imageLinks?.extraLarge
-    || info.imageLinks?.large
-    || info.imageLinks?.medium
-    || info.imageLinks?.thumbnail
-    || ''
-  ).replace('http://', 'https://').replace('&edge=curl', '');
-
-  const rawDate = info.publishedDate || '';
-  const year = rawDate.slice(0, 4) || new Date().getFullYear().toString();
-
-  return {
-    title:       info.title || '',
-    authors:     info.authors || [],
-    description: info.description || '',
-    pageCount:   info.pageCount || 0,
+  const data: BookData = {
+    title:       record.title || '',
+    authors:     (record.authors || []).map((a: any) => a.name),
+    description: '',
+    pageCount:   record.number_of_pages || 0,
     publishedAt: year,
     coverImage:  cover,
     isbn:        isbn13,
-    categories:  info.categories || [],
+    categories:  (record.subjects || []).map((s: any) => s.name),
   };
+
+  lookupCache.set(clean, data);
+  return data;
 }
 
 const ISBNLookup: React.FC<Props> = ({ onData }) => {
@@ -81,6 +85,7 @@ const ISBNLookup: React.FC<Props> = ({ onData }) => {
     } catch (e: any) {
       const msg = e.message === 'network' ? t('books.networkError')
                  : e.message === 'notfound' ? t('books.noBookFound')
+                 : e.message === 'ratelimited' ? t('books.rateLimited')
                  : t('books.lookupFailed');
       setErrorMsg(msg);
       setStep('error');

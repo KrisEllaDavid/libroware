@@ -189,14 +189,14 @@ const CategoryManagement: React.FC = () => {
       <ul className="divide-y divide-gray-200 dark:divide-gray-700">
         {filteredCategories.map((category) => (
           <li key={category.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors">{category.name}</h4>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="min-w-0">
+                <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors break-words">{category.name}</h4>
                 {category.description && (
-                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 transition-colors">{category.description}</p>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 transition-colors break-words">{category.description}</p>
                 )}
               </div>
-              <div className="flex space-x-2">
+              <div className="flex flex-shrink-0 space-x-2 self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => handleEdit(category)}

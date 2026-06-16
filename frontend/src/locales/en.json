@@ -112,6 +112,7 @@
     "networkError":   "Network error",
     "noBookFound":    "No book found for this ISBN",
     "lookupFailed":   "Lookup failed",
+    "rateLimited":    "Too many lookups — please wait a few seconds and try again",
     "cameraDenied":   "Camera access denied or unavailable"
   },
   "users": {
@@ -137,19 +138,32 @@
     "saving":         "Saving..."
   },
   "borrows": {
-    "title":        "Borrow History",
-    "member":       "Member",
-    "book":         "Book",
-    "borrowedAt":   "Borrowed",
-    "dueDate":      "Due Date",
-    "returnedAt":   "Returned",
-    "status":       "Status",
-    "note":         "Note",
-    "return":       "Return",
-    "processing":   "Processing...",
-    "BORROWED":     "Borrowed",
-    "RETURNED":     "Returned",
-    "OVERDUE":      "Overdue"
+    "title":            "Borrow History",
+    "member":           "Member",
+    "book":             "Book",
+    "borrowedAt":       "Borrowed",
+    "dueDate":          "Due Date",
+    "returnedAt":       "Returned",
+    "status":           "Status",
+    "note":             "Note",
+    "return":           "Return",
+    "processing":       "Processing...",
+    "BORROWED":         "Borrowed",
+    "RETURNED":         "Returned",
+    "OVERDUE":          "Overdue",
+    "PENDING_APPROVAL": "Pending Approval"
+  },
+  "pending": {
+    "awaitingApproval": "Awaiting Approval",
+    "approve":          "Approve",
+    "reject":           "Reject",
+    "rejectTitle":      "Reject Borrow Request",
+    "rejectBody":       "Reject the request for \"{{title}}\" by {{name}}? The book will be made available again.",
+    "rejectReasonLabel":"Reason (optional)",
+    "rejectReasonHint": "e.g. Book reserved for another patron, account issues…",
+    "rejectBtn":        "Reject Request",
+    "approvedToast":    "Request approved for {{name}}",
+    "rejectedToast":    "Request rejected"
   },
   "auditLog": {
     "title":          "Audit Log",
@@ -224,7 +238,9 @@
     "loading":        "Loading your borrows...",
     "errorLoading":   "Error loading borrows: {{message}}",
     "failedReturn":   "Failed to return book: {{message}}",
-    "returnQueued":   "Return saved — it will sync when you're back online."
+    "returnQueued":      "Return saved — it will sync when you're back online.",
+    "cancelRequest":     "Cancel Request",
+    "requestCancelled":  "Borrow request cancelled"
   },
   "userFines": {
     "title":            "My Fines",
@@ -354,9 +370,14 @@
     "notesPlaceholder":"Add any notes about this borrow request...",
     "returnByLabel":"Return by:",
     "borrowPeriodHint":"Books can be borrowed for up to 2 weeks. Please return by the selected date.",
-    "readNow":     "Read Now",
+    "readNow":           "Read Now",
     "reservationCreated":"Reservation created — you will be notified when a copy is available",
-    "borrowQueued":"Borrow request saved — it will be sent when you're back online."
+    "borrowQueued":      "Borrow request saved — it will be sent when you're back online.",
+    "approvalNotice":    "Your request will be reviewed by a librarian before it is confirmed.",
+    "requestSubmitted":  "Request submitted — awaiting approval from a librarian.",
+    "scanBook":          "Scan Book",
+    "scanLooking":       "Looking up book…",
+    "scanNotInCatalog":  "This book is not in our catalog."
   },
   "reviews": {
     "title":            "Reviews",
@@ -395,6 +416,21 @@
     "search":     "Search",
     "noData":     "No data available",
     "retry":      "Retry"
+  },
+  "notifications": {
+    "title":           "Notifications",
+    "unreadCount":     "{{count}} unread",
+    "markAllRead":     "Mark all as read",
+    "filterAll":       "All",
+    "filterUnread":    "Unread",
+    "noNotifications": "You're all caught up — no notifications.",
+    "noUnread":        "No unread notifications.",
+    "BORROW_REQUEST":  "New borrow request",
+    "BORROW_APPROVED": "Request approved",
+    "BORROW_REJECTED": "Request rejected",
+    "OVERDUE_REMINDER":"Overdue reminder",
+    "RESERVATION_READY":"Reservation ready",
+    "FINE_ISSUED":     "Fine issued"
   },
   "lang": {
     "switch": "Français",

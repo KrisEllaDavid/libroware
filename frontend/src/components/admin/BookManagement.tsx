@@ -91,6 +91,11 @@ const BookManagement: React.FC = () => {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryDescription, setNewCategoryDescription] = useState("");
   const [inlineError, setInlineError] = useState<string | null>(null);
+  // Author/category names picked up from the ISBN lookup. Resolved into real
+  // records (creating any that don't exist yet) only at submit time, so
+  // nothing is created if the user cancels the book form first.
+  const [pendingAuthorNames, setPendingAuthorNames] = useState<string[]>([]);
+  const [pendingCategoryNames, setPendingCategoryNames] = useState<string[]>([]);
   const [qrBook, setQrBook] = useState<Book | null>(null);
   const [showLabelSheet, setShowLabelSheet] = useState(false);
 
@@ -239,6 +244,53 @@ const BookManagement: React.FC = () => {
     return errors;
   };
 
+  // Resolves author/category names (e.g. from the ISBN lookup) to IDs,
+  // matching against existing records by name (case-insensitive) and
+  // creating any that don't exist yet.
+  const resolveAuthorIds = async (names: string[]): Promise<string[]> => {
+    const ids: string[] = [];
+    let list = authors;
+    for (const raw of names) {
+      const name = raw.trim();
+      if (!name) continue;
+      const existing = list.find((a) => a.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        ids.push(existing.id);
+        continue;
+      }
+      const result: any = await createAuthorInline({ variables: { input: { name } } });
+      const created = result?.data?.createAuthor;
+      if (created) {
+        list = [...list, created];
+        setAuthors(list);
+        ids.push(created.id);
+      }
+    }
+    return ids;
+  };
+
+  const resolveCategoryIds = async (names: string[]): Promise<string[]> => {
+    const ids: string[] = [];
+    let list = categories;
+    for (const raw of names) {
+      const name = raw.trim();
+      if (!name) continue;
+      const existing = list.find((c) => c.name.toLowerCase() === name.toLowerCase());
+      if (existing) {
+        ids.push(existing.id);
+        continue;
+      }
+      const result: any = await createCategoryInline({ variables: { input: { name } } });
+      const created = result?.data?.createCategory;
+      if (created) {
+        list = [...list, created];
+        setCategories(list);
+        ids.push(created.id);
+      }
+    }
+    return ids;
+  };
+
   // Thrown errors are caught by Modal's onConfirm handler, which then keeps
   // the modal open instead of closing it with a false "success" toast.
   const handleSubmit = async () => {
@@ -252,13 +304,30 @@ const BookManagement: React.FC = () => {
     setFieldErrors({});
 
     const year = parseInt(formData.publishedAt, 10);
-    const input = { ...formData, isbn: formData.isbn.replace(/[-\s]/g, ""), publishedAt: `${year}-01-01` };
+    let input = { ...formData, isbn: formData.isbn.replace(/[-\s]/g, ""), publishedAt: `${year}-01-01` };
 
     try {
       if (isEditing && selectedBookId) {
         await updateBook({ variables: { id: selectedBookId, input } });
         refetch();
       } else {
+        // Resolve any author/category names picked up from the ISBN lookup —
+        // creating ones that don't exist yet — only now, at submit time, so
+        // nothing gets created in the database if the user cancels first.
+        if (pendingAuthorNames.length > 0 || pendingCategoryNames.length > 0) {
+          const [resolvedAuthorIds, resolvedCategoryIds] = await Promise.all([
+            resolveAuthorIds(pendingAuthorNames),
+            resolveCategoryIds(pendingCategoryNames),
+          ]);
+          input = {
+            ...input,
+            authorIds: Array.from(new Set([...input.authorIds, ...resolvedAuthorIds])),
+            categoryIds: Array.from(new Set([...input.categoryIds, ...resolvedCategoryIds])),
+          };
+          setPendingAuthorNames([]);
+          setPendingCategoryNames([]);
+        }
+
         const result: any = await createBook({ variables: { input } });
         refetch();
         const newId = result?.data?.createBook?.id;
@@ -268,6 +337,8 @@ const BookManagement: React.FC = () => {
           setIsEditing(true);
           setSelectedBookId(newId);
           setJustCreated(true);
+          // Reflect what was actually resolved/saved in the multi-selects.
+          setFormData((prev) => ({ ...prev, authorIds: input.authorIds, categoryIds: input.categoryIds }));
         }
       }
     } catch (err: any) {
@@ -280,6 +351,8 @@ const BookManagement: React.FC = () => {
     setIsEditing(true);
     setJustCreated(false);
     setFieldErrors({});
+    setPendingAuthorNames([]);
+    setPendingCategoryNames([]);
     setSelectedBookId(book.id);
 
     // Extract year from publishedAt string (in case it's a full date)
@@ -312,6 +385,8 @@ const BookManagement: React.FC = () => {
     setIsEditing(false);
     setJustCreated(false);
     setFieldErrors({});
+    setPendingAuthorNames([]);
+    setPendingCategoryNames([]);
     setSelectedBookId(null);
     setFormData(initialFormData);
     setIsFormModalOpen(true);
@@ -341,6 +416,8 @@ const BookManagement: React.FC = () => {
     setIsEditing(false);
     setJustCreated(false);
     setFieldErrors({});
+    setPendingAuthorNames([]);
+    setPendingCategoryNames([]);
     setError(null);
   };
 
@@ -695,12 +772,23 @@ const BookManagement: React.FC = () => {
                   coverImage:  data.coverImage  || prev.coverImage,
                   pageCount:   data.pageCount   || prev.pageCount,
                 }));
-                // Show matched authors as a toast note
-                if (data.authors.length > 0) {
-                  addToast(
-                    `Authors found: ${data.authors.join(', ')} — please select or create them below`,
-                    'info'
-                  );
+
+                // Authors/categories are only names at this point — they're
+                // resolved to real records (creating any that don't exist)
+                // when the book is actually saved, see handleSubmit.
+                const authorNames = data.authors.filter(Boolean);
+                // Open Library's "subjects" list can be long and noisy
+                // (generic catalog tags), so only take the first few.
+                const categoryNames = data.categories.filter(Boolean).slice(0, 3);
+
+                if (authorNames.length > 0) setPendingAuthorNames(authorNames);
+                if (categoryNames.length > 0) setPendingCategoryNames(categoryNames);
+
+                const parts: string[] = [];
+                if (authorNames.length > 0) parts.push(`${authorNames.length} author${authorNames.length > 1 ? 's' : ''} (${authorNames.join(', ')})`);
+                if (categoryNames.length > 0) parts.push(`${categoryNames.length} categor${categoryNames.length > 1 ? 'ies' : 'y'} (${categoryNames.join(', ')})`);
+                if (parts.length > 0) {
+                  addToast(`Found ${parts.join(' and ')} — will be created and linked automatically when you save`, 'info');
                 }
               }}
             />
@@ -834,6 +922,14 @@ const BookManagement: React.FC = () => {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Hold Ctrl or Cmd to select multiple authors
             </p>
+            {pendingAuthorNames.length > 0 && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                Will also add on save: {pendingAuthorNames.join(", ")}{" "}
+                <button type="button" onClick={() => setPendingAuthorNames([])} className="underline hover:no-underline">
+                  remove
+                </button>
+              </p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -882,6 +978,14 @@ const BookManagement: React.FC = () => {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               Hold Ctrl or Cmd to select multiple categories
             </p>
+            {pendingCategoryNames.length > 0 && (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+                Will also add on save: {pendingCategoryNames.join(", ")}{" "}
+                <button type="button" onClick={() => setPendingCategoryNames([])} className="underline hover:no-underline">
+                  remove
+                </button>
+              </p>
+            )}
           </div>
 
           {error && (
