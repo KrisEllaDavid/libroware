@@ -139,11 +139,25 @@ module.exports = {
         ...(targetUserId && { userId: targetUserId }),
       };
 
-      return prisma.auditLog.findMany({
+      const logs = await prisma.auditLog.findMany({
         where,
         skip, take,
         orderBy: { createdAt: "desc" },
       });
+
+      // Batch-fetch actors in one query instead of one lookup per row.
+      // Not filtered by deletedAt so soft/hard-deleted users still resolve
+      // a name instead of leaving the actor column blank.
+      const actorIds = [...new Set(logs.map((l) => l.userId).filter(Boolean))];
+      const actors = actorIds.length
+        ? await prisma.user.findMany({ where: { id: { in: actorIds } } })
+        : [];
+      const actorById = new Map(actors.map((a) => [a.id, a]));
+
+      return logs.map((log) => ({
+        ...log,
+        user: log.userId ? actorById.get(log.userId) ?? null : null,
+      }));
     },
 
     auditLogCount: async (_, { model, action, userId: targetUserId }, { userId, role, prisma }) => {

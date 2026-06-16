@@ -142,9 +142,26 @@ module.exports = {
       const borrow = await prisma.borrow.findUnique({ where: { id } });
       if (!borrow) throw new Error("Borrow record not found");
 
+      const data = { ...input };
+
+      if (input.dueDate !== undefined && input.dueDate !== null) {
+        const parsedDueDate = new Date(input.dueDate);
+        if (isNaN(parsedDueDate.getTime()))
+          throw new Error("Invalid dueDate format");
+        if (parsedDueDate <= new Date())
+          throw new Error("New due date must be in the future");
+        data.dueDate = parsedDueDate;
+
+        // Extending a due date past today means it's no longer overdue —
+        // flip it back unless the caller is explicitly setting a status.
+        if (borrow.status === "OVERDUE" && !input.status) {
+          data.status = "BORROWED";
+        }
+      }
+
       return prisma.borrow.update({
         where: { id },
-        data: input,
+        data,
         include: { user: true, book: true },
       });
     },

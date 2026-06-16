@@ -45,7 +45,7 @@ const auditContext = new AsyncLocalStorage();
 
 const baseClient = new PrismaClient();
 
-const AUDITED_MODELS = ["User", "Book", "Borrow"];
+const AUDITED_MODELS = ["User", "Book", "Borrow", "Author", "Category", "Fine", "Reservation", "Review"];
 const AUDITED_OPS = { create: "CREATE", update: "UPDATE", delete: "DELETE" };
 
 const prisma = baseClient.$extends({

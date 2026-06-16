@@ -67,6 +67,12 @@ module.exports = {
         include: { borrow: { include: { book: true, user: true } } },
       });
     },
+
+    fineRatePerDay: (_, __, { userId, role }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (role !== "ADMIN" && role !== "LIBRARIAN") throw new Error("Not authorized");
+      return FINE_RATE_PER_DAY;
+    },
   },
 
   Mutation: {

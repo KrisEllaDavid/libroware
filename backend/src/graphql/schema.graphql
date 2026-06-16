@@ -10,6 +10,9 @@ type User {
   createdAt: String!
   updatedAt: String!
   deletedAt: String
+  activeBorrowCount: Int!
+  overdueBorrowCount: Int!
+  outstandingFines: Float!
 }
 
 enum Role {
@@ -222,6 +225,7 @@ input BorrowCreateInput {
 input BorrowUpdateInput {
   returnedAt: String
   status: BorrowStatus
+  dueDate: String
 }
 
 input ReviewCreateInput {
@@ -249,11 +253,12 @@ type Query {
   # User queries
   me: User
   user(id: ID!): User
-  users(skip: Int, take: Int): [User!]!
-  usersCount: Int!
+  users(skip: Int, take: Int, search: String): [User!]!
+  usersCount(search: String): Int!
 
   # Book queries
   book(id: ID!): Book
+  bookByIsbn(isbn: String!): Book
   books(skip: Int, take: Int, searchTitle: String): [Book!]!
   booksCount(searchTitle: String): Int!
   booksByAuthor(authorId: ID!, skip: Int, take: Int): [Book!]!
@@ -296,6 +301,7 @@ type Query {
   fine(borrowId: ID!): Fine
   userFines(userId: ID!, skip: Int, take: Int): [Fine!]!
   allFines(skip: Int, take: Int, waived: Boolean): [Fine!]!
+  fineRatePerDay: Float!
 
   # Reservation queries
   reservation(id: ID!): Reservation
@@ -363,6 +369,7 @@ type AuditLog {
   action:    String!
   recordId:  String!
   userId:    ID
+  user:      User
   createdAt: String!
 }
 

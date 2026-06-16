@@ -9,6 +9,12 @@ module.exports = {
       return book;
     },
 
+    bookByIsbn: async (_, { isbn }, { prisma }) => {
+      const book = await prisma.book.findUnique({ where: { isbn } });
+      if (book?.deletedAt) return null;
+      return book;
+    },
+
     books: async (_, { skip = 0, take = 10, searchTitle }, { prisma }) => {
       const where = { deletedAt: null };
       if (searchTitle) where.title = { contains: searchTitle, mode: "insensitive" };

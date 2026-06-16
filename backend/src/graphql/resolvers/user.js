@@ -34,22 +34,42 @@ module.exports = {
       return user;
     },
 
-    users: async (_, { skip = 0, take = 10 }, { userId, role, prisma }) => {
+    users: async (_, { skip = 0, take = 10, search }, { userId, role, prisma }) => {
       if (!userId) throw new Error("Not authenticated");
       if (role !== "ADMIN" && role !== "LIBRARIAN")
         throw new Error("Not authorized");
       return prisma.user.findMany({
-        where: { deletedAt: null },
+        where: {
+          deletedAt: null,
+          ...(search && {
+            OR: [
+              { firstName: { contains: search, mode: "insensitive" } },
+              { lastName:  { contains: search, mode: "insensitive" } },
+              { email:     { contains: search, mode: "insensitive" } },
+            ],
+          }),
+        },
         skip,
         take,
         orderBy: { createdAt: "desc" },
       });
     },
 
-    usersCount: async (_, __, { userId, role, prisma }) => {
+    usersCount: async (_, { search }, { userId, role, prisma }) => {
       if (!userId) throw new Error("Not authenticated");
       if (role !== "ADMIN" && role !== "LIBRARIAN") throw new Error("Not authorized");
-      return prisma.user.count({ where: { deletedAt: null } });
+      return prisma.user.count({
+        where: {
+          deletedAt: null,
+          ...(search && {
+            OR: [
+              { firstName: { contains: search, mode: "insensitive" } },
+              { lastName:  { contains: search, mode: "insensitive" } },
+              { email:     { contains: search, mode: "insensitive" } },
+            ],
+          }),
+        },
+      });
     },
 
     deletedUsers: async (_, { skip = 0, take = 50 }, { userId, role, prisma }) => {
@@ -249,6 +269,21 @@ module.exports = {
       return parent.requiresPasswordChange === null
         ? false
         : parent.requiresPasswordChange;
+    },
+    activeBorrowCount: (parent, _, { prisma }) =>
+      prisma.borrow.count({
+        where: { userId: parent.id, status: { in: ["BORROWED", "OVERDUE"] } },
+      }),
+    overdueBorrowCount: (parent, _, { prisma }) =>
+      prisma.borrow.count({
+        where: { userId: parent.id, status: "OVERDUE" },
+      }),
+    outstandingFines: async (parent, _, { prisma }) => {
+      const fines = await prisma.fine.findMany({
+        where: { userId: parent.id, waived: false, paidAt: null },
+        select: { amount: true },
+      });
+      return fines.reduce((sum, f) => sum + f.amount, 0);
     },
   },
 };
