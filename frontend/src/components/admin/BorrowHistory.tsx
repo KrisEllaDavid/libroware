@@ -331,7 +331,7 @@ const BorrowHistory: React.FC = () => {
                     {formatDate(borrow.returnedAt)}
                   </td>
                   <td className="px-4 py-4 whitespace-nowrap">
-                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                    <span className={`px-5 inline-flex text-xs leading-5 font-semibold rounded-full ${
                       borrow.status === 'RETURNED' 
                         ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                         : borrow.status === 'OVERDUE'
@@ -376,7 +376,7 @@ const BorrowHistory: React.FC = () => {
       <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
         <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
           <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            Borrow History {useFallbackQuery && <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-2 py-1 rounded-full ml-2">Using Fallback</span>}
+            Borrow History {useFallbackQuery && <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-5 py-1 rounded-full ml-2">Using Fallback</span>}
           </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <div className="w-full sm:w-64">

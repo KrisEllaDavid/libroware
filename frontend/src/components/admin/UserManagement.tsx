@@ -54,14 +54,6 @@ const UserManagement: React.FC = () => {
   const { loading, error: queryError, data, refetch } = useQuery(GET_USERS, {
     variables: { skip: page * PAGE_SIZE, take: PAGE_SIZE },
     fetchPolicy: 'network-only', // Always fetch fresh data
-    onCompleted: (data: { users: User[] }) => {
-      setAllUsers(data.users);
-      setUsers(data.users);
-    },
-    onError: (error: any) => {
-      console.error("GraphQL query error:", error);
-      addToast('Error loading users: ' + error.message, 'error');
-    }
   });
 
   const [createUser, { loading: createLoading }] = useMutation(CREATE_USER, {
@@ -153,6 +145,14 @@ const UserManagement: React.FC = () => {
       setUsers(data.users);
     }
   }, [data]);
+
+  // Surface query errors as a toast (replaces the deprecated useQuery onError option)
+  useEffect(() => {
+    if (queryError) {
+      console.error("GraphQL query error:", queryError);
+      addToast('Error loading users: ' + queryError.message, 'error');
+    }
+  }, [queryError, addToast]);
 
   // Filter users when search term changes
   useEffect(() => {
@@ -512,14 +512,14 @@ const UserManagement: React.FC = () => {
                   <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors">
                     {user.firstName} {user.lastName}
                     {user.requiresPasswordChange && (
-                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                         New Account
                       </span>
                     )}
                   </h4>
                   <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">{user.email}</p>
                   <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    <span className={`inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium ${
                       user.role === 'ADMIN' 
                         ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
                         : user.role === 'LIBRARIAN'
@@ -528,6 +528,21 @@ const UserManagement: React.FC = () => {
                     }`}>
                       {user.role}
                     </span>
+                    {!!user.activeBorrowCount && (
+                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
+                        {user.activeBorrowCount} active loan{user.activeBorrowCount === 1 ? '' : 's'}
+                      </span>
+                    )}
+                    {!!user.overdueBorrowCount && (
+                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+                        {user.overdueBorrowCount} overdue
+                      </span>
+                    )}
+                    {!!user.outstandingFines && (
+                      <span className="ml-2 inline-flex items-center px-5.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                        {user.outstandingFines.toLocaleString()} FCFA owed
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>

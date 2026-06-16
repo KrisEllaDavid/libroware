@@ -208,7 +208,7 @@ const ISBNLookup: React.FC<Props> = ({ onData }) => {
           </div>
           <button
             onClick={reset}
-            className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded hover:bg-black/70 transition-all"
+            className="absolute top-2 right-2 bg-black/50 text-white text-xs px-5 py-1 rounded hover:bg-black/70 transition-all"
           >
             {t('common.cancel')}
           </button>

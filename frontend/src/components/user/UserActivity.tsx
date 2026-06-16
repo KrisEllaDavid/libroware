@@ -108,13 +108,13 @@ const UserActivity: React.FC = () => {
               activeTab === "pending"
                 ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
                 : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            } whitespace-nowrap py-4 px-5 border-b-2 font-medium text-sm`}
             aria-current={activeTab === "pending" ? "page" : undefined}
           >
             Pending
             {pendingBorrows.length > 0 && (
               <span
-                className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium 
+                className={`ml-2 px-5 py-0.5 rounded-full text-xs font-medium 
                 ${
                   activeTab === "pending"
                     ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
@@ -131,13 +131,13 @@ const UserActivity: React.FC = () => {
               activeTab === "history"
                 ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
                 : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+            } whitespace-nowrap py-4 px-5 border-b-2 font-medium text-sm`}
             aria-current={activeTab === "history" ? "page" : undefined}
           >
             History
             {historyBorrows.length > 0 && (
               <span
-                className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium 
+                className={`ml-2 px-5 py-0.5 rounded-full text-xs font-medium 
                 ${
                   activeTab === "history"
                     ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
@@ -251,7 +251,7 @@ const UserActivity: React.FC = () => {
                           {formatDate(borrow.dueDate)}
                         </td>
                         <td className="px-4 py-4 whitespace-normal">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
+                          <span className="px-5 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
                             Pending Approval
                           </span>
                         </td>
@@ -362,7 +362,7 @@ const UserActivity: React.FC = () => {
                           {formatDate(borrow.returnedAt)}
                         </td>
                         <td className="px-4 py-4 whitespace-normal">
-                          <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
+                          <span className="px-5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                             Completed
                           </span>
                         </td>

@@ -169,6 +169,7 @@
     "colRecordId":    "ID de l'enregistrement",
     "colActor":       "Acteur",
     "system":         "système",
+    "deletedUser":    "Utilisateur supprimé",
     "pageInfo":       "Page {{page}} sur {{pages}} · {{count}} entrées",
     "previous":       "Précédent",
     "next":           "Suivant"
@@ -225,9 +226,24 @@
     "failedReturn":   "Échec du retour du livre : {{message}}",
     "returnQueued":   "Retour enregistré — il sera synchronisé dès que vous serez de nouveau en ligne."
   },
+  "userFines": {
+    "title":            "Mes amendes",
+    "outstanding":       "En attente",
+    "noFines":           "Vous n'avez aucune amende enregistrée.",
+    "loading":           "Chargement de vos amendes...",
+    "errorLoading":      "Erreur lors du chargement des amendes : {{message}}",
+    "colBook":           "Livre",
+    "colDaysOverdue":    "Jours de retard",
+    "colAmount":         "Montant",
+    "colStatus":         "Statut",
+    "colDate":           "Date",
+    "payInPersonNote":   "Les amendes en attente se règlent auprès du personnel de la bibliothèque, en personne."
+  },
   "fines": {
     "title":         "Gestion des amendes",
     "outstanding":   "En attente",
+    "currentRate":   "Tarif journalier actuel",
+    "currentlyValue":"actuellement {{value}}",
     "setRate":       "Définir le tarif journalier",
     "rateLabel":     "Tarif journalier (FCFA)",
     "apply":         "Appliquer",
@@ -309,9 +325,11 @@
       "myBooks":      "Mes livres",
       "myRequests":   "Mes demandes",
       "reservations": "Réservations",
+      "myFines":      "Mes amendes",
       "browse":       "Parcourir les livres"
     },
     "overview":     "Votre aperçu",
+    "outstandingFines": "Amendes en attente",
     "totalBorrows": "Total des emprunts",
     "overdue":      "En retard",
     "returned":     "Livres retournés",

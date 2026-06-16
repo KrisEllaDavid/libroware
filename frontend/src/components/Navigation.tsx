@@ -4,31 +4,19 @@ import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTranslation } from "react-i18next";
 
-const LangToggle: React.FC = () => {
+const Navigation: React.FC = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, logout, isAdmin, isLibrarian } = useAuth();
   const { i18n, t } = useTranslation();
-  const toggle = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const toggleLanguage = () => {
     const next = i18n.language === 'en' ? 'fr' : 'en';
     i18n.changeLanguage(next);
     localStorage.setItem('libroware_lang', next);
   };
-  return (
-    <button
-      onClick={toggle}
-      className="px-2 py-1 text-xs font-bold rounded border border-white/30 text-white hover:bg-white/10 transition-all"
-      title={t('lang.switch')}
-    >
-      {t('lang.current')}
-    </button>
-  );
-};
-
-const Navigation: React.FC = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { user, logout, isAdmin, isLibrarian } = useAuth();
-  const { t } = useTranslation();
-  const location = useLocation();
-  const navigate = useNavigate();
-  const menuRef = useRef<HTMLDivElement>(null);
 
   // Close the menu when clicking outside of it
   useEffect(() => {
@@ -156,7 +144,6 @@ const Navigation: React.FC = () => {
             </div>
 
             <div className="hidden sm:flex sm:items-center space-x-4">
-              <LangToggle />
               <ThemeToggle />
 
               {/* Profile dropdown */}
@@ -229,6 +216,19 @@ const Navigation: React.FC = () => {
                   >
                     About Libroware
                   </Link>
+
+                  <button
+                    className="w-full text-left flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+                    role="menuitem"
+                    tabIndex={-1}
+                    onClick={toggleLanguage}
+                    title={t('lang.switch')}
+                  >
+                    <span>{t('lang.switch')}</span>
+                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400">
+                      {t('lang.current')}
+                    </span>
+                  </button>
 
                   <button
                     className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -340,6 +340,14 @@ const Navigation: React.FC = () => {
                 tabIndex={isMenuOpen ? 0 : -1}
               >
                 About Libroware
+              </button>
+              <button
+                className="w-full text-left flex items-center justify-between py-2 px-3 text-base font-medium text-emerald-100 hover:text-white hover:bg-emerald-700 hover:scale-105 transform transition-all duration-200 rounded-md hover:shadow-md relative z-[101]"
+                onClick={toggleLanguage}
+                tabIndex={isMenuOpen ? 0 : -1}
+              >
+                <span>{t('lang.switch')}</span>
+                <span className="text-xs font-bold">{t('lang.current')}</span>
               </button>
               <button
                 className="w-full text-left block py-2 px-3 text-base font-medium text-emerald-100 hover:text-white hover:bg-emerald-700 hover:scale-105 transform transition-all duration-200 rounded-md hover:shadow-md relative z-[101]"

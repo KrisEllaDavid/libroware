@@ -349,7 +349,7 @@ const UserBookView: React.FC = () => {
                   {book.categories.map(category => (
                     <span 
                       key={category.id}
-                      className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
+                      className="inline-block px-5 py-1 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
                     >
                       {category.name}
                     </span>

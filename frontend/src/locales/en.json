@@ -169,6 +169,7 @@
     "colRecordId":    "Record ID",
     "colActor":       "Actor",
     "system":         "system",
+    "deletedUser":    "Deleted user",
     "pageInfo":       "Page {{page}} of {{pages}} · {{count}} entries",
     "previous":       "Previous",
     "next":           "Next"
@@ -225,9 +226,24 @@
     "failedReturn":   "Failed to return book: {{message}}",
     "returnQueued":   "Return saved — it will sync when you're back online."
   },
+  "userFines": {
+    "title":            "My Fines",
+    "outstanding":       "Outstanding",
+    "noFines":           "You have no fines on record.",
+    "loading":           "Loading your fines...",
+    "errorLoading":      "Error loading fines: {{message}}",
+    "colBook":           "Book",
+    "colDaysOverdue":    "Days Overdue",
+    "colAmount":         "Amount",
+    "colStatus":         "Status",
+    "colDate":           "Date",
+    "payInPersonNote":   "Outstanding fines are settled with library staff in person."
+  },
   "fines": {
     "title":         "Fines Management",
     "outstanding":   "Outstanding",
+    "currentRate":   "Current daily rate",
+    "currentlyValue":"currently {{value}}",
     "setRate":       "Set Daily Rate",
     "rateLabel":     "Daily fine rate (FCFA)",
     "apply":         "Apply",
@@ -309,9 +325,11 @@
       "myBooks":      "My Books",
       "myRequests":   "My Requests",
       "reservations": "Reservations",
+      "myFines":      "My Fines",
       "browse":       "Browse Books"
     },
     "overview":     "Your Overview",
+    "outstandingFines": "Outstanding Fines",
     "totalBorrows": "Total Borrows",
     "overdue":      "Overdue",
     "returned":     "Returned Books",

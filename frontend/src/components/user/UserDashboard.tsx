@@ -8,6 +8,8 @@ import UserBorrows from "./UserBorrows";
 import BorrowStatistics from "./BorrowStatistics";
 import UserBookView from "./UserBookView";
 import UserReservations from "./UserReservations";
+import UserFines from "./UserFines";
+import { GET_USER_FINES } from "../../graphql/queries";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -49,6 +51,7 @@ enum Tab {
   MY_BOOKS     = "my-books",
   MY_REQUESTS  = "my-requests",
   RESERVATIONS = "reservations",
+  MY_FINES     = "my-fines",
   BROWSE_BOOKS = "browse-books",
 }
 
@@ -75,6 +78,16 @@ const UserDashboard: React.FC = () => {
     skip: !user?.id,
     fetchPolicy: "network-only",
   });
+
+  // Query fines for this user (used for the dashboard summary card)
+  const { data: finesData } = useQuery(GET_USER_FINES, {
+    variables: { userId: user?.id, take: 100 },
+    skip: !user?.id,
+    fetchPolicy: "network-only",
+  });
+  const outstandingFines: number = (finesData?.userFines ?? [])
+    .filter((f: any) => !f.waived && !f.paidAt)
+    .reduce((s: number, f: any) => s + f.amount, 0);
 
   // Process borrow data to calculate statistics
   useEffect(() => {
@@ -217,6 +230,14 @@ const UserDashboard: React.FC = () => {
                     {userStats.returnedBooks}
                   </div>
                 </div>
+                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('userDashboard.outstandingFines')}
+                  </div>
+                  <div className={`text-2xl font-bold ${outstandingFines > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                    {outstandingFines.toLocaleString()} FCFA
+                  </div>
+                </div>
               </div>
 
               {userStats.favoriteCategory && (
@@ -258,6 +279,13 @@ const UserDashboard: React.FC = () => {
           </div>
         );
 
+      case Tab.MY_FINES:
+        return (
+          <div className="mt-6">
+            <UserFines userId={user?.id || ""} />
+          </div>
+        );
+
       case Tab.BROWSE_BOOKS:
         return (
           <div className="mt-6">
@@ -287,6 +315,7 @@ const UserDashboard: React.FC = () => {
         {renderTabButton(Tab.MY_BOOKS,     t('userDashboard.tabs.myBooks'))}
         {renderTabButton(Tab.MY_REQUESTS,  t('userDashboard.tabs.myRequests'))}
         {renderTabButton(Tab.RESERVATIONS, t('userDashboard.tabs.reservations'))}
+        {renderTabButton(Tab.MY_FINES,     t('userDashboard.tabs.myFines'))}
         {renderTabButton(Tab.BROWSE_BOOKS, t('userDashboard.tabs.browse'))}
       </div>
 

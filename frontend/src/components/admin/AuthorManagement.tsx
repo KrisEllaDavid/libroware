@@ -65,12 +65,6 @@ const AuthorManagement: React.FC = () => {
     refetch,
   } = useQuery(GET_AUTHORS, {
     variables: { skip: 0, take: 50, searchName: searchTerm || undefined },
-    onCompleted: (data: { authors: Author[] }) => {
-      console.log("Authors data received:", data);
-    },
-    onError: (error: Error) => {
-      console.error("GraphQL query error:", error);
-    },
   });
 
   const [createAuthor, { loading: createLoading }] = useMutation(

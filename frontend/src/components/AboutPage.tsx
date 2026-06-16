@@ -41,7 +41,7 @@ const AboutPage: React.FC = () => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium text-gray-900 dark:text-white">IT Engineer - Artistic Director - Developer</h4>
-                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-2 py-1 rounded">July 2024 - Today</span>
+                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-5 py-1 rounded">July 2024 - Today</span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   Richenet's AI Agency
@@ -55,7 +55,7 @@ const AboutPage: React.FC = () => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium text-gray-900 dark:text-white">Co-founder, Cloud Engineer and Designer</h4>
-                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-2 py-1 rounded">2022 - Today</span>
+                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-5 py-1 rounded">2022 - Today</span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
                   LAMEUTE
@@ -75,7 +75,7 @@ const AboutPage: React.FC = () => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium text-gray-900 dark:text-white">Digital Engineering at ESIGN-UIECC</h4>
-                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-2 py-1 rounded">2019 - 2024/25</span>
+                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-5 py-1 rounded">2019 - 2024/25</span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   International Advanced School of Digital Engineering (Université Inter-États Congo Cameroun).
@@ -86,7 +86,7 @@ const AboutPage: React.FC = () => {
               <div className="mb-6">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="font-medium text-gray-900 dark:text-white">GCE (Ordinary Level & Advanced Level)</h4>
-                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-2 py-1 rounded">2011 - 2018</span>
+                  <span className="text-sm text-white bg-emerald-600 dark:bg-emerald-700 px-5 py-1 rounded">2011 - 2018</span>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   Government Bilingual Practicing High School Yaounde (GBPHS)

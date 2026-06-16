@@ -80,7 +80,7 @@ const UserReservations: React.FC = () => {
                   <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{r.book.title}</h3>
                   <p className="text-xs text-gray-400 mt-0.5">{r.book.authors.map(a => a.name).join(', ')}</p>
                 </div>
-                <span className={`px-2 py-0.5 text-xs rounded-full font-medium flex-shrink-0 ${STATUS_STYLES[r.status] ?? ''}`}>
+                <span className={`px-5 py-0.5 text-xs rounded-full font-medium flex-shrink-0 ${STATUS_STYLES[r.status] ?? ''}`}>
                   {t(`reservations.${r.status}`)}
                 </span>
               </div>

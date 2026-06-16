@@ -35,4 +35,7 @@ export interface User {
   profilePicture?: string;
   createdAt: string;
   requiresPasswordChange?: boolean;
-} 
+  activeBorrowCount?: number;
+  overdueBorrowCount?: number;
+  outstandingFines?: number;
+}

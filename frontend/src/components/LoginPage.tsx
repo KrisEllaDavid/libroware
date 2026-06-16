@@ -56,7 +56,7 @@ const LoginPage: React.FC = () => {
         {/* Language toggle */}
         <div className="flex justify-end mb-2">
           <button onClick={toggleLang}
-            className="text-xs font-bold px-2 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+            className="text-xs font-bold px-5 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
             {t('lang.switch')}
           </button>
         </div>

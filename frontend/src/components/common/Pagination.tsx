@@ -34,7 +34,7 @@ const Pagination: React.FC<Props> = ({
   if (total === 0) return null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-1 py-3">
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-5 py-3">
       {/* Info + page size */}
       <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
         <span>
@@ -44,7 +44,7 @@ const Pagination: React.FC<Props> = ({
           <select
             value={pageSize}
             onChange={e => { onPageSize(Number(e.target.value)); onPage(0); }}
-            className="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+            className="px-5 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-1 focus:ring-emerald-500"
           >
             {sizes.map(s => <option key={s} value={s}>{s} per page</option>)}
           </select>
@@ -56,19 +56,19 @@ const Pagination: React.FC<Props> = ({
         <button
           onClick={() => onPage(page - 1)}
           disabled={page === 0}
-          className="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+          className="px-5 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
         >
           ‹ Prev
         </button>
 
         {pageNums().map((n, i) =>
           n === '...' ? (
-            <span key={`e${i}`} className="px-2 text-gray-400 text-xs select-none">…</span>
+            <span key={`e${i}`} className="px-5 text-gray-400 text-xs select-none">…</span>
           ) : (
             <button
               key={n}
               onClick={() => onPage(n as number)}
-              className={`min-w-[28px] px-2 py-1 text-xs rounded border transition-all ${
+              className={`min-w-[28px] px-5 py-1 text-xs rounded border transition-all ${
                 n === page
                   ? 'bg-emerald-600 border-emerald-600 text-white font-medium'
                   : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
@@ -82,7 +82,7 @@ const Pagination: React.FC<Props> = ({
         <button
           onClick={() => onPage(page + 1)}
           disabled={page >= pages - 1}
-          className="px-2 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
+          className="px-5 py-1 text-xs rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 disabled:opacity-40 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
         >
           Next ›
         </button>

@@ -32,12 +32,6 @@ const CategoryManagement: React.FC = () => {
   // GraphQL queries and mutations
   const { loading, error: queryError, data, refetch } = useQuery(GET_CATEGORIES, {
     variables: { skip: 0, take: 50 },
-    onCompleted: (data: { categories: Category[] }) => {
-      console.log("Categories data received:", data);
-    },
-    onError: (error: Error) => {
-      console.error("GraphQL query error:", error);
-    }
   });
 
   const [createCategory, { loading: createLoading }] = useMutation(CREATE_CATEGORY, {

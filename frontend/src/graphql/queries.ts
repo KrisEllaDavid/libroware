@@ -5,6 +5,7 @@ export const GET_AUDIT_LOGS = gql`
   query GetAuditLogs($skip: Int, $take: Int, $model: String, $action: String, $userId: ID) {
     auditLogs(skip: $skip, take: $take, model: $model, action: $action, userId: $userId) {
       id model action recordId userId createdAt
+      user { id firstName lastName email }
     }
     auditLogCount(model: $model, action: $action, userId: $userId)
   }
@@ -79,6 +80,12 @@ export const GET_ALL_FINES = gql`
   }
 `;
 
+export const GET_FINE_RATE = gql`
+  query GetFineRatePerDay {
+    fineRatePerDay
+  }
+`;
+
 // Reservation Queries
 export const GET_USER_RESERVATIONS = gql`
   query GetUserReservations($userId: ID!, $skip: Int, $take: Int) {
@@ -111,6 +118,23 @@ export const GET_USERS = gql`
       profilePicture
       requiresPasswordChange
       createdAt
+      activeBorrowCount
+      overdueBorrowCount
+      outstandingFines
+    }
+  }
+`;
+
+// Lightweight member lookup used by the front-desk checkout flow
+export const SEARCH_MEMBERS = gql`
+  query SearchMembers($search: String, $take: Int) {
+    users(search: $search, take: $take) {
+      id
+      firstName
+      lastName
+      email
+      overdueBorrowCount
+      outstandingFines
     }
   }
 `;
@@ -161,6 +185,15 @@ export const GET_BOOKS = gql`
         id
         name
       }
+    }
+  }
+`;
+
+export const GET_BOOK_BY_ISBN = gql`
+  query GetBookByIsbn($isbn: String!) {
+    bookByIsbn(isbn: $isbn) {
+      id
+      title
     }
   }
 `;

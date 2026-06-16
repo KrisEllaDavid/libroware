@@ -110,10 +110,7 @@ const AdminPanel: React.FC = () => {
         case "users":
           return <UserManagement />;
         case "books":
-          return <BookManagement
-            onAuthorCreate={() => handleTabChange("authors")}
-            onCategoryCreate={() => handleTabChange("categories")}
-          />;
+          return <BookManagement />;
         case "authors":    return <AuthorManagement />;
         case "categories": return <CategoryManagement />;
         case "pending":    return <PendingRequests />;
@@ -155,8 +152,8 @@ const AdminPanel: React.FC = () => {
           {renderTabButton("pending",    t('admin.tabs.pending'))}
           {renderTabButton("history",    t('admin.tabs.history'))}
           {renderTabButton("fines",      t('admin.tabs.fines'))}
-          {isAdmin() && renderTabButton("deleted", "🗑 Recycle Bin")}
-          {isAdmin() && renderTabButton("audit",   "📋 Audit Log")}
+          {isAdmin() && renderTabButton("deleted", "Recycle Bin")}
+          {isAdmin() && renderTabButton("audit",   "Audit Log")}
         </div>
       </div>
 

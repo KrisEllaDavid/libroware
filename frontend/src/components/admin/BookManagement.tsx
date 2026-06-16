@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@apollo/client";
-import { useMutation } from "@apollo/client/react";
-import { GET_BOOKS, GET_AUTHORS, GET_CATEGORIES } from "../../graphql/queries";
-import { CREATE_BOOK, UPDATE_BOOK, DELETE_BOOK } from "../../graphql/mutations";
+import { useMutation, useLazyQuery } from "@apollo/client/react";
+import { GET_BOOKS, GET_AUTHORS, GET_CATEGORIES, GET_BOOK_BY_ISBN } from "../../graphql/queries";
+import {
+  CREATE_BOOK,
+  UPDATE_BOOK,
+  DELETE_BOOK,
+  CREATE_AUTHOR,
+  CREATE_CATEGORY,
+} from "../../graphql/mutations";
 import Modal from "../Modal";
 import FloatingInput from "../FloatingInput";
 import FloatingDropdown from "../FloatingDropdown";
@@ -50,10 +56,7 @@ interface BookFormData {
   categoryIds: string[];
 }
 
-interface BookManagementProps {
-  onAuthorCreate?: () => void;
-  onCategoryCreate?: () => void;
-}
+const ISBN_REGEX = /^(?:\d{9}[\dXx]|\d{13})$/;
 
 const initialFormData: BookFormData = {
   title: "",
@@ -67,14 +70,13 @@ const initialFormData: BookFormData = {
   categoryIds: [],
 };
 
-const BookManagement: React.FC<BookManagementProps> = ({
-  onAuthorCreate,
-  onCategoryCreate,
-}) => {
+const BookManagement: React.FC = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [formData, setFormData] = useState<BookFormData>(initialFormData);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof BookFormData, string>>>({});
   const [selectedBookId, setSelectedBookId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [justCreated, setJustCreated] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(0);
@@ -85,6 +87,10 @@ const BookManagement: React.FC<BookManagementProps> = ({
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [showNewAuthorModal, setShowNewAuthorModal] = useState(false);
   const [showNewCategoryModal, setShowNewCategoryModal] = useState(false);
+  const [newAuthorName, setNewAuthorName] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [inlineError, setInlineError] = useState<string | null>(null);
   const [qrBook, setQrBook] = useState<Book | null>(null);
   const [showLabelSheet, setShowLabelSheet] = useState(false);
 
@@ -109,29 +115,11 @@ const BookManagement: React.FC<BookManagementProps> = ({
   // GraphQL mutations
   const { addToast } = useToast();
 
-  const [createBook, { loading: createLoading }] = useMutation(CREATE_BOOK, {
-    onCompleted: () => {
-      resetForm();
-      setIsFormModalOpen(false);
-      refetch();
-    },
-    onError: (error: any) => {
-      setError(error.message);
-      addToast(`Failed to create book: ${error.message}`, 'error');
-    },
-  });
-
-  const [updateBook, { loading: updateLoading }] = useMutation(UPDATE_BOOK, {
-    onCompleted: () => {
-      resetForm();
-      setIsFormModalOpen(false);
-      refetch();
-    },
-    onError: (error: any) => {
-      setError(error.message);
-      addToast(`Failed to update book: ${error.message}`, 'error');
-    },
-  });
+  // Success/failure for create & update is handled inline in handleSubmit
+  // (awaited from the Modal's onConfirm) so the modal only closes, and only
+  // shows a success toast, once the mutation has actually settled.
+  const [createBook, { loading: createLoading }] = useMutation(CREATE_BOOK);
+  const [updateBook, { loading: updateLoading }] = useMutation(UPDATE_BOOK);
 
   const [deleteBook, { loading: deleteLoading }] = useMutation(DELETE_BOOK, {
     onCompleted: () => {
@@ -140,6 +128,21 @@ const BookManagement: React.FC<BookManagementProps> = ({
     onError: (error: any) => {
       setError(error.message);
       addToast(`Failed to delete book: ${error.message}`, 'error');
+    },
+  });
+
+  const [createAuthorInline, { loading: creatingAuthor }] = useMutation(CREATE_AUTHOR);
+  const [createCategoryInline, { loading: creatingCategory }] = useMutation(CREATE_CATEGORY);
+
+  const [checkIsbn] = useLazyQuery(GET_BOOK_BY_ISBN, {
+    fetchPolicy: "network-only",
+    onCompleted: (data: any) => {
+      if (data?.bookByIsbn) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          isbn: `A book with this ISBN already exists: "${data.bookByIsbn.title}"`,
+        }));
+      }
     },
   });
 
@@ -175,6 +178,22 @@ const BookManagement: React.FC<BookManagementProps> = ({
     } else {
       setFormData({ ...formData, [name]: value });
     }
+
+    if (fieldErrors[name as keyof BookFormData]) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[name as keyof BookFormData];
+        return next;
+      });
+    }
+  };
+
+  const handleIsbnBlur = () => {
+    const isbn = formData.isbn.replace(/[-\s]/g, "");
+    // Only worth checking against the database once the ISBN looks
+    // plausible — avoids firing a query on every partial keystroke.
+    if (isEditing || !ISBN_REGEX.test(isbn)) return;
+    checkIsbn({ variables: { isbn } });
   };
 
   const handleMultiSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -190,39 +209,77 @@ const BookManagement: React.FC<BookManagementProps> = ({
     setFormData({ ...formData, [name]: selectedValues });
   };
 
-  const handleSubmit = () => {
-    setError(null);
+  const validate = (data: BookFormData): Partial<Record<keyof BookFormData, string>> => {
+    const errors: Partial<Record<keyof BookFormData, string>> = {};
 
-    // Create a copy of the form data
-    const input = { ...formData };
-
-    // Ensure publishedAt is formatted correctly as a date string for the API
-    try {
-      // Try to parse the year as a number first
-      const year = parseInt(input.publishedAt, 10);
-
-      // Check if it's a valid year (4 digits, not too far in the past or future)
-      if (!isNaN(year) && year >= 1000 && year <= new Date().getFullYear()) {
-        // Format as ISO date string with January 1st of that year
-        input.publishedAt = `${year}-01-01`;
-      } else {
-        setError(`Please enter a valid year between 1000 and ${new Date().getFullYear()}`);
-        return;
-      }
-    } catch (err) {
-      setError("Invalid publication year format");
-      return;
+    if (!data.title.trim()) {
+      errors.title = "Title is required";
     }
 
-    if (isEditing && selectedBookId) {
-      updateBook({ variables: { id: selectedBookId, input: input } });
-    } else {
-      createBook({ variables: { input: input } });
+    const isbnDigits = data.isbn.replace(/[-\s]/g, "");
+    if (!isbnDigits) {
+      errors.isbn = "ISBN is required";
+    } else if (!ISBN_REGEX.test(isbnDigits)) {
+      errors.isbn = "Enter a valid 10 or 13-character ISBN";
+    }
+
+    if (!data.pageCount || data.pageCount < 1) {
+      errors.pageCount = "Page count must be at least 1";
+    }
+
+    if (!data.quantity || data.quantity < 1) {
+      errors.quantity = "Quantity must be at least 1";
+    }
+
+    const year = parseInt(data.publishedAt, 10);
+    if (isNaN(year) || year < 1000 || year > new Date().getFullYear()) {
+      errors.publishedAt = `Enter a valid year between 1000 and ${new Date().getFullYear()}`;
+    }
+
+    return errors;
+  };
+
+  // Thrown errors are caught by Modal's onConfirm handler, which then keeps
+  // the modal open instead of closing it with a false "success" toast.
+  const handleSubmit = async () => {
+    setError(null);
+
+    const errors = validate(formData);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      throw new Error("Please fix the highlighted fields");
+    }
+    setFieldErrors({});
+
+    const year = parseInt(formData.publishedAt, 10);
+    const input = { ...formData, isbn: formData.isbn.replace(/[-\s]/g, ""), publishedAt: `${year}-01-01` };
+
+    try {
+      if (isEditing && selectedBookId) {
+        await updateBook({ variables: { id: selectedBookId, input } });
+        refetch();
+      } else {
+        const result: any = await createBook({ variables: { input } });
+        refetch();
+        const newId = result?.data?.createBook?.id;
+        if (newId) {
+          // Stay open and switch into edit mode so a cover image can be
+          // uploaded right away, instead of forcing a second "edit" trip.
+          setIsEditing(true);
+          setSelectedBookId(newId);
+          setJustCreated(true);
+        }
+      }
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
     }
   };
 
   const handleEdit = (book: Book) => {
     setIsEditing(true);
+    setJustCreated(false);
+    setFieldErrors({});
     setSelectedBookId(book.id);
 
     // Extract year from publishedAt string (in case it's a full date)
@@ -253,6 +310,8 @@ const BookManagement: React.FC<BookManagementProps> = ({
 
   const handleCreate = () => {
     setIsEditing(false);
+    setJustCreated(false);
+    setFieldErrors({});
     setSelectedBookId(null);
     setFormData(initialFormData);
     setIsFormModalOpen(true);
@@ -280,6 +339,8 @@ const BookManagement: React.FC<BookManagementProps> = ({
     setFormData(initialFormData);
     setSelectedBookId(null);
     setIsEditing(false);
+    setJustCreated(false);
+    setFieldErrors({});
     setError(null);
   };
 
@@ -288,17 +349,60 @@ const BookManagement: React.FC<BookManagementProps> = ({
     setPage(0);
   };
 
+  // Opens a small inline modal on top of the book form so an author/category
+  // can be created without losing the in-progress book draft.
   const handleShowAuthorCreate = () => {
-    if (onAuthorCreate) {
-      setIsFormModalOpen(false);
-      onAuthorCreate();
+    setNewAuthorName("");
+    setInlineError(null);
+    setShowNewAuthorModal(true);
+  };
+
+  const handleCreateAuthorInline = async () => {
+    const name = newAuthorName.trim();
+    if (!name) {
+      setInlineError("Author name is required");
+      throw new Error("Author name is required");
+    }
+
+    try {
+      const result: any = await createAuthorInline({ variables: { input: { name } } });
+      const created = result?.data?.createAuthor;
+      if (created) {
+        setAuthors((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+        setFormData((prev) => ({ ...prev, authorIds: [...prev.authorIds, created.id] }));
+      }
+    } catch (err: any) {
+      setInlineError(err.message);
+      throw err;
     }
   };
 
   const handleShowCategoryCreate = () => {
-    if (onCategoryCreate) {
-      setIsFormModalOpen(false);
-      onCategoryCreate();
+    setNewCategoryName("");
+    setNewCategoryDescription("");
+    setInlineError(null);
+    setShowNewCategoryModal(true);
+  };
+
+  const handleCreateCategoryInline = async () => {
+    const name = newCategoryName.trim();
+    if (!name) {
+      setInlineError("Category name is required");
+      throw new Error("Category name is required");
+    }
+
+    try {
+      const result: any = await createCategoryInline({
+        variables: { input: { name, description: newCategoryDescription.trim() || undefined } },
+      });
+      const created = result?.data?.createCategory;
+      if (created) {
+        setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
+        setFormData((prev) => ({ ...prev, categoryIds: [...prev.categoryIds, created.id] }));
+      }
+    } catch (err: any) {
+      setInlineError(err.message);
+      throw err;
     }
   };
 
@@ -558,17 +662,25 @@ const BookManagement: React.FC<BookManagementProps> = ({
       {/* Add/Edit Book Modal */}
       <Modal
         isOpen={isFormModalOpen}
-        title={isEditing ? "Edit Book" : "Add New Book"}
+        title={isEditing ? (justCreated ? "Book Created — Add a Cover (optional)" : "Edit Book") : "Add New Book"}
         onCancel={() => {
           setIsFormModalOpen(false);
           resetForm();
         }}
         onConfirm={handleSubmit}
         confirmText={createLoading || updateLoading ? "Saving..." : "Save"}
-        cancelText="Cancel"
+        cancelText={justCreated ? "Done" : "Cancel"}
+        confirmDisabled={createLoading || updateLoading}
+        keepOpenOnConfirm={!isEditing || justCreated}
+        successMessage={isEditing ? "Book updated successfully" : "Book created successfully"}
         size="lg"
       >
         <div className="space-y-4">
+          {justCreated && (
+            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 px-4 py-3 rounded text-sm">
+              The book was created. You can upload a cover image below, or click "Done" to finish.
+            </div>
+          )}
           {/* ISBN auto-fill — only shown when creating a new book */}
           {!isEditing && (
             <ISBNLookup
@@ -601,6 +713,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               value={formData.title}
               onChange={handleInputChange}
               required
+              error={fieldErrors.title}
             />
             <FloatingInput
               id="isbn"
@@ -608,7 +721,9 @@ const BookManagement: React.FC<BookManagementProps> = ({
               label="ISBN"
               value={formData.isbn}
               onChange={handleInputChange}
+              onBlur={handleIsbnBlur}
               required
+              error={fieldErrors.isbn}
             />
           </div>
 
@@ -628,6 +743,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               type="number"
               value={formData.publishedAt}
               onChange={handleInputChange}
+              error={fieldErrors.publishedAt}
             />
             <FloatingInput
               id="pageCount"
@@ -636,6 +752,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               type="number"
               value={formData.pageCount.toString()}
               onChange={handleInputChange}
+              error={fieldErrors.pageCount}
             />
           </div>
 
@@ -648,6 +765,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
               value={formData.quantity.toString()}
               onChange={handleInputChange}
               required
+              error={fieldErrors.quantity}
             />
             <div className="space-y-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -686,7 +804,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
                   <option
                     key={author.id}
                     value={author.id}
-                    className="py-1 px-2 dark:text-gray-100"
+                    className="py-1 px-5 dark:text-gray-100"
                   >
                     {author.name}
                   </option>
@@ -734,7 +852,7 @@ const BookManagement: React.FC<BookManagementProps> = ({
                   <option
                     key={category.id}
                     value={category.id}
-                    className="py-1 px-2 dark:text-gray-100"
+                    className="py-1 px-5 dark:text-gray-100"
                   >
                     {category.name}
                   </option>
@@ -771,6 +889,68 @@ const BookManagement: React.FC<BookManagementProps> = ({
               {error}
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Inline "Add New Author" modal — stacks on top of the book form so
+          the in-progress book draft is never lost. */}
+      <Modal
+        isOpen={showNewAuthorModal}
+        title="Add New Author"
+        onCancel={() => setShowNewAuthorModal(false)}
+        onConfirm={handleCreateAuthorInline}
+        confirmText={creatingAuthor ? "Adding..." : "Add"}
+        cancelText="Cancel"
+        confirmDisabled={creatingAuthor}
+        successMessage="Author added"
+        size="sm"
+      >
+        <FloatingInput
+          id="newAuthorName"
+          name="newAuthorName"
+          label="Author Name"
+          value={newAuthorName}
+          onChange={(e) => {
+            setNewAuthorName(e.target.value);
+            setInlineError(null);
+          }}
+          required
+          error={inlineError || undefined}
+        />
+      </Modal>
+
+      {/* Inline "Add New Category" modal — same rationale as above. */}
+      <Modal
+        isOpen={showNewCategoryModal}
+        title="Add New Category"
+        onCancel={() => setShowNewCategoryModal(false)}
+        onConfirm={handleCreateCategoryInline}
+        confirmText={creatingCategory ? "Adding..." : "Add"}
+        cancelText="Cancel"
+        confirmDisabled={creatingCategory}
+        successMessage="Category added"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <FloatingInput
+            id="newCategoryName"
+            name="newCategoryName"
+            label="Category Name"
+            value={newCategoryName}
+            onChange={(e) => {
+              setNewCategoryName(e.target.value);
+              setInlineError(null);
+            }}
+            required
+            error={inlineError || undefined}
+          />
+          <FloatingInput
+            id="newCategoryDescription"
+            name="newCategoryDescription"
+            label="Description (optional)"
+            value={newCategoryDescription}
+            onChange={(e) => setNewCategoryDescription(e.target.value)}
+          />
         </div>
       </Modal>
 

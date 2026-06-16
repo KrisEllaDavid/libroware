@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client";
 import { gql } from "@apollo/client";
 import Modal from "../Modal";
+import { SEARCH_MEMBERS, GET_BOOKS } from "../../graphql/queries";
+import { CREATE_BORROW } from "../../graphql/mutations";
+import { useToast } from "../../context/ToastContext";
 
 // GraphQL queries and mutations
 const GET_PENDING_BORROWS = gql`
@@ -75,6 +78,8 @@ const RETURN_BOOK = gql`
   }
 `;
 
+const EXTEND_GRACE_DAYS = [3, 7, 14];
+
 type Borrow = {
   id: string;
   user: {
@@ -99,9 +104,18 @@ type Borrow = {
 const PendingRequests: React.FC = () => {
   const [selectedBorrow, setSelectedBorrow] = useState<Borrow | null>(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+  const [isExtendModalOpen, setIsExtendModalOpen] = useState(false);
+  const [extendDays, setExtendDays] = useState<number>(EXTEND_GRACE_DAYS[0]);
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
+  const [selectedMember, setSelectedMember] = useState<{ id: string; firstName: string; lastName: string; email: string; overdueBorrowCount: number; outstandingFines: number } | null>(null);
+  const [bookSearch, setBookSearch] = useState("");
+  const [selectedBook, setSelectedBook] = useState<{ id: string; title: string; available: number } | null>(null);
+  const [checkoutDays, setCheckoutDays] = useState<number>(14);
   const [searchTerm, setSearchTerm] = useState("");
   const [borrows, setBorrows] = useState<Borrow[]>([]);
   const [useFallbackQuery, setUseFallbackQuery] = useState(false);
+  const { addToast } = useToast();
 
   console.log("🔄 PendingRequests component rendered");
 
@@ -115,13 +129,6 @@ const PendingRequests: React.FC = () => {
     fetchPolicy: "network-only",
     notifyOnNetworkStatusChange: true,
     skip: useFallbackQuery,
-    onError: (error: any) => {
-      console.error(
-        "❌ Error fetching pending borrows with primary query:",
-        error
-      );
-      setUseFallbackQuery(true);
-    },
   });
 
   // Fallback query for all borrows
@@ -134,14 +141,19 @@ const PendingRequests: React.FC = () => {
     fetchPolicy: "network-only",
     notifyOnNetworkStatusChange: true,
     skip: !useFallbackQuery,
-    onCompleted: (data: { borrows: Borrow[] }) => {
-      console.log(
-        "✅ Successfully fetched borrows with fallback query:",
-        data?.borrows?.length || 0,
-        "items"
-      );
-    },
   });
+
+  // Fall back to the all-borrows query if the primary (pending) query fails
+  // (replaces the deprecated useQuery onError option)
+  useEffect(() => {
+    if (primaryError && !useFallbackQuery) {
+      console.error(
+        "❌ Error fetching pending borrows with primary query:",
+        primaryError
+      );
+      setUseFallbackQuery(true);
+    }
+  }, [primaryError, useFallbackQuery]);
 
   // Consolidated values
   const loading = useFallbackQuery ? fallbackLoading : primaryLoading;
@@ -188,6 +200,44 @@ const PendingRequests: React.FC = () => {
     },
   });
 
+  // Front-desk checkout: search members and available books
+  const { data: memberResults } = useQuery(SEARCH_MEMBERS, {
+    variables: { search: memberSearch, take: 8 },
+    skip: memberSearch.trim().length < 2,
+    fetchPolicy: "network-only",
+  });
+
+  const { data: bookResults } = useQuery(GET_BOOKS, {
+    variables: { searchTitle: bookSearch, take: 8 },
+    skip: bookSearch.trim().length < 2,
+    fetchPolicy: "network-only",
+  });
+
+  const [createBorrow, { loading: checkoutLoading }] = useMutation(CREATE_BORROW, {
+    onCompleted: (data: any) => {
+      addToast(`"${data.createBorrow.book.title}" checked out successfully`, "success");
+      resetCheckout();
+      refetch();
+    },
+    onError: (error: any) => {
+      console.error("❌ Error checking out book:", error);
+      addToast(`Failed to check out book: ${error.message}`, "error");
+    },
+  });
+
+  const [extendBorrow, { loading: extendLoading }] = useMutation(UPDATE_BORROW, {
+    onCompleted: () => {
+      addToast("Due date extended", "success");
+      setIsExtendModalOpen(false);
+      setSelectedBorrow(null);
+      refetch();
+    },
+    onError: (error: any) => {
+      console.error("❌ Error extending due date:", error);
+      addToast(`Failed to extend due date: ${error.message}`, "error");
+    },
+  });
+
   // Handle return book
   const handleReturn = (borrow: Borrow) => {
     console.log("🔄 Handling return for book:", borrow.book.title);
@@ -207,6 +257,51 @@ const PendingRequests: React.FC = () => {
     }
   };
 
+  // Handle extend due date
+  const handleExtend = (borrow: Borrow) => {
+    setSelectedBorrow(borrow);
+    setExtendDays(EXTEND_GRACE_DAYS[0]);
+    setIsExtendModalOpen(true);
+  };
+
+  const confirmExtend = () => {
+    if (!selectedBorrow) return;
+    const base = isOverdue(selectedBorrow.dueDate) ? new Date() : new Date(selectedBorrow.dueDate);
+    const newDueDate = new Date(base);
+    newDueDate.setDate(newDueDate.getDate() + extendDays);
+    extendBorrow({
+      variables: {
+        id: selectedBorrow.id,
+        input: { dueDate: newDueDate.toISOString() },
+      },
+    });
+  };
+
+  // Front-desk checkout
+  const resetCheckout = () => {
+    setIsCheckoutModalOpen(false);
+    setMemberSearch("");
+    setSelectedMember(null);
+    setBookSearch("");
+    setSelectedBook(null);
+    setCheckoutDays(14);
+  };
+
+  const confirmCheckout = () => {
+    if (!selectedMember || !selectedBook) return;
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + checkoutDays);
+    createBorrow({
+      variables: {
+        input: {
+          userId: selectedMember.id,
+          bookId: selectedBook.id,
+          dueDate: dueDate.toISOString(),
+        },
+      },
+    });
+  };
+
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -222,6 +317,13 @@ const PendingRequests: React.FC = () => {
     const today = new Date();
     const bookDueDate = new Date(dueDate);
     return today > bookDueDate;
+  };
+
+  // Whole days late (0 if not overdue)
+  const daysOverdue = (dueDate: string) => {
+    if (!isOverdue(dueDate)) return 0;
+    const msPerDay = 1000 * 60 * 60 * 24;
+    return Math.ceil((Date.now() - new Date(dueDate).getTime()) / msPerDay);
   };
 
   // Safe version of getFilteredBorrows that won't crash if borrows is undefined
@@ -255,6 +357,13 @@ const PendingRequests: React.FC = () => {
   let filteredBorrows: Borrow[] = [];
   try {
     filteredBorrows = getFilteredBorrows();
+    // Worst-overdue first, then soonest-due among the rest
+    filteredBorrows.sort((a, b) => {
+      const aDays = daysOverdue(a.dueDate);
+      const bDays = daysOverdue(b.dueDate);
+      if (aDays !== bDays) return bDays - aDays;
+      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+    });
   } catch (error) {
     console.error("❌ Error filtering borrows:", error);
   }
@@ -416,12 +525,13 @@ const PendingRequests: React.FC = () => {
                       }`}
                     >
                       {formatDate(borrow.dueDate)}
-                      {isOverdue(borrow.dueDate) && " (overdue)"}
+                      {isOverdue(borrow.dueDate) &&
+                        ` (${daysOverdue(borrow.dueDate)}d overdue)`}
                     </span>
                   </td>
                   <td className="px-4 py-4 whitespace-normal">
                     <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                      className={`px-5 inline-flex text-xs leading-5 font-semibold rounded-full 
                       ${
                         isOverdue(borrow.dueDate)
                           ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
@@ -431,7 +541,13 @@ const PendingRequests: React.FC = () => {
                       {isOverdue(borrow.dueDate) ? "Overdue" : "Borrowed"}
                     </span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                    <button
+                      onClick={() => handleExtend(borrow)}
+                      className="px-3 py-1 rounded-md text-emerald-700 dark:text-emerald-400 border border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors"
+                    >
+                      Extend
+                    </button>
                     <button
                       onClick={() => handleReturn(borrow)}
                       disabled={returnLoading}
@@ -476,6 +592,12 @@ const PendingRequests: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
+            <button
+              onClick={() => setIsCheckoutModalOpen(true)}
+              className="px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-colors whitespace-nowrap"
+            >
+              Check Out Book
+            </button>
           </div>
         </div>
 
@@ -493,6 +615,185 @@ const PendingRequests: React.FC = () => {
         onCancel={() => setIsReturnModalOpen(false)}
         type="warning"
       />
+
+      {/* Extend Due Date Modal */}
+      <Modal
+        isOpen={isExtendModalOpen}
+        title="Extend Due Date"
+        confirmText={extendLoading ? "Saving..." : "Extend"}
+        cancelText="Cancel"
+        onConfirm={confirmExtend}
+        onCancel={() => setIsExtendModalOpen(false)}
+        type="form"
+        showToast={false}
+      >
+        {selectedBorrow && (
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
+              Extend <span className="font-medium">{selectedBorrow.book.title}</span> for{" "}
+              <span className="font-medium">
+                {selectedBorrow.user.firstName} {selectedBorrow.user.lastName}
+              </span>
+              {" "}— currently due {formatDate(selectedBorrow.dueDate)}
+              {isOverdue(selectedBorrow.dueDate) && ` (${daysOverdue(selectedBorrow.dueDate)}d overdue)`}.
+            </p>
+            <div className="flex gap-2">
+              {EXTEND_GRACE_DAYS.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setExtendDays(d)}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                    extendDays === d
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  +{d} days
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              New due date: {formatDate(
+                (() => {
+                  const base = isOverdue(selectedBorrow.dueDate) ? new Date() : new Date(selectedBorrow.dueDate);
+                  const d = new Date(base);
+                  d.setDate(d.getDate() + extendDays);
+                  return d.toISOString();
+                })()
+              )}
+            </p>
+          </div>
+        )}
+      </Modal>
+
+      {/* Front-desk Checkout Modal */}
+      <Modal
+        isOpen={isCheckoutModalOpen}
+        title="Check Out Book"
+        confirmText={checkoutLoading ? "Checking out..." : "Check Out"}
+        cancelText="Cancel"
+        onConfirm={confirmCheckout}
+        onCancel={resetCheckout}
+        type="form"
+        showToast={false}
+        size="lg"
+      >
+        <div className="space-y-5">
+          {/* Member picker */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Member</label>
+            {selectedMember ? (
+              <div className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                <div>
+                  <div className="text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedMember.firstName} {selectedMember.lastName}
+                  </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">{selectedMember.email}</div>
+                  {(selectedMember.overdueBorrowCount > 0 || selectedMember.outstandingFines > 0) && (
+                    <div className="text-xs text-red-600 dark:text-red-400 mt-0.5">
+                      {selectedMember.overdueBorrowCount > 0 && `${selectedMember.overdueBorrowCount} overdue book(s)`}
+                      {selectedMember.overdueBorrowCount > 0 && selectedMember.outstandingFines > 0 && " · "}
+                      {selectedMember.outstandingFines > 0 && `${selectedMember.outstandingFines.toLocaleString()} FCFA owed`}
+                    </div>
+                  )}
+                </div>
+                <button type="button" onClick={() => setSelectedMember(null)}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  Change
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Search by name or email…"
+                  value={memberSearch}
+                  onChange={(e) => setMemberSearch(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {memberResults?.users?.length > 0 && (
+                  <ul className="mt-1 border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700 max-h-40 overflow-y-auto">
+                    {memberResults.users.map((u: any) => (
+                      <li key={u.id}>
+                        <button type="button" onClick={() => setSelectedMember(u)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
+                          <div className="text-gray-900 dark:text-white">{u.firstName} {u.lastName}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Book picker */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Book</label>
+            {selectedBook ? (
+              <div className="flex items-center justify-between px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">{selectedBook.title}</div>
+                <button type="button" onClick={() => setSelectedBook(null)}
+                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  Change
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  type="text"
+                  placeholder="Search by title…"
+                  value={bookSearch}
+                  onChange={(e) => setBookSearch(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {bookResults?.books?.length > 0 && (
+                  <ul className="mt-1 border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700 max-h-40 overflow-y-auto">
+                    {bookResults.books.map((b: any) => (
+                      <li key={b.id}>
+                        <button
+                          type="button"
+                          disabled={b.available <= 0}
+                          onClick={() => setSelectedBook(b)}
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex justify-between"
+                        >
+                          <span className="text-gray-900 dark:text-white">{b.title}</span>
+                          <span className={`text-xs ${b.available > 0 ? "text-gray-400" : "text-red-500"}`}>
+                            {b.available > 0 ? `${b.available} available` : "unavailable"}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Loan period */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loan period</label>
+            <div className="flex gap-2">
+              {[7, 14, 21, 30].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setCheckoutDays(d)}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                    checkoutDays === d
+                      ? "bg-emerald-600 text-white border-emerald-600"
+                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  }`}
+                >
+                  {d} days
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

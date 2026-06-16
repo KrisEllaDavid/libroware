@@ -8,7 +8,7 @@ interface ModalProps {
   message?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  onConfirm?: () => void;
+  onConfirm?: () => void | Promise<void>;
   onCancel?: () => void;
   children?: React.ReactNode;
   type?:
@@ -24,6 +24,16 @@ interface ModalProps {
   successMessage?: string;
   cancelMessage?: string;
   entityName?: string;
+  /** Disable the confirm button (e.g. while a mutation is in flight). */
+  confirmDisabled?: boolean;
+  /**
+   * By default the modal closes and shows a success toast as soon as
+   * onConfirm settles. If onConfirm throws/rejects, the modal stays open
+   * instead so the caller can show its own inline error and let the user
+   * correct the form. Set this to keep the modal open even on success
+   * (e.g. to let the user keep working in it).
+   */
+  keepOpenOnConfirm?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -41,6 +51,8 @@ const Modal: React.FC<ModalProps> = ({
   successMessage,
   cancelMessage,
   entityName = "",
+  confirmDisabled = false,
+  keepOpenOnConfirm = false,
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
   const modalId = useId();
@@ -53,7 +65,7 @@ const Modal: React.FC<ModalProps> = ({
     // Try to extract from title if it's a string
     if (typeof title === "string") {
       // Check for common patterns like "Delete User", "Edit Book", etc.
-      const matches = title.match(/(?:Delete|Edit|Add|Create)\s+(\w+)/i);
+      const matches = title.match(/(?:Delete|Edit|Add|Create)\s+(?:New\s+)?(\w+)$/i);
       if (matches && matches[1]) {
         return matches[1]; // Return the captured entity name
       }
@@ -86,17 +98,27 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  // Handle confirm action with toast notification
-  const handleConfirm = () => {
-    if (onConfirm) {
-      onConfirm();
-
-      if (showToast) {
-        addToast(generateSuccessMessage(), "success");
-      }
+  // Handle confirm action with toast notification.
+  // onConfirm may reject (e.g. a failed mutation) — in that case the modal
+  // stays open so the caller's own inline error stays visible, instead of
+  // closing and showing a false "success" toast.
+  const handleConfirm = async () => {
+    if (!onConfirm) {
+      if (onCancel) onCancel();
+      return;
     }
 
-    if (onCancel) {
+    try {
+      await onConfirm();
+    } catch {
+      return;
+    }
+
+    if (showToast) {
+      addToast(generateSuccessMessage(), "success");
+    }
+
+    if (!keepOpenOnConfirm && onCancel) {
       onCancel();
     }
   };
@@ -269,8 +291,9 @@ const Modal: React.FC<ModalProps> = ({
               type === "danger") && (
               <button
                 type="button"
-                className={confirmButtonClass}
+                className={`${confirmButtonClass} ${confirmDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={handleConfirm}
+                disabled={confirmDisabled}
               >
                 {confirmText}
               </button>
@@ -280,8 +303,9 @@ const Modal: React.FC<ModalProps> = ({
             {type === "delete" && (
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md"
+                className={`px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md ${confirmDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 onClick={handleConfirm}
+                disabled={confirmDisabled}
               >
                 Delete
               </button>

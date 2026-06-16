@@ -68,17 +68,18 @@ const DeletedRecords: React.FC = () => {
 
       {/* Content */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
       ) : isEmpty ? (
         <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-          <p className="text-gray-400 text-sm">{section === 'users' ? t('deletedRecords.noneFoundUsers') : t('deletedRecords.noneFoundBooks')}</p>
-          <p className="text-gray-300 dark:text-gray-600 text-xs mt-1">{t('deletedRecords.appearHere')}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">{section === 'users' ? t('deletedRecords.noneFoundUsers') : t('deletedRecords.noneFoundBooks')}</p>
+          <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">{t('deletedRecords.appearHere')}</p>
         </div>
       ) : section === 'users' ? (
         // ── Deleted users table ─────────────────────────────────────────────
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-750">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 {[t('deletedRecords.colUser'), t('deletedRecords.colRole'), t('deletedRecords.colDeletedOn'), t('users.actions')].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
@@ -87,16 +88,16 @@ const DeletedRecords: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {deletedUsers.map((u: any) => (
-                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900 dark:text-white">{u.firstName} {u.lastName}</p>
-                    <p className="text-xs text-gray-400">{u.email}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ROLE_BADGE[u.role] ?? ''}`}>{u.role}</span>
+                    <span className={`px-5 py-0.5 text-xs rounded-full font-medium ${ROLE_BADGE[u.role] ?? ''}`}>{u.role}</span>
                   </td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{fmtDate(u.deletedAt)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex gap-2">
                       <button onClick={() => restoreUser({ variables: { id: u.id } })}
                         className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-all">
@@ -112,12 +113,14 @@ const DeletedRecords: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       ) : (
         // ── Deleted books table ─────────────────────────────────────────────
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-750">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-sm">
+            <thead className="bg-gray-50 dark:bg-gray-800">
               <tr>
                 {[t('deletedRecords.colBook'), t('books.authors'), t('deletedRecords.colDeletedOn'), t('users.actions')].map(h => (
                   <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
@@ -126,16 +129,16 @@ const DeletedRecords: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
               {deletedBooks.map((b: any) => (
-                <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td className="px-4 py-3">
                     <p className="font-medium text-gray-900 dark:text-white">{b.title}</p>
-                    <p className="text-xs text-gray-400 font-mono">{t('browseBooks.isbnLabel')} {b.isbn}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{t('browseBooks.isbnLabel')} {b.isbn}</p>
                   </td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
                     {b.authors.map((a: any) => a.name).join(', ') || '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{fmtDate(b.deletedAt)}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex gap-2">
                       <button onClick={() => restoreBook({ variables: { id: b.id } })}
                         className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-all">
@@ -151,6 +154,7 @@ const DeletedRecords: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

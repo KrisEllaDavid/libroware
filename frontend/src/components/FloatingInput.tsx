@@ -5,6 +5,7 @@ interface FloatingInputProps {
   name: string;
   value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   type?: string;
   label: string;
   placeholder?: string;
@@ -17,6 +18,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({
   name,
   value,
   onChange,
+  onBlur,
   type = "text",
   label,
   placeholder = "",
@@ -35,6 +37,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({
         type={type}
         value={value}
         onChange={onChange}
+        onBlur={onBlur}
         placeholder={placeholder}
         required={required}
         className={`float-input peer pt-6 pb-2 dark:text-white dark:bg-transparent dark:border-gray-700 
