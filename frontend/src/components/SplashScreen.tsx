@@ -61,9 +61,9 @@ const SplashScreen: React.FC<SplashScreenProps> = ({
               transition: 'transform 2s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 1.5s ease-out'
             }}
           >
-            <img 
-              src="/Logo.svg" 
-              alt="Libroware Logo" 
+            <img
+              src="/Logo.png"
+              alt="Libroware Logo"
               className="w-full h-full"
             />
           </div>
