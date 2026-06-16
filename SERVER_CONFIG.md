@@ -50,6 +50,32 @@ ALLOWED_ORIGINS=http://185.217.125.37:3030,libroware://localhost,capacitor://loc
 
 > When your domain is ready, add it to `ALLOWED_ORIGINS` and redeploy.
 
+### Cookie security
+
+The JWT is now stored in an `httpOnly; SameSite=Strict` cookie. To also add the `Secure` flag (required to prevent transmission over plain HTTP once you have TLS), add:
+
+```env
+COOKIE_SECURE=true
+```
+
+> Leave `COOKIE_SECURE=false` (the default) until HTTPS is active — the `Secure` flag would otherwise block the cookie entirely on HTTP connections.
+
+### Optional: Email notifications (SMTP)
+
+Add these to the `ENV_FILE` secret (or server `.env`) to enable due-date and overdue reminders:
+
+```env
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=noreply@example.com
+SMTP_PASS=<smtp-password>
+SMTP_FROM=Libroware <noreply@example.com>
+# Optional — default is "0 8 * * *" (08:00 daily, server time)
+# NOTIFICATION_CRON=0 8 * * *
+```
+
+> If `SMTP_HOST` is not set the notification scheduler still starts but all email sends are silently skipped — safe for dev/offline deployments.
+
 ---
 
 ## 3. GitHub Actions Secrets
@@ -249,3 +275,4 @@ export const REMOTE_URL = "https://yourdomain.com/api/graphql";
 ```
 
 Commit, push, redeploy, and rebuild native apps.
+

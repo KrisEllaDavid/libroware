@@ -2,20 +2,21 @@
 
 This document tracks all proposed enhancements to the Libroware system, grouped by priority tier. Each item includes a rationale, the affected component(s), and implementation notes.
 
-> **Last reviewed:** 2026-06-15. Most Tier 1/2 items from the original roadmap have shipped — see status column in the Tracking Summary. Remaining work (email notifications, JWT cookies, i18n completion, Reviews UI) is being tracked as Phases 3-6 of the current improvement roadmap.
+> **Last reviewed:** 2026-06-15. All Tier 1/2 items from the original roadmap have shipped — see status column in the Tracking Summary.
 
 ---
 
 ## Tier 1 — High Priority (Next Release)
 
-### U-01 · Email Notifications for Due Dates & Overdue Books — Status: Planned (Phase 5)
+### U-01 · Email Notifications for Due Dates & Overdue Books — Status: ✅ Done
 **Rationale:** Users currently receive no automated reminder when a book is approaching or past its due date. This leads to unnecessary overdue incidents.
-**Scope:** Backend (new `NotificationService`), cron job via `node-cron`, SMTP integration (e.g. Nodemailer + SendGrid/Brevo).
-**Details:**
-- 3-day reminder email before due date
-- Same-day reminder on due date
-- Daily overdue notice until book is returned
-- Configurable SMTP credentials via `.env`, must no-op gracefully if SMTP isn't configured
+**Implemented as:** `backend/src/services/notificationService.js` (nodemailer transport with graceful no-op when `SMTP_HOST` is unset) + `backend/src/services/scheduler.js` (node-cron daily job, default 08:00, configurable via `NOTIFICATION_CRON`), wired into `startServer()` in `src/index.js`.
+**Behaviour:**
+- 3-day reminder email sent when a borrow's `dueDate` falls exactly 3 days from the cron run date
+- Same-day reminder when `dueDate` is today
+- Daily overdue notice (with days-overdue count) for all borrows with status `OVERDUE`; also bulk-upgrades any `BORROWED` records that crossed their deadline to `OVERDUE` before sending
+- Configurable SMTP via `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` — silently disabled if `SMTP_HOST` is unset (safe for dev/offline)
+- **Online-only** — server-side cron, no offline queue integration required
 
 ---
 
@@ -37,14 +38,11 @@ This document tracks all proposed enhancements to the Libroware system, grouped 
 
 ---
 
-### U-05 · JWT Moved to httpOnly Cookies — Status: Planned (Phase 6, security-sensitive — do last)
+### U-05 · JWT Moved to httpOnly Cookies — Status: ✅ Done
 **Rationale:** Storing JWT in `localStorage` exposes tokens to XSS attacks. Any injected script can exfiltrate the token.
-**Scope:** Backend (set cookie on login), Frontend (remove localStorage token), CSRF token header.
-**Details:**
-- `httpOnly; Secure; SameSite=Strict` cookie
-- Backend `/logout` endpoint clears the cookie
-- CSRF double-submit cookie pattern
-- Must verify cookie behavior across web (nginx), Electron (`libroware://`), and Capacitor (`capacitor://localhost`) before merging
+**Implemented as:** `cookie-parser` middleware + `res` passed through Apollo context. `login`/`signup` resolvers call `setAuthCookie(res, token)` setting `httpOnly; SameSite=Strict` (add `COOKIE_SECURE=true` to `.env` when HTTPS is configured). Backend token extraction checks cookie first, then `Authorization: Bearer` header. `logout` GraphQL mutation clears the cookie. `AuthContext.tsx`: web login no longer stores the raw token in `localStorage` (only the user JSON); Electron/Capacitor continue using the bearer-token flow via `localStorage` since `SameSite=Strict` blocks cross-scheme cookie delivery from `libroware://` / `capacitor://`. Apollo `clearStore()` fires on logout to purge cached user data.
+**CSRF:** `SameSite=Strict` prevents cross-site request forgery without a separate CSRF token — a cross-origin form POST from an attacker's page cannot include the cookie.
+**Activation checklist (HTTPS):** Set `COOKIE_SECURE=true` in `.env` and configure TLS (see SERVER_CONFIG.md §7).
 
 ---
 
@@ -139,25 +137,32 @@ This document tracks all proposed enhancements to the Libroware system, grouped 
 
 ---
 
+### U-19 · Book Reviews UI — Status: ✅ Done
+**Rationale:** The backend `Review` model and `createReview`/`updateReview`/`deleteReview`/`bookReviews` resolvers existed but had zero frontend usage — dead code with no way for members to rate or review books.
+**Implemented as:** New `StarRating.tsx` (display + interactive picker), `BOOK_REVIEWS` query and `CREATE_REVIEW`/`UPDATE_REVIEW`/`DELETE_REVIEW` mutations, and a Reviews section in the `UserBookView.tsx` borrow/read modal showing the average rating, review count, the reviews list, and a form for the signed-in user to post/edit/delete their own review. Online-only (no offline queue integration).
+
+---
+
 ## Tracking Summary
 
-| ID | Title | Priority | Status |
-|----|-------|----------|--------|
-| U-01 | Email notifications | High | Planned (Phase 5) |
-| U-02 | Fine / penalty system | High | ✅ Done |
-| U-03 | Book reservation queue | High | ✅ Done |
-| U-04 | Frontend pagination | High | ✅ Done |
-| U-05 | JWT in httpOnly cookies | High | Planned (Phase 6) |
-| U-06 | Profile update no reload | High | ✅ Done |
-| U-07 | QR code generation | Medium | ✅ Done |
-| U-08 | Advanced analytics | Medium | ✅ Done |
-| U-09 | Multi-language (FR/EN) | Medium | Partial (Phase 4) |
-| U-10 | Student ID integration | Medium | Planned |
-| U-11 | Soft-delete restore UI | Medium | ✅ Done |
-| U-12 | Mobile application | Low | Partial (Capacitor) |
-| U-13 | Interlibrary loan module | Low | Future |
-| U-14 | Audit log viewer | Low | ✅ Done |
-| U-15 | Reading progress tracker | Low | Future |
-| U-16 | Native desktop installers | High | ✅ Done |
-| U-17 | Offline mutation queue | High | ✅ Done (first slice) |
-| U-18 | Rate limiter tuning | High | ✅ Done |
+| ID   | Title                      | Priority | Status |
+|------|----------------------------|----------|--------|
+| U-01 | Email notifications        | High | ✅ Done |
+| U-02 | Fine / penalty system      | High | ✅ Done |
+| U-03 | Book reservation queue     | High | ✅ Done |
+| U-04 | Frontend pagination        | High | ✅ Done |
+| U-05 | JWT in httpOnly cookies    | High | ✅ Done |
+| U-06 | Profile update no reload   | High | ✅ Done |
+| U-07 | QR code generation         | Medium | ✅ Done |
+| U-08 | Advanced analytics         | Medium | ✅ Done |
+| U-09 | Multi-language (FR/EN)     | Medium | ✅ Done |
+| U-10 | Student ID integration     | Medium | Planned |
+| U-11 | Soft-delete restore UI     | Medium | ✅ Done |
+| U-12 | Mobile application         | Low | Partial (Capacitor) |
+| U-13 | Interlibrary loan module   | Low | Future |
+| U-14 | Audit log viewer           | Low | ✅ Done |
+| U-15 | Reading progress tracker   | Low | Future |
+| U-16 | Native desktop installers  | High | ✅ Done |
+| U-17 | Offline mutation queue     | High | ✅ Done (first slice) |
+| U-18 | Rate limiter tuning        | High | ✅ Done |
+| U-19 | Book reviews UI            | Medium | ✅ Done |
