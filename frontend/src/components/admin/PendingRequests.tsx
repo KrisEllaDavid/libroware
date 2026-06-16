@@ -5,6 +5,7 @@ import Modal from "../Modal";
 import { SEARCH_MEMBERS, GET_BOOKS } from "../../graphql/queries";
 import { CREATE_BORROW, APPROVE_BORROW, REJECT_BORROW } from "../../graphql/mutations";
 import { useToast } from "../../context/ToastContext";
+import { fmtDate, isPast, daysPast } from "../../utils/date";
 
 // ── Approval requests ──────────────────────────────────────────────────────────
 const GET_APPROVAL_REQUESTS = gql`
@@ -112,8 +113,7 @@ const ApprovalSection: React.FC<{ onRefetchActive: () => void }> = ({ onRefetchA
     onError: (e) => addToast(e.message, 'error'),
   });
 
-  const formatDate = (s: string) =>
-    new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(new Date(s));
+  const formatDate = fmtDate;
 
   const requests: ApprovalBorrow[] = data?.borrows || [];
 
@@ -368,13 +368,9 @@ const PendingRequests: React.FC = () => {
     createBorrow({ variables: { input: { userId: selectedMember.id, bookId: selectedBook.id, dueDate: dueDate.toISOString() } } });
   };
 
-  const formatDate = (s: string) =>
-    new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric" }).format(new Date(s));
-  const isOverdue = (dueDate: string) => new Date() > new Date(dueDate);
-  const daysOverdue = (dueDate: string) => {
-    if (!isOverdue(dueDate)) return 0;
-    return Math.ceil((Date.now() - new Date(dueDate).getTime()) / (1000 * 60 * 60 * 24));
-  };
+  const formatDate = fmtDate;
+  const isOverdue = isPast;
+  const daysOverdue = daysPast;
 
   const filteredBorrows = (borrows || [])
     .filter((b) =>

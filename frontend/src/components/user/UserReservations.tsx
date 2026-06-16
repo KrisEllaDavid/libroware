@@ -5,6 +5,7 @@ import { GET_USER_RESERVATIONS } from '../../graphql/queries';
 import { CANCEL_RESERVATION } from '../../graphql/mutations';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
+import { fmtShort } from '../../utils/date';
 
 interface Reservation {
   id: string;
@@ -60,8 +61,8 @@ const UserReservations: React.FC = () => {
     <div className="space-y-4">
       {reservations.map(r => {
         const isPending = r.status === 'PENDING';
-        const expires   = new Date(r.expiresAt);
-        const isExpiringSoon = isPending && (expires.getTime() - Date.now()) < 6 * 60 * 60 * 1000;
+        const expiresMs = r.expiresAt ? new Date(r.expiresAt).getTime() : 0;
+        const isExpiringSoon = isPending && expiresMs > 0 && (expiresMs - Date.now()) < 6 * 60 * 60 * 1000;
 
         return (
           <div key={r.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex gap-4">
@@ -87,12 +88,12 @@ const UserReservations: React.FC = () => {
 
               {r.status === 'FULFILLED' && (
                 <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  {t('reservations.collectBefore', { date: expires.toLocaleDateString() })}
+                  {t('reservations.collectBefore', { date: fmtShort(r.expiresAt) })}
                 </p>
               )}
               {isPending && isExpiringSoon && (
                 <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                  {t('reservations.expiresLabel', { date: expires.toLocaleString() })}
+                  {t('reservations.expiresLabel', { date: fmtShort(r.expiresAt) })}
                 </p>
               )}
               {isPending && (

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useQuery } from "@apollo/client";
 import { gql } from "@apollo/client";
 import { useAuth } from "../../context/AuthContext";
+import { fmtShort } from "../../utils/date";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -59,12 +60,7 @@ const UserActivity: React.FC = () => {
     skip: !user?.id,
   });
 
-  // Format date
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
+  const formatDate = fmtShort;
 
   if (loading)
     return (

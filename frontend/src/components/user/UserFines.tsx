@@ -2,6 +2,7 @@ import React from 'react';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
 import { GET_USER_FINES } from '../../graphql/queries';
+import { fmtShort } from '../../utils/date';
 
 interface Fine {
   id: string;
@@ -35,7 +36,7 @@ const UserFines: React.FC<UserFinesProps> = ({ userId }) => {
   const fines: Fine[] = data?.userFines ?? [];
   const outstanding = fines.filter(f => !f.waived && !f.paidAt).reduce((s, f) => s + f.amount, 0);
 
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString();
+  const fmtDate = fmtShort;
 
   if (loading) return <div className="text-center py-4">{t('userFines.loading')}</div>;
   if (error) return <div className="text-red-500 py-4">{t('userFines.errorLoading', { message: error.message })}</div>;

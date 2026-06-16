@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { GET_NOTIFICATIONS, GET_UNREAD_NOTIFICATIONS_COUNT } from '../graphql/queries';
 import { MARK_NOTIFICATION_READ, MARK_ALL_NOTIFICATIONS_READ } from '../graphql/mutations';
 import { Notification, NotificationType } from '../types';
+import { fmtShort } from '../utils/date';
 
 const TYPE_ICONS: Record<NotificationType, React.ReactNode> = {
   BORROW_REQUEST: (
@@ -48,8 +49,11 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   FINE_ISSUED:      'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400',
 };
 
-function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+function timeAgo(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  const diff = Date.now() - d.getTime();
   const minutes = Math.floor(diff / 60000);
   if (minutes < 1) return 'Just now';
   if (minutes < 60) return `${minutes}m ago`;
@@ -57,7 +61,7 @@ function timeAgo(iso: string): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   if (days < 7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString();
+  return fmtShort(iso);
 }
 
 const NotificationsPage: React.FC = () => {

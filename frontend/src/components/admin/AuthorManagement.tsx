@@ -8,6 +8,7 @@ import {
   DELETE_AUTHOR,
 } from "../../graphql/mutations";
 import Modal from "../Modal";
+import { fmtDate } from "../../utils/date";
 import FloatingInput from "../FloatingInput";
 import DeleteConfirmation from "../DeleteConfirmation";
 import { Author } from "../../types";
@@ -20,31 +21,7 @@ const initialFormData: AuthorFormData = {
   name: "",
 };
 
-// Helper function to format dates
-const formatDate = (dateString?: string | null) => {
-  try {
-    if (!dateString) {
-      return "N/A";
-    }
-
-    // Parse the date string
-    const date = new Date(dateString);
-
-    // Check if the date is valid
-    if (isNaN(date.getTime())) {
-      return "Invalid date";
-    }
-
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    }).format(date);
-  } catch (error) {
-    console.error("Error formatting date:", error);
-    return "Invalid date";
-  }
-};
+import { fmtDate as formatDate } from "../../utils/date";
 
 const AuthorManagement: React.FC = () => {
   const [authors, setAuthors] = useState<Author[]>([]);

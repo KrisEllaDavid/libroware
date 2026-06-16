@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { GET_DELETED_USERS, GET_DELETED_BOOKS } from '../../graphql/queries';
 import { RESTORE_USER, HARD_DELETE_USER, RESTORE_BOOK, HARD_DELETE_BOOK } from '../../graphql/mutations';
 import { useToast } from '../../context/ToastContext';
+import { fmtShort } from '../../utils/date';
 
 type Section = 'users' | 'books';
 
@@ -38,7 +39,7 @@ const DeletedRecords: React.FC = () => {
   const loading      = section === 'users' ? usersLoading : booksLoading;
   const isEmpty      = section === 'users' ? deletedUsers.length === 0 : deletedBooks.length === 0;
 
-  const fmtDate = (iso: string) => new Date(iso).toLocaleDateString();
+  const fmtDate = fmtShort;
 
   return (
     <div className="space-y-6">

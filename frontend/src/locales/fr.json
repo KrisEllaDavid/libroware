@@ -435,5 +435,98 @@
   "lang": {
     "switch": "English",
     "current": "FR"
+  },
+  "about": {
+    "title":       "À propos de Libroware",
+    "subtitle":    "Système de gestion de bibliothèque full-stack développé par Kris David Steeve Ella",
+    "released":    "Sorti en {{year}}",
+    "updatedOn":   "Mis à jour {{date}}",
+
+    "devTitle":    "Ingénieur Master · Développeur Full-Stack · Architecte Systèmes Numériques · Graphiste",
+    "devBio":      "Ingénieur diplômé en Génie Numérique, maîtrisant l'ensemble du cycle de développement logiciel — de la modélisation de bases de données relationnelles et de l'architecture API aux systèmes frontend réactifs et au déploiement multiplateforme. Alliance de rigueur d'ingénierie et d'une forte sensibilité design pour livrer des solutions performantes, maintenables et véritablement utilisables. Aussi à l'aise dans l'architecture d'infrastructures cloud, la conception d'identités de marque ou le développement d'applications web et mobiles en production.",
+
+    "sectionExperience":  "Expérience Professionnelle",
+    "sectionEducation":   "Formation & Compétences",
+    "sectionSkills":      "Compétences Clés",
+    "sectionLanguages":   "Langues",
+    "languagesList":      "Français (Natif) · Anglais (Courant)",
+
+    "job1Title":   "Ingénieur IT · Directeur Artistique · Développeur",
+    "job1Period":  "Juillet 2024 — Présent",
+    "job1Company": "Richenet's AI Agency",
+    "job1Desc":    "Pilotage de la stratégie numérique d'une agence promotionnelle spécialisée en IA — architecture de solutions cloud, conception de systèmes de marque et développement de produits web full-stack.",
+
+    "job2Title":   "Co-fondateur · Ingénieur Cloud · Designer",
+    "job2Period":  "2022 — Présent",
+    "job2Company": "LAMEUTE",
+    "job2Desc":    "Co-fondation d'une startup technologique proposant des services de développement logiciel, de design graphique et d'infrastructure cloud en Afrique Centrale et de l'Ouest.",
+
+    "edu1Title":   "Master en Génie Numérique",
+    "edu1Period":  "2019 — 2025",
+    "edu1School":  "ESIGN-UIECC",
+    "edu1Desc":    "École Supérieure Internationale de Génie Numérique (Université Inter-États Congo Cameroun). Spécialisation en solutions cloud, réseaux numériques et systèmes embarqués.",
+
+    "edu2Title":   "GCE O-Level & A-Level",
+    "edu2Period":  "2011 — 2018",
+    "edu2School":  "Government Bilingual Practicing High School Yaoundé",
+
+    "skill1": "Développement Full-Stack",
+    "skill2": "Architecture Cloud",
+    "skill3": "Design UI/UX",
+    "skill4": "Réseaux Numériques",
+    "skill5": "Ingénierie des Télécoms",
+    "skill6": "Design Visuel & Identité de Marque",
+
+    "stackTitle":    "Stack Technologique",
+    "stackSubtitle": "Architecture end-to-end propulsant Libroware — et le domaine technique que maîtrise cet ingénieur.",
+
+    "catFrontend":  "Frontend",
+    "catApi":       "Couche API",
+    "catBackend":   "Backend & Runtime",
+    "catDatabase":  "Base de données & ORM",
+    "catAuth":      "Auth & Sécurité",
+    "catMedia":     "Médias & Services",
+    "catCross":     "Multiplateforme",
+    "catDataI18n":  "Données & i18n",
+
+    "noteReact":        "Bibliothèque de composants UI",
+    "noteTs":           "JavaScript typé statiquement",
+    "noteVite":         "Outil de build",
+    "noteTailwind":     "CSS utilitaire",
+    "noteRouter":       "Routage côté client",
+    "noteGraphql":      "API de requête schema-first",
+    "noteApolloClient": "Gestion d'état GraphQL",
+    "noteApolloServer": "Serveur GraphQL",
+    "noteNode":         "Environnement d'exécution JavaScript",
+    "noteExpress":      "Framework serveur HTTP",
+    "notePostgres":     "Moteur de base de données relationnelle",
+    "notePrisma":       "ORM typé & migrations",
+    "noteJwt":          "Authentification sans état",
+    "noteBcrypt":       "Hachage de mots de passe (salé)",
+    "noteRateLimit":    "Protection contre les abus d'API",
+    "noteCloudinary":   "CDN & stockage d'images cloud",
+    "noteNodemailer":   "Envoi d'e-mails transactionnels",
+    "noteCron":         "Tâches planifiées en arrière-plan",
+    "noteCapacitor":    "Application native iOS / Android",
+    "noteElectron":     "Application bureau Windows / macOS",
+    "noteCharts":       "Tableaux de bord analytiques",
+    "noteI18n":         "Internationalisation EN / FR",
+    "noteQr":           "Génération d'étiquettes QR",
+
+    "appTitle": "À propos de Libroware",
+    "appP1":    "Libroware est un système de gestion de bibliothèque full-stack de qualité production, conçu pour digitaliser et rationaliser toutes les facettes des opérations d'une bibliothèque institutionnelle — catalogage, prêts, réservations, amendes et analytiques — sous une interface unique et cohérente, accessible depuis le web, le mobile et le bureau.",
+    "appP2":    "Développé intégralement en tant que projet d'ingénierie solo, il constitue à la fois un outil fonctionnel prêt pour un déploiement réel et une vitrine de maîtrise end-to-end : API GraphQL adossée à un ORM typé, SPA réactive avec résilience hors ligne, contrôle d'accès basé sur les rôles, gestion des images via CDN, tâches planifiées automatisées, génération de codes QR, scan de codes-barres ISBN et support bilingue complet (EN/FR).",
+
+    "tag1":  "Contrôle d'accès par rôles",
+    "tag2":  "API GraphQL",
+    "tag3":  "Mode hors ligne",
+    "tag4":  "Bilingue EN/FR",
+    "tag5":  "Étiquettes QR",
+    "tag6":  "Scan de codes-barres",
+    "tag7":  "Remplissage auto ISBN",
+    "tag8":  "Tableau de bord analytique",
+    "tag9":  "Journal d'audit",
+    "tag10": "Suppression douce & corbeille",
+    "tag11": "Multiplateforme"
   }
 }

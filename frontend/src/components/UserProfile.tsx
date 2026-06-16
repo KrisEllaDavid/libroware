@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import { User } from "../types";
 import UserBorrows from "./user/UserBorrows";
 import BorrowStatistics from "./user/BorrowStatistics";
+import { fmtShort } from "../utils/date";
 import ProfileEditor from "./ProfileEditor";
 
 
@@ -179,7 +180,7 @@ const UserProfile: React.FC = () => {
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
                     {user?.createdAt
-                      ? new Date(user.createdAt).toLocaleDateString()
+                      ? fmtShort(user.createdAt)
                       : "Unknown"}
                   </dd>
                 </div>
@@ -214,8 +215,7 @@ const UserProfile: React.FC = () => {
                     Last Account Update
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {new Date().toLocaleDateString()}{" "}
-                    {/* This is a placeholder */}
+                    {fmtShort(user?.updatedAt ?? null)}{" "}
                   </dd>
                 </div>
               </div>

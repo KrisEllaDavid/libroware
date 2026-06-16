@@ -762,7 +762,28 @@ const BookManagement: React.FC = () => {
           {!isEditing && (
             <ISBNLookup
               onData={(data) => {
-                // Pre-fill form fields from lookup result
+                const authorNames = data.authors.filter(Boolean);
+                // Open Library subjects can be long/noisy — cap at 3
+                const categoryNames = data.categories.filter(Boolean).slice(0, 3);
+
+                // Split into already-existing (pre-select immediately) vs
+                // new names (defer creation until save to avoid orphans).
+                const matchedAuthorIds: string[]    = [];
+                const unmatchedAuthorNames: string[] = [];
+                for (const name of authorNames) {
+                  const hit = authors.find(a => a.name.toLowerCase() === name.toLowerCase());
+                  if (hit) matchedAuthorIds.push(hit.id);
+                  else unmatchedAuthorNames.push(name);
+                }
+
+                const matchedCategoryIds: string[]    = [];
+                const unmatchedCategoryNames: string[] = [];
+                for (const name of categoryNames) {
+                  const hit = categories.find(c => c.name.toLowerCase() === name.toLowerCase());
+                  if (hit) matchedCategoryIds.push(hit.id);
+                  else unmatchedCategoryNames.push(name);
+                }
+
                 setFormData(prev => ({
                   ...prev,
                   title:       data.title       || prev.title,
@@ -771,25 +792,27 @@ const BookManagement: React.FC = () => {
                   publishedAt: data.publishedAt || prev.publishedAt,
                   coverImage:  data.coverImage  || prev.coverImage,
                   pageCount:   data.pageCount   || prev.pageCount,
+                  authorIds:   matchedAuthorIds.length > 0
+                    ? Array.from(new Set([...prev.authorIds, ...matchedAuthorIds]))
+                    : prev.authorIds,
+                  categoryIds: matchedCategoryIds.length > 0
+                    ? Array.from(new Set([...prev.categoryIds, ...matchedCategoryIds]))
+                    : prev.categoryIds,
                 }));
 
-                // Authors/categories are only names at this point — they're
-                // resolved to real records (creating any that don't exist)
-                // when the book is actually saved, see handleSubmit.
-                const authorNames = data.authors.filter(Boolean);
-                // Open Library's "subjects" list can be long and noisy
-                // (generic catalog tags), so only take the first few.
-                const categoryNames = data.categories.filter(Boolean).slice(0, 3);
-
-                if (authorNames.length > 0) setPendingAuthorNames(authorNames);
-                if (categoryNames.length > 0) setPendingCategoryNames(categoryNames);
+                setPendingAuthorNames(unmatchedAuthorNames);
+                setPendingCategoryNames(unmatchedCategoryNames);
 
                 const parts: string[] = [];
-                if (authorNames.length > 0) parts.push(`${authorNames.length} author${authorNames.length > 1 ? 's' : ''} (${authorNames.join(', ')})`);
-                if (categoryNames.length > 0) parts.push(`${categoryNames.length} categor${categoryNames.length > 1 ? 'ies' : 'y'} (${categoryNames.join(', ')})`);
-                if (parts.length > 0) {
-                  addToast(`Found ${parts.join(' and ')} — will be created and linked automatically when you save`, 'info');
-                }
+                if (matchedAuthorIds.length > 0)
+                  parts.push(`${matchedAuthorIds.length} author${matchedAuthorIds.length > 1 ? 's' : ''} selected`);
+                if (unmatchedAuthorNames.length > 0)
+                  parts.push(`${unmatchedAuthorNames.length} new author${unmatchedAuthorNames.length > 1 ? 's' : ''} (${unmatchedAuthorNames.join(', ')}) will be created on save`);
+                if (matchedCategoryIds.length > 0)
+                  parts.push(`${matchedCategoryIds.length} categor${matchedCategoryIds.length > 1 ? 'ies' : 'y'} selected`);
+                if (unmatchedCategoryNames.length > 0)
+                  parts.push(`${unmatchedCategoryNames.length} new categor${unmatchedCategoryNames.length > 1 ? 'ies' : 'y'} (${unmatchedCategoryNames.join(', ')}) will be created on save`);
+                if (parts.length > 0) addToast(parts.join(' · '), 'info');
               }}
             />
           )}
@@ -868,10 +891,28 @@ const BookManagement: React.FC = () => {
                   onUploadError={(error) => setError(error)}
                   buttonLabel="Upload Cover Image"
                 />
-              ) : (
-                <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                  You can upload a cover image after creating the book.
+              ) : formData.coverImage ? (
+                <div className="space-y-2">
+                  <img
+                    src={formData.coverImage}
+                    alt="Book cover"
+                    className="w-16 h-24 object-cover rounded border border-gray-200 dark:border-gray-600"
+                  />
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Cover from ISBN lookup — will be saved with the book.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 underline"
+                  >
+                    Remove
+                  </button>
                 </div>
+              ) : (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  You can upload a cover image after creating the book.
+                </p>
               )}
             </div>
           </div>

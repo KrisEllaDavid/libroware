@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import Pagination from '../common/Pagination';
+import { fmtDate } from '../../utils/date';
 
 const PAGE_SIZE = 25;
 
@@ -135,16 +136,7 @@ const BorrowHistory: React.FC = () => {
     }
   }, [data, useFallbackQuery, status]);
   
-  // Format date
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    }).format(date);
-  };
+  const formatDate = fmtDate;
   
   // Filter borrows based on search term
   const getFilteredBorrows = () => {

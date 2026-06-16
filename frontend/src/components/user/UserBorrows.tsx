@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation } from "@apollo/client";
+import { fmtShort } from "../../utils/date";
 import { RETURN_BOOK, CANCEL_BORROW_REQUEST } from "../../graphql/mutations";
 import { USER_BORROWS } from "../../graphql/queries";
 import { useToast } from "../../context/ToastContext";
@@ -224,16 +225,16 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
                 <div className="mt-3 space-y-1 text-sm">
                   <p className="text-gray-600 dark:text-gray-400">
                     <span className="font-medium">{t("userBorrows.borrowedLabel")}</span>{" "}
-                    {new Date(borrow.borrowedAt).toLocaleDateString()}
+                    {fmtShort(borrow.borrowedAt)}
                   </p>
                   <p className="text-gray-600 dark:text-gray-400">
                     <span className="font-medium">{t("userBorrows.dueLabel")}</span>{" "}
-                    {new Date(borrow.dueDate).toLocaleDateString()}
+                    {fmtShort(borrow.dueDate)}
                   </p>
                   {borrow.returnedAt && (
                     <p className="text-gray-600 dark:text-gray-400">
                       <span className="font-medium">{t("userBorrows.returnedLabel")}</span>{" "}
-                      {new Date(borrow.returnedAt).toLocaleDateString()}
+                      {fmtShort(borrow.returnedAt)}
                     </p>
                   )}
 

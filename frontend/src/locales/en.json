@@ -435,5 +435,98 @@
   "lang": {
     "switch": "Français",
     "current": "EN"
+  },
+  "about": {
+    "title":       "About Libroware",
+    "subtitle":    "A full-stack library management system built by Kris David Steeve Ella",
+    "released":    "Released {{year}}",
+    "updatedOn":   "Updated {{date}}",
+
+    "devTitle":    "Master of Engineering · Full-Stack Developer · Digital Systems Architect · Graphic Designer",
+    "devBio":      "Graduate engineer in Digital Engineering with a multidisciplinary command of the entire software development lifecycle — from relational database modelling and API architecture to reactive frontend systems and cross-platform deployment. Blends engineering rigour with a strong design sensibility to deliver solutions that are performant, maintainable, and genuinely usable. Equally at home architecting cloud infrastructure, designing brand identities, or shipping production-grade web and mobile applications from scratch.",
+
+    "sectionExperience":  "Professional Experience",
+    "sectionEducation":   "Education & Skills",
+    "sectionSkills":      "Core Skills",
+    "sectionLanguages":   "Languages",
+    "languagesList":      "French (Native) · English (Fluent)",
+
+    "job1Title":   "IT Engineer · Artistic Director · Developer",
+    "job1Period":  "July 2024 — Present",
+    "job1Company": "Richenet's AI Agency",
+    "job1Desc":    "Leading digital strategy for a promotional AI agency — cloud solution architecture, brand systems design, and full-stack web product development.",
+
+    "job2Title":   "Co-founder · Cloud Engineer · Designer",
+    "job2Period":  "2022 — Present",
+    "job2Company": "LAMEUTE",
+    "job2Desc":    "Co-founded a technology startup delivering software development, graphic design, and cloud infrastructure services across West and Central Africa.",
+
+    "edu1Title":   "Master of Engineering — Digital Engineering",
+    "edu1Period":  "2019 — 2025",
+    "edu1School":  "ESIGN-UIECC",
+    "edu1Desc":    "International Advanced School of Digital Engineering (Université Inter-États Congo Cameroun). Specialisation in cloud solutions, digital networks, and embedded systems.",
+
+    "edu2Title":   "GCE O-Level & A-Level",
+    "edu2Period":  "2011 — 2018",
+    "edu2School":  "Government Bilingual Practicing High School Yaoundé",
+
+    "skill1": "Full-Stack Development",
+    "skill2": "Cloud Architecture",
+    "skill3": "UI/UX Design",
+    "skill4": "Digital Networking",
+    "skill5": "Telecoms Engineering",
+    "skill6": "Brand & Visual Design",
+
+    "stackTitle":    "Technology Stack",
+    "stackSubtitle": "End-to-end architecture powering Libroware — and the technical domain this engineer commands.",
+
+    "catFrontend":  "Frontend",
+    "catApi":       "API Layer",
+    "catBackend":   "Backend & Runtime",
+    "catDatabase":  "Database & ORM",
+    "catAuth":      "Auth & Security",
+    "catMedia":     "Media & Services",
+    "catCross":     "Cross-platform",
+    "catDataI18n":  "Data & i18n",
+
+    "noteReact":        "UI component library",
+    "noteTs":           "Type-safe JavaScript",
+    "noteVite":         "Build toolchain",
+    "noteTailwind":     "Utility-first styling",
+    "noteRouter":       "Client-side routing",
+    "noteGraphql":      "Schema-first query API",
+    "noteApolloClient": "GraphQL state management",
+    "noteApolloServer": "GraphQL server runtime",
+    "noteNode":         "JavaScript server runtime",
+    "noteExpress":      "HTTP application framework",
+    "notePostgres":     "Relational database engine",
+    "notePrisma":       "Type-safe ORM & migrations",
+    "noteJwt":          "Stateless authentication",
+    "noteBcrypt":       "Password hashing (salted)",
+    "noteRateLimit":    "API abuse protection",
+    "noteCloudinary":   "Image CDN & cloud storage",
+    "noteNodemailer":   "Transactional email dispatch",
+    "noteCron":         "Scheduled background tasks",
+    "noteCapacitor":    "iOS / Android native wrapper",
+    "noteElectron":     "Windows / macOS desktop app",
+    "noteCharts":       "Analytics dashboards",
+    "noteI18n":         "EN / FR internationalisation",
+    "noteQr":           "QR label generation",
+
+    "appTitle": "About Libroware",
+    "appP1":    "Libroware is a production-grade, full-stack library management system designed to digitalise and streamline every facet of institutional library operations — cataloguing, lending, reservations, fines, and analytics — under a single, cohesive interface accessible from the web, mobile, and desktop.",
+    "appP2":    "Built entirely as a solo engineering project, it serves as both a functional tool for real-world deployment and a showcase of end-to-end mastery: a GraphQL API backed by a type-safe ORM, a reactive SPA with offline resilience, role-based access control, image management via CDN, automated scheduled tasks, QR code generation, ISBN barcode scanning, and full bilingual (EN/FR) support.",
+
+    "tag1":  "Role-based access control",
+    "tag2":  "GraphQL API",
+    "tag3":  "Offline-capable",
+    "tag4":  "Bilingual EN/FR",
+    "tag5":  "QR labels",
+    "tag6":  "Barcode scanning",
+    "tag7":  "ISBN autofill",
+    "tag8":  "Analytics dashboard",
+    "tag9":  "Audit logging",
+    "tag10": "Soft delete & recycle bin",
+    "tag11": "Cross-platform"
   }
 }

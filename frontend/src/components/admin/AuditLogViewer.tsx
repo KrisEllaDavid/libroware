@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@apollo/client';
 import { useTranslation } from 'react-i18next';
 import { GET_AUDIT_LOGS } from '../../graphql/queries';
+import { fmtDateTime } from '../../utils/date';
 
 const PAGE_SIZE = 30;
 
@@ -38,10 +39,7 @@ const AuditLogViewer: React.FC = () => {
   const total: number = data?.auditLogCount ?? 0;
   const pages = Math.ceil(total / PAGE_SIZE);
 
-  const fmt = (iso: string) => {
-    const d = new Date(iso);
-    return `${d.toLocaleDateString()} ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  };
+  const fmt = fmtDateTime;
 
   const resetFilters = () => { setModel(''); setAction(''); setUserId(''); setPage(0); };
 

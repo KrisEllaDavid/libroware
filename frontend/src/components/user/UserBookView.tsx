@@ -8,6 +8,7 @@ import { CREATE_RESERVATION, CREATE_BORROW, CREATE_REVIEW, UPDATE_REVIEW, DELETE
 import { BOOK_REVIEWS, GET_BOOK_BY_ISBN_FULL } from '../../graphql/queries';
 import { useOfflineMutation } from '../../offline/useOfflineMutation';
 import { adjustBookAvailable } from '../../offline/cacheUpdates';
+import { fmtShort } from '../../utils/date';
 import Modal from '../Modal';
 import StarRating from '../common/StarRating';
 
@@ -670,7 +671,7 @@ const UserBookView: React.FC = () => {
                     </div>
                     {review.comment && <p className="mt-1 text-gray-600 dark:text-gray-300">{review.comment}</p>}
                     <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
-                      {new Date(review.createdAt).toLocaleDateString()}
+                      {fmtShort(review.createdAt)}
                     </p>
                   </li>
                 ))}
