@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useQuery } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
+import { useTranslation } from "react-i18next";
 import { GET_AUTHORS } from "../../graphql/queries";
 import {
   CREATE_AUTHOR,
@@ -24,6 +25,7 @@ const initialFormData: AuthorFormData = {
 import { fmtDate as formatDate } from "../../utils/date";
 
 const AuthorManagement: React.FC = () => {
+  const { t } = useTranslation();
   const [authors, setAuthors] = useState<Author[]>([]);
   const [formData, setFormData] = useState<AuthorFormData>(initialFormData);
   const [selectedAuthorId, setSelectedAuthorId] = useState<string | null>(null);
@@ -114,7 +116,7 @@ const AuthorManagement: React.FC = () => {
     setError(null);
 
     if (!formData.name.trim()) {
-      setError("Author name is required");
+      setError(t('authors.nameRequired'));
       return;
     }
 
@@ -174,7 +176,7 @@ const AuthorManagement: React.FC = () => {
 
   const renderContent = () => {
     if (queryError) {
-      return <p>Error loading authors: {queryError.message}</p>;
+      return <p>{t('authors.errorLoading', { message: queryError.message })}</p>;
     }
 
     if (loading) {
@@ -184,10 +186,10 @@ const AuthorManagement: React.FC = () => {
             className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]"
             role="status"
           >
-            <span className="sr-only">Loading...</span>
+            <span className="sr-only">{t('common.loading')}</span>
           </div>
           <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors">
-            Loading authors...
+            {t('authors.loadingAuthors')}
           </p>
         </div>
       );
@@ -197,7 +199,7 @@ const AuthorManagement: React.FC = () => {
       return (
         <div className="p-6 text-center">
           <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">
-            No authors found. Click "Add Author" to create one.
+            {t('authors.noAuthorsHint')}
           </p>
         </div>
       );
@@ -217,7 +219,7 @@ const AuthorManagement: React.FC = () => {
                 </h4>
                 {author.createdAt && (
                   <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors">
-                    Added: {formatDate(author.createdAt)}
+                    {t('authors.added', { date: formatDate(author.createdAt) })}
                   </p>
                 )}
               </div>
@@ -226,7 +228,7 @@ const AuthorManagement: React.FC = () => {
                   type="button"
                   onClick={() => handleEdit(author)}
                   className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  title="Edit Author"
+                  title={t('authors.editAuthor')}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -247,7 +249,7 @@ const AuthorManagement: React.FC = () => {
                   onClick={() => handleDelete(author.id)}
                   disabled={deleteLoading}
                   className="text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  title="Delete Author"
+                  title={t('authors.deleteAuthor')}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -275,13 +277,13 @@ const AuthorManagement: React.FC = () => {
       <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
         <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
           <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            Authors
+            {t('authors.title')}
           </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <div className="w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Search authors..."
+                placeholder={t('authors.searchPlaceholder')}
                 className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 value={searchTerm}
                 onChange={handleSearch}
@@ -304,7 +306,7 @@ const AuthorManagement: React.FC = () => {
                   clipRule="evenodd"
                 />
               </svg>
-              Add Author
+              {t('authors.addNew')}
             </button>
           </div>
         </div>
@@ -315,15 +317,15 @@ const AuthorManagement: React.FC = () => {
       {/* Form Modal */}
       <Modal
         isOpen={isFormModalOpen}
-        title={isEditing ? "Edit Author" : "Add New Author"}
+        title={isEditing ? t('authors.editAuthor') : t('authors.addNewAuthor')}
         onConfirm={handleSubmit}
         onCancel={() => setIsFormModalOpen(false)}
         confirmText={
           createLoading || updateLoading
-            ? "Saving..."
+            ? t('authors.saving')
             : isEditing
-            ? "Update"
-            : "Create"
+            ? t('authors.update')
+            : t('authors.create')
         }
         size="md"
       >
@@ -343,7 +345,7 @@ const AuthorManagement: React.FC = () => {
               value={formData.name}
               onChange={handleInputChange}
               required
-              label="Author Name"
+              label={t('authors.nameLabel')}
             />
           </div>
         </div>

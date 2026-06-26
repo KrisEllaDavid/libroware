@@ -6,7 +6,7 @@ import React, {
   ReactNode,
 } from "react";
 import { User, Role } from "../types";
-import { client } from "../apollo-client";
+import { client, AUTH_EXPIRED_EVENT } from "../apollo-client";
 import { LOGOUT } from "../graphql/mutations";
 
 // Electron and Capacitor identify themselves via global APIs.
@@ -90,6 +90,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     client.clearStore().catch(() => {});
     client.mutate({ mutation: LOGOUT }).catch(() => {});
   };
+
+  useEffect(() => {
+    // Apollo's error link dispatches this when a request fails because the
+    // session is no longer valid (expired/invalid token), so the user is
+    // bounced back to the login screen instead of being left on a dead page.
+    const handleAuthExpired = () => logout();
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+  }, []);
 
   const updateUser = (partial: Partial<User>) => {
     setUser(prev => {

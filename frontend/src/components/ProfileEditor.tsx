@@ -1,5 +1,6 @@
 import React, { useState, useRef, ChangeEvent } from 'react';
 import { useMutation } from '@apollo/client/react';
+import { useTranslation } from 'react-i18next';
 import { UPDATE_USER, UPLOAD_PROFILE_PICTURE } from '../graphql/mutations';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -11,6 +12,7 @@ interface ProfileEditorProps {
 }
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
+  const { t } = useTranslation();
   const { user, login } = useAuth();
   const { addToast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,7 +58,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
       reader.readAsDataURL(compressedFile);
     } catch (error) {
       console.error('Error compressing image:', error);
-      addToast('Error processing image', 'error');
+      addToast(t('profile.errorProcessingImage'), 'error');
       setIsProcessingImage(false);
     }
   };
@@ -73,24 +75,24 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
     e.preventDefault();
 
     if (!user) {
-      addToast('User not authenticated', 'error');
+      addToast(t('profile.notAuthenticated'), 'error');
       return;
     }
 
     // Validate password if changing
     if (isChangingPassword) {
       if (!currentPassword) {
-        addToast('Current password is required', 'error');
+        addToast(t('profile.currentPasswordRequired'), 'error');
         return;
       }
 
       if (newPassword !== confirmPassword) {
-        addToast('New passwords do not match', 'error');
+        addToast(t('profile.passwordsNoMatch'), 'error');
         return;
       }
 
       if (newPassword.length < 8) {
-        addToast('Password must be at least 8 characters', 'error');
+        addToast(t('profile.passwordTooShort'), 'error');
         return;
       }
     }
@@ -128,14 +130,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
           if (uploadData?.uploadProfilePicture?.success) {
             // Update the local user data with the new profile picture
             login(localStorage.getItem('token') || '', uploadData.uploadProfilePicture.user);
-            addToast('Profile updated with new picture', 'success');
+            addToast(t('profile.updatedWithPicture'), 'success');
           } else {
-            addToast(`Profile updated but image upload failed: ${uploadData?.uploadProfilePicture?.message}`, 'warning');
+            addToast(t('profile.updatedImageUploadFailed', { message: uploadData?.uploadProfilePicture?.message }), 'warning');
           }
         } else {
           // Just update basic info
           login(localStorage.getItem('token') || '', data.updateUser);
-          addToast('Profile updated successfully', 'success');
+          addToast(t('profile.updatedSuccessfully'), 'success');
         }
 
         // Pass updated fields to parent so it can update context without reload
@@ -144,7 +146,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      addToast(`Error updating profile: ${(error as Error).message}`, 'error');
+      addToast(t('profile.errorUpdating', { message: (error as Error).message }), 'error');
     }
   };
 
@@ -153,7 +155,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
   return (
     <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">Edit Profile</h2>
+        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{t('profile.edit')}</h2>
 
         <form onSubmit={handleSubmit}>
           {/* Profile Image */}
@@ -187,7 +189,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
               )}
 
               <div className="absolute bottom-0 inset-x-0 bg-black bg-opacity-60 text-white text-xs text-center py-1">
-                Change Photo
+                {t('profile.changePhoto')}
               </div>
             </div>
 
@@ -200,7 +202,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
             />
 
             <span className="text-sm text-gray-500 dark:text-gray-400">
-              Click the image to upload a new profile picture
+              {t('profile.clickToUpload')}
             </span>
           </div>
 
@@ -208,7 +210,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                First Name
+                {t('profile.firstName')}
               </label>
               <input
                 type="text"
@@ -221,7 +223,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
             </div>
             <div>
               <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Last Name
+                {t('profile.lastName')}
               </label>
               <input
                 type="text"
@@ -245,7 +247,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
                 className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
               />
               <label htmlFor="changePassword" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                Change Password
+                {t('profile.changePassword')}
               </label>
             </div>
           </div>
@@ -255,7 +257,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
             <div className="space-y-4 mb-6">
               <div>
                 <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Current Password
+                  {t('profile.currentPassword')}
                 </label>
                 <input
                   type="password"
@@ -268,7 +270,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
               </div>
               <div>
                 <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  New Password
+                  {t('profile.newPassword')}
                 </label>
                 <input
                   type="password"
@@ -282,7 +284,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
               </div>
               <div>
                 <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Confirm New Password
+                  {t('profile.confirmNewPassword')}
                 </label>
                 <input
                   type="password"
@@ -305,7 +307,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
               className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
               disabled={isLoading}
             >
-              Cancel
+              {t('profile.cancel')}
             </button>
             <button
               type="submit"
@@ -318,10 +320,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Saving...
+                  {t('profile.saving')}
                 </>
               ) : (
-                'Save Changes'
+                t('profile.save')
               )}
             </button>
           </div>

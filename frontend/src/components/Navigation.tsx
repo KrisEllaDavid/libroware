@@ -8,6 +8,7 @@ import { GET_UNREAD_NOTIFICATIONS_COUNT } from "../graphql/queries";
 
 const NotificationBell: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const { data } = useQuery(GET_UNREAD_NOTIFICATIONS_COUNT, {
     pollInterval: 30000,
     fetchPolicy: "network-only",
@@ -19,8 +20,8 @@ const NotificationBell: React.FC = () => {
       type="button"
       onClick={() => navigate("/notifications")}
       className="relative p-2 rounded-full text-emerald-100 hover:text-white hover:bg-emerald-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white"
-      title="Notifications"
-      aria-label={count > 0 ? `${count} unread notifications` : "Notifications"}
+      title={t('notifications.title')}
+      aria-label={count > 0 ? t('notifications.unreadCount', { count }) : t('notifications.title')}
     >
       <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -128,7 +129,7 @@ const Navigation: React.FC = () => {
                   aria-haspopup="true"
                   onClick={toggleMenu}
                 >
-                  <span className="sr-only">Open user menu</span>
+                  <span className="sr-only">{t('nav.openUserMenu')}</span>
                   {user?.profilePicture ? (
                     <img
                       className="h-8 w-8 rounded-full object-cover"
@@ -157,16 +158,16 @@ const Navigation: React.FC = () => {
                   </div>
 
                   <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    Your Profile
+                    {t('nav.yourProfile')}
                   </Link>
                   <Link to={dashboardLink} className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    {isAdmin() || isLibrarian() ? "Library Management" : "Dashboard"}
+                    {isAdmin() || isLibrarian() ? t('nav.libraryManagement') : t('nav.dashboard')}
                   </Link>
                   <Link to="/notifications" className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
                     {t('notifications.title')}
                   </Link>
                   <Link to="/about" className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    About Libroware
+                    {t('nav.aboutLibroware')}
                   </Link>
                   <button
                     className="w-full text-left flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
@@ -179,7 +180,7 @@ const Navigation: React.FC = () => {
                     className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
                     role="menuitem" tabIndex={-1} onClick={() => logout()}
                   >
-                    Sign out
+                    {t('nav.signOut')}
                   </button>
                 </div>
               </div>
@@ -194,7 +195,7 @@ const Navigation: React.FC = () => {
                   className="ml-1 inline-flex items-center justify-center p-2 rounded-md text-emerald-100 hover:text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-all duration-200 menu-close-button"
                   aria-controls="mobile-menu" aria-expanded={true} onClick={closeButtonHandler}
                 >
-                  <span className="sr-only">Close main menu</span>
+                  <span className="sr-only">{t('nav.closeMenu')}</span>
                   <div className="relative w-6 h-6 flex items-center justify-center">
                     <span className="absolute h-0.5 w-full bg-current transform rotate-45"></span>
                     <span className="absolute h-0.5 w-full bg-current transform -rotate-45"></span>
@@ -206,7 +207,7 @@ const Navigation: React.FC = () => {
                   className="ml-1 inline-flex items-center justify-center p-2 rounded-md text-emerald-100 hover:text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-all duration-200"
                   aria-controls="mobile-menu" aria-expanded={false} onClick={openMenu}
                 >
-                  <span className="sr-only">Open main menu</span>
+                  <span className="sr-only">{t('nav.openMenu')}</span>
                   <div className="relative w-6 h-6 flex items-center justify-center">
                     <span className="absolute h-0.5 w-full bg-current transform -translate-y-1.5"></span>
                     <span className="absolute h-0.5 w-full bg-current"></span>
@@ -244,10 +245,10 @@ const Navigation: React.FC = () => {
             </div>
             <div className="mt-3 space-y-1 px-4 sm:px-6 lg:px-8 pb-4">
               {[
-                { label: 'Your Profile', path: '/profile' },
-                { label: isAdmin() || isLibrarian() ? 'Library Management' : 'Dashboard', path: dashboardLink },
+                { label: t('nav.yourProfile'), path: '/profile' },
+                { label: isAdmin() || isLibrarian() ? t('nav.libraryManagement') : t('nav.dashboard'), path: dashboardLink },
                 { label: t('notifications.title'), path: '/notifications' },
-                { label: 'About Libroware', path: '/about' },
+                { label: t('nav.aboutLibroware'), path: '/about' },
               ].map(({ label, path }) => (
                 <button
                   key={path}
@@ -270,7 +271,7 @@ const Navigation: React.FC = () => {
                 onClick={() => { closeMenu(); logout(); }}
                 tabIndex={isMenuOpen ? 0 : -1}
               >
-                Sign out
+                {t('nav.signOut')}
               </button>
             </div>
           </div>

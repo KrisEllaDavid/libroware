@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { useMutation } from '@apollo/client/react';
+import { useTranslation } from 'react-i18next';
 import { GET_USERS } from '../../graphql/queries';
 import { CREATE_USER, UPDATE_USER, DELETE_USER } from '../../graphql/mutations';
 import Modal from '../Modal';
@@ -36,6 +37,7 @@ const initialFormData: UserFormData = {
 const PAGE_SIZE = 25;
 
 const UserManagement: React.FC = () => {
+  const { t } = useTranslation();
   const { user: currentUser, isAdmin } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
@@ -73,7 +75,7 @@ const UserManagement: React.FC = () => {
     onError: (error: any) => {
       console.error("Create user error:", error);
       setError(error.message);
-      addToast('Failed to create user: ' + error.message, 'error');
+      addToast(t('users.createFailed', { message: error.message }), 'error');
     },
   });
 
@@ -93,7 +95,7 @@ const UserManagement: React.FC = () => {
     onError: (error: any) => {
       console.error("Update user error:", error);
       setError(error.message);
-      addToast('Failed to update user: ' + error.message, 'error');
+      addToast(t('users.updateFailed', { message: error.message }), 'error');
     },
   });
 
@@ -126,7 +128,7 @@ const UserManagement: React.FC = () => {
         })
         .catch((error: unknown) => {
           console.error("Error refetching users:", error);
-          addToast('Error refreshing user list', 'error');
+          addToast(t('users.errorRefreshing'), 'error');
         });
     },
     onError: (error) => {
@@ -134,7 +136,7 @@ const UserManagement: React.FC = () => {
       setError(error.message);
       setIsDeleteModalOpen(false);
       setUserToDelete(null);
-      addToast(`Error: ${error.message}`, 'error');
+      addToast(t('users.deleteError', { message: error.message }), 'error');
     }
   });
 
@@ -150,7 +152,7 @@ const UserManagement: React.FC = () => {
   useEffect(() => {
     if (queryError) {
       console.error("GraphQL query error:", queryError);
-      addToast('Error loading users: ' + queryError.message, 'error');
+      addToast(t('users.errorLoading', { message: queryError.message }), 'error');
     }
   }, [queryError, addToast]);
 
@@ -195,7 +197,7 @@ const UserManagement: React.FC = () => {
 
   const handleSubmit = () => {
     if (!formData.email || !formData.firstName || !formData.lastName || !formData.role) {
-      setError('Please fill in all required fields');
+      setError(t('users.requiredFields'));
       return;
     }
 
@@ -377,13 +379,13 @@ const UserManagement: React.FC = () => {
   const allowedRolesToCreate = () => {
     if (currentUser?.role === 'ADMIN') {
       return [
-        { value: 'USER', label: 'User' },
-        { value: 'LIBRARIAN', label: 'Librarian' },
-        { value: 'ADMIN', label: 'Admin' }
+        { value: 'USER', label: t('users.roleUser') },
+        { value: 'LIBRARIAN', label: t('users.roleLibrarian') },
+        { value: 'ADMIN', label: t('users.roleAdmin') }
       ];
     } else if (currentUser?.role === 'LIBRARIAN') {
       return [
-        { value: 'USER', label: 'User' }
+        { value: 'USER', label: t('users.roleUser') }
       ];
     }
     return [];
@@ -422,12 +424,12 @@ const UserManagement: React.FC = () => {
         
         // Only show toast if data has actually changed
         if (hasDataChanged) {
-          addToast('User list updated', 'success');
+          addToast(t('users.listUpdated'), 'success');
         }
       }
     }).catch((err: Error) => {
       console.error("Error refreshing users:", err);
-      addToast('Error refreshing user list', 'error');
+      addToast(t('users.errorRefreshing'), 'error');
     });
   };
 
@@ -451,13 +453,13 @@ const UserManagement: React.FC = () => {
           
           // Only show toast if data has changed
           if (hasDataChanged) {
-            addToast('User list updated', 'success');
+            addToast(t('users.listUpdated'), 'success');
           }
         }
       })
       .catch((error: unknown) => {
         console.error("Manual refresh error:", error);
-        addToast('Error refreshing user list', 'error');
+        addToast(t('users.errorRefreshing'), 'error');
       });
   };
 
@@ -465,7 +467,7 @@ const UserManagement: React.FC = () => {
     if (queryError) {
       return (
         <div className="p-6 text-center">
-          <p className="text-red-500">Error loading users: {queryError.message}</p>
+          <p className="text-red-500">{t('users.errorLoading', { message: queryError.message })}</p>
         </div>
       );
     }
@@ -474,9 +476,9 @@ const UserManagement: React.FC = () => {
       return (
         <div className="p-6 text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]" role="status">
-            <span className="sr-only">Loading...</span>
+            <span className="sr-only">{t('common.loading')}</span>
           </div>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors">Loading users...</p>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors">{t('users.loadingUsers')}</p>
         </div>
       );
     }
@@ -484,7 +486,7 @@ const UserManagement: React.FC = () => {
     if (users.length === 0) {
       return (
         <div className="p-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">No users found. Click "Add User" to create one.</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">{t('users.noUsersHint')}</p>
         </div>
       );
     }
@@ -513,7 +515,7 @@ const UserManagement: React.FC = () => {
                     {user.firstName} {user.lastName}
                     {user.requiresPasswordChange && (
                       <span className="ml-2 inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                        New Account
+                        {t('users.newAccount')}
                       </span>
                     )}
                   </h4>
@@ -530,17 +532,17 @@ const UserManagement: React.FC = () => {
                     </span>
                     {!!user.activeBorrowCount && (
                       <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                        {user.activeBorrowCount} active loan{user.activeBorrowCount === 1 ? '' : 's'}
+                        {t('users.activeLoans', { count: user.activeBorrowCount })}
                       </span>
                     )}
                     {!!user.overdueBorrowCount && (
                       <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                        {user.overdueBorrowCount} overdue
+                        {t('users.overdue', { count: user.overdueBorrowCount })}
                       </span>
                     )}
                     {!!user.outstandingFines && (
                       <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                        {user.outstandingFines.toLocaleString()} FCFA owed
+                        {t('users.owed', { amount: user.outstandingFines.toLocaleString() })}
                       </span>
                     )}
                   </p>
@@ -552,7 +554,7 @@ const UserManagement: React.FC = () => {
                     type="button"
                     onClick={() => handleEdit(user)}
                     className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title="Edit User"
+                    title={t('users.editUserTitle')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
@@ -566,7 +568,7 @@ const UserManagement: React.FC = () => {
                     className={`${
                       user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : ''
                     } text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
-                    title={user.id === currentUser?.id ? "Cannot delete your own account" : "Delete User"}
+                    title={user.id === currentUser?.id ? t('users.cannotDeleteSelf') : t('users.deleteUser')}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -585,7 +587,7 @@ const UserManagement: React.FC = () => {
   if (!isAdmin() && currentUser?.role !== 'LIBRARIAN') {
     return (
       <div className="text-center">
-        <p className="text-red-500">You do not have permission to access this page.</p>
+        <p className="text-red-500">{t('users.noPermission')}</p>
       </div>
     );
   }
@@ -595,13 +597,13 @@ const UserManagement: React.FC = () => {
       <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
         <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
           <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            Users
+            {t('users.title')}
           </h3>
           <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
             <div className="w-full sm:w-64">
               <input
                 type="text"
-                placeholder="Search users..."
+                placeholder={t('users.search')}
                 className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                 value={searchTerm}
                 onChange={handleSearch}
@@ -612,12 +614,12 @@ const UserManagement: React.FC = () => {
                 type="button" 
                 onClick={manualRefresh}
                 className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm leading-4 font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
-                title="Refresh user list"
+                title={t('users.refreshList')}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Refresh
+                {t('users.refresh')}
               </button>
               <button
                 type="button"
@@ -627,7 +629,7 @@ const UserManagement: React.FC = () => {
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
                 </svg>
-                Add User
+                {t('users.addUser')}
               </button>
             </div>
           </div>
@@ -647,9 +649,9 @@ const UserManagement: React.FC = () => {
       {/* Add/Edit User Modal */}
       <Modal
         isOpen={isFormModalOpen}
-        title={isEditing ? 'Edit User' : 'Add User'}
-        confirmText={isEditing ? 'Save Changes' : 'Add User'}
-        cancelText="Cancel"
+        title={isEditing ? t('users.editUser') : t('users.addUser')}
+        confirmText={isEditing ? t('users.saveChanges') : t('users.addUser')}
+        cancelText={t('users.cancel')}
         onConfirm={handleSubmit}
         onCancel={() => setIsFormModalOpen(false)}
         type="form"
@@ -661,7 +663,7 @@ const UserManagement: React.FC = () => {
               <FloatingInput
                 id="firstName"
                 name="firstName"
-                label="First Name"
+                label={t('users.firstName')}
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
@@ -671,7 +673,7 @@ const UserManagement: React.FC = () => {
               <FloatingInput
                 id="lastName"
                 name="lastName"
-                label="Last Name"
+                label={t('users.lastName')}
                 value={formData.lastName}
                 onChange={handleInputChange}
                 required
@@ -682,7 +684,7 @@ const UserManagement: React.FC = () => {
             <FloatingInput
               id="email"
               name="email"
-              label="Email"
+              label={t('users.email')}
               type="email"
               value={formData.email}
               onChange={handleInputChange}
@@ -693,7 +695,7 @@ const UserManagement: React.FC = () => {
             <FloatingInput
               id="password"
               name="password"
-              label={isEditing ? "New Password (leave blank to keep current)" : "Password"}
+              label={isEditing ? t('users.newPasswordOptional') : t('users.password')}
               type="password"
               value={formData.password}
               onChange={handleInputChange}
@@ -706,11 +708,11 @@ const UserManagement: React.FC = () => {
               name="role"
               value={formData.role}
               onChange={handleInputChange}
-              label="Role"
+              label={t('users.role')}
               options={
                 // If editing an existing user, restrict role options based on current user role
                 isEditing && formData.role === 'ADMIN' && currentUser?.role !== 'ADMIN'
-                  ? [{ value: 'ADMIN', label: 'Admin' }] // Cannot change admin role if not an admin
+                  ? [{ value: 'ADMIN', label: t('users.roleAdmin') }] // Cannot change admin role if not an admin
                   : allowedRolesToCreate()
               }
               required
@@ -718,7 +720,7 @@ const UserManagement: React.FC = () => {
           </div>
           <div className="mt-4">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Profile Picture
+              {t('users.profilePicture')}
             </label>
             {isEditing ? (
               <FileUpload
@@ -727,11 +729,11 @@ const UserManagement: React.FC = () => {
                 currentImageUrl={formData.profilePicture}
                 onUploadSuccess={handleProfilePictureUpdate}
                 onUploadError={(error) => setError(error)}
-                buttonLabel="Upload Profile Picture"
+                buttonLabel={t('users.uploadProfilePicture')}
               />
             ) : (
               <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                You can upload a profile picture after creating the user.
+                {t('users.uploadAfterCreate')}
               </div>
             )}
           </div>
@@ -745,7 +747,7 @@ const UserManagement: React.FC = () => {
               onChange={handleCheckboxChange}
             />
             <label htmlFor="requiresPasswordChange" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-              Require password change on next login
+              {t('users.requirePasswordChange')}
             </label>
           </div>
           {error && (
@@ -759,10 +761,10 @@ const UserManagement: React.FC = () => {
       {/* Delete User Modal */}
       <DeleteConfirmation
         isOpen={isDeleteModalOpen}
-        title="Delete User"
-        message="Are you sure you want to delete this user? This action cannot be undone."
-        confirmText={deleteLoading ? "Deleting..." : "Delete"}
-        cancelText="Cancel"
+        title={t('users.deleteUser')}
+        message={t('users.deleteUserConfirm')}
+        confirmText={deleteLoading ? t('users.deleting') : t('users.delete')}
+        cancelText={t('users.cancel')}
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
         isLoading={deleteLoading}

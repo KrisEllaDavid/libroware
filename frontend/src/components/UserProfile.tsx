@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { useParams, Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { GET_USER, USER_BORROWS } from "../graphql/queries";
 import { useAuth } from "../context/AuthContext";
 import { User } from "../types";
@@ -11,6 +12,7 @@ import ProfileEditor from "./ProfileEditor";
 
 
 const UserProfile: React.FC = () => {
+  const { t } = useTranslation();
   const params = useParams();
   const id = params?.id;
   const { user: currentUser, isAuthenticated, updateUser } = useAuth();
@@ -23,7 +25,7 @@ const UserProfile: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="text-center py-8 text-red-500">
-        Please log in to view user profiles
+        {t('profile.loginRequired')}
       </div>
     );
   }
@@ -33,7 +35,7 @@ const UserProfile: React.FC = () => {
     console.error("No userId available - currentUser:", currentUser);
     return (
       <div className="text-center py-8 text-red-500">
-        User not found - No user ID available
+        {t('profile.userNotFoundNoId')}
       </div>
     );
   }
@@ -51,7 +53,7 @@ const UserProfile: React.FC = () => {
   });
 
   if (userLoading) {
-    return <div className="text-center py-8">Loading profile...</div>;
+    return <div className="text-center py-8">{t('profile.loadingProfile')}</div>;
   }
 
   // For self-profile viewing, use the cached currentUser data
@@ -64,7 +66,7 @@ const UserProfile: React.FC = () => {
       console.error("User query error:", userError);
       return (
         <div className="text-center py-8 text-red-500">
-          Error loading profile: {userError.message}
+          {t('profile.errorLoading', { message: userError.message })}
         </div>
       );
     }
@@ -73,7 +75,7 @@ const UserProfile: React.FC = () => {
       console.error("No user data found for ID:", userId);
       return (
         <div className="text-center py-8 text-red-500">
-          User not found (ID: {userId})
+          {t('profile.userNotFound', { userId })}
         </div>
       );
     }
@@ -92,7 +94,7 @@ const UserProfile: React.FC = () => {
     user?.lastName?.charAt(0) || ""
   }`;
   const userName =
-    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || "Unknown User";
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || t('profile.unknownUser');
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -107,10 +109,10 @@ const UserProfile: React.FC = () => {
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <div>
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              User Profile
+              {t('profile.pageTitle')}
             </h3>
             <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-              Personal details and account information.
+              {t('profile.pageSubtitle')}
             </p>
           </div>
 
@@ -119,7 +121,7 @@ const UserProfile: React.FC = () => {
               onClick={() => setShowProfileEditor(true)}
               className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
             >
-              Edit Profile
+              {t('profile.edit')}
             </button>
           )}
         </div>
@@ -148,16 +150,16 @@ const UserProfile: React.FC = () => {
               <div className="mt-4 space-y-4">
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Email
+                    {t('profile.email')}
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user?.email || "No email provided"}
+                    {user?.email || t('profile.noEmailProvided')}
                   </dd>
                 </div>
 
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Role
+                    {t('profile.role')}
                   </dt>
                   <dd className="mt-1">
                     <span
@@ -176,23 +178,23 @@ const UserProfile: React.FC = () => {
 
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Member Since
+                    {t('profile.memberSince')}
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
                     {user?.createdAt
                       ? fmtShort(user.createdAt)
-                      : "Unknown"}
+                      : t('profile.unknown')}
                   </dd>
                 </div>
 
                 {/* Account Status */}
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Account Status
+                    {t('profile.accountStatus')}
                   </dt>
                   <dd className="mt-1">
                     <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      Active
+                      {t('profile.active')}
                     </span>
                   </dd>
                 </div>
@@ -200,19 +202,19 @@ const UserProfile: React.FC = () => {
                 {/* Access Level - Different display based on user role */}
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Access Level
+                    {t('profile.accessLevel')}
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user?.role === "ADMIN" && "Full system access"}
-                    {user?.role === "LIBRARIAN" && "Library management access"}
-                    {user?.role === "USER" && "Standard user access"}
+                    {user?.role === "ADMIN" && t('profile.fullAccess')}
+                    {user?.role === "LIBRARIAN" && t('profile.libraryAccess')}
+                    {user?.role === "USER" && t('profile.standardAccess')}
                   </dd>
                 </div>
 
                 {/* Show last login or account update (placeholder) */}
                 <div>
                   <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    Last Account Update
+                    {t('profile.lastUpdate')}
                   </dt>
                   <dd className="mt-1 text-sm text-gray-900 dark:text-white">
                     {fmtShort(user?.updatedAt ?? null)}{" "}
@@ -224,18 +226,17 @@ const UserProfile: React.FC = () => {
               {user?.role === "ADMIN" && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                   <h3 className="text-md font-medium text-blue-800 dark:text-blue-300">
-                    Staff Information
+                    {t('profile.staffInfo')}
                   </h3>
                   <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    As an administrator, you have full access to manage users,
-                    books, and library operations.
+                    {t('profile.staffInfoText')}
                   </p>
                   <div className="mt-2">
                     <Link
                       to="/admin?tab=users"
                       className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 transition-colors duration-200"
                     >
-                      Go to Management Dashboard
+                      {t('profile.goToManagement')}
                     </Link>
                   </div>
                 </div>
