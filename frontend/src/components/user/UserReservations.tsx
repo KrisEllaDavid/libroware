@@ -6,6 +6,16 @@ import { CANCEL_RESERVATION } from '../../graphql/mutations';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import { fmtShort } from '../../utils/date';
+import {
+  Alert,
+  BookCover,
+  Button,
+  Card,
+  EmptyState,
+  Skeleton,
+  Tag,
+  TagTone,
+} from '../ui';
 
 interface Reservation {
   id: string;
@@ -21,11 +31,11 @@ interface Reservation {
   };
 }
 
-const STATUS_STYLES: Record<string, string> = {
-  PENDING:   'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-  FULFILLED: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400',
-  CANCELLED: 'bg-gray-100 dark:bg-gray-700 text-gray-500',
-  EXPIRED:   'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400',
+const STATUS_TONE: Record<string, TagTone> = {
+  PENDING: 'warning',
+  FULFILLED: 'brand',
+  CANCELLED: 'neutral',
+  EXPIRED: 'danger',
 };
 
 const UserReservations: React.FC = () => {
@@ -46,68 +56,105 @@ const UserReservations: React.FC = () => {
 
   const reservations: Reservation[] = data?.userReservations ?? [];
 
-  if (loading) return <div className="text-center py-8 text-gray-400">{t('reservations.loading')}</div>;
-
-  if (reservations.length === 0) {
+  if (loading) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500 dark:text-gray-400 text-sm">{t('reservations.noReservations')}</p>
-        <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">{t('reservations.hint')}</p>
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="flex gap-4 p-4">
+            <Skeleton className="h-20 w-14 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
+              <Skeleton className="h-8 w-24" />
+            </div>
+          </Card>
+        ))}
       </div>
     );
   }
 
+  if (reservations.length === 0) {
+    return (
+      <Card>
+        <EmptyState
+          icon="bookmark"
+          title={t('reservations.noReservations')}
+          description={t('reservations.hint')}
+        />
+      </Card>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      {reservations.map(r => {
+    <ul className="stagger space-y-3">
+      {reservations.map((r, i) => {
         const isPending = r.status === 'PENDING';
         const expiresMs = r.expiresAt ? new Date(r.expiresAt).getTime() : 0;
         const isExpiringSoon = isPending && expiresMs > 0 && (expiresMs - Date.now()) < 6 * 60 * 60 * 1000;
 
         return (
-          <div key={r.id} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex gap-4">
-            {r.book.coverImage ? (
-              <img src={r.book.coverImage} alt={r.book.title}
-                className="w-14 h-20 object-cover rounded-lg flex-shrink-0" />
-            ) : (
-              <div className="w-14 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex-shrink-0 flex items-center justify-center">
-                <span className="text-emerald-600 text-xs font-bold">BOOK</span>
+          <li key={r.id} style={{ ['--i' as any]: i }}>
+            <Card
+              className={
+                /* A fulfilled hold is the only one that needs acting on — it
+                   gets a brand left edge so it separates from the queue. */
+                r.status === 'FULFILLED'
+                  ? 'flex gap-4 border-l-4 border-l-emerald-500 p-4'
+                  : 'flex gap-4 p-4'
+              }
+            >
+              <div className="h-20 w-14 shrink-0 overflow-hidden rounded-lg shadow-xs">
+                <BookCover
+                  title={r.book.title}
+                  src={r.book.coverImage}
+                  size="sm"
+                  rounded="rounded-lg"
+                />
               </div>
-            )}
 
-            <div className="flex-1 min-w-0">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{r.book.title}</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">{r.book.authors.map(a => a.name).join(', ')}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="break-words text-sm font-semibold leading-snug text-gray-900 dark:text-white">
+                      {r.book.title}
+                    </h3>
+                    <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                      {r.book.authors.map(a => a.name).join(', ')}
+                    </p>
+                  </div>
+                  <Tag tone={STATUS_TONE[r.status] ?? 'neutral'} dot className="shrink-0">
+                    {t(`reservations.${r.status}`)}
+                  </Tag>
                 </div>
-                <span className={`px-5 py-0.5 text-xs rounded-full font-medium flex-shrink-0 ${STATUS_STYLES[r.status] ?? ''}`}>
-                  {t(`reservations.${r.status}`)}
-                </span>
-              </div>
 
-              {r.status === 'FULFILLED' && (
-                <p className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                  {t('reservations.collectBefore', { date: fmtShort(r.expiresAt) })}
-                </p>
-              )}
-              {isPending && isExpiringSoon && (
-                <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
-                  {t('reservations.expiresLabel', { date: fmtShort(r.expiresAt) })}
-                </p>
-              )}
-              {isPending && (
-                <button
-                  onClick={() => cancelReservation({ variables: { id: r.id } })}
-                  className="mt-3 text-xs px-3 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                  {t('reservations.cancel')}
-                </button>
-              )}
-            </div>
-          </div>
+                {r.status === 'FULFILLED' && (
+                  <Alert tone="success" className="mt-2.5 py-2">
+                    {t('reservations.collectBefore', { date: fmtShort(r.expiresAt) })}
+                  </Alert>
+                )}
+
+                {isPending && isExpiringSoon && (
+                  <Alert tone="warning" className="mt-2.5 py-2">
+                    {t('reservations.expiresLabel', { date: fmtShort(r.expiresAt) })}
+                  </Alert>
+                )}
+
+                {isPending && (
+                  <Button
+                    size="sm"
+                    icon="close"
+                    className="mt-3"
+                    onClick={() => cancelReservation({ variables: { id: r.id } })}
+                  >
+                    {t('reservations.cancel')}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          </li>
         );
       })}
-    </div>
+    </ul>
   );
 };
 

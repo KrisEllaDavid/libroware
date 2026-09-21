@@ -4,7 +4,7 @@ import { Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { LOGIN } from '../graphql/mutations';
 import { useAuth } from '../context/AuthContext';
-import FloatingInput from './FloatingInput';
+import { Alert, Button, Icon, Input, LibraryScene } from './ui';
 
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -51,55 +51,138 @@ const LoginPage: React.FC = () => {
   if (redirectTo) return <Navigate to={redirectTo} replace />;
 
   return (
-    <div className="min-h-screen flex justify-center items-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
-      <div className="max-w-md w-full bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-        {/* Language toggle */}
-        <div className="flex justify-end mb-2">
-          <button onClick={toggleLang}
-            className="text-xs font-bold px-5 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-            {t('lang.switch')}
-          </button>
-        </div>
+    /*
+      Two-panel sign-in: the form on the left, the reading-room illustration on
+      the right from `lg` up. A lone card floating in the middle of an empty
+      grey page is the default every admin tool ships with — and it gave a
+      university library product no sense of what it was for.
 
-        <div>
-          <h1 className="text-center text-3xl font-bold text-gray-900 dark:text-white">{t('app.name')}</h1>
-          <h2 className="mt-6 text-center text-xl text-gray-800 dark:text-gray-200">{t('auth.signIn')}</h2>
-        </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-              <div className="text-sm text-red-700 dark:text-red-400">{error}</div>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            <FloatingInput
-              id="email" name="email" type="email"
-              value={email} onChange={(e) => setEmail(e.target.value)}
-              required label={t('auth.email')}
-            />
-            <div className="relative">
-              <FloatingInput
-                id="password" name="password"
-                type={showPassword ? 'text' : 'password'}
-                value={password} onChange={(e) => setPassword(e.target.value)}
-                required label={t('auth.password')}
-              />
-              <button type="button"
-                className="absolute top-1/2 right-3 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-xs"
-                onClick={() => setShowPassword(!showPassword)}>
-                {showPassword ? t('auth.hide') : t('auth.show')}
-              </button>
-            </div>
+      The art panel is the one that disappears below `lg`, never the form.
+    */
+    <div className="flex min-h-dvh bg-white dark:bg-gray-950">
+      <div className="flex w-full flex-col lg:w-[52%] xl:w-[46%]">
+        {/* Top bar: brand and language, aligned to the form's own gutter. */}
+        <header className="flex items-center justify-between px-6 py-6 sm:px-10 lg:px-14">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white">
+              <Icon name="books" size={20} />
+            </span>
+            <span className="font-display text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+              {t('app.name', 'Libroware')}
+            </span>
           </div>
 
-          <button type="submit" disabled={loading}
-            className="w-full py-2 px-4 border border-transparent rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 disabled:opacity-50 transition-all duration-200">
-            {loading ? t('auth.signingIn') : t('auth.signInBtn')}
+          <button
+            type="button"
+            onClick={toggleLang}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-600 transition-all duration-200 ease-soft hover:border-gray-300 hover:bg-gray-50 active:scale-95 dark:border-gray-700 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <Icon name="globe" size={14} />
+            {t('lang.switch')}
           </button>
-        </form>
+        </header>
+
+        {/* The form is optically centred in the remaining height, and capped at
+            a comfortable measure so it doesn't stretch on a wide window. */}
+        <main className="flex flex-1 items-center px-6 pb-12 sm:px-10 lg:px-14">
+          <div className="mx-auto w-full max-w-[24rem] animate-fade-up">
+            <h1 className="font-display text-[1.75rem] font-semibold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+              {t('auth.signIn')}
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+              {t(
+                'auth.signInSubtitle',
+                'Sign in with the account issued by your library desk.'
+              )}
+            </p>
+
+            <form className="mt-8 space-y-5" onSubmit={handleLogin} noValidate>
+              {error && <Alert tone="danger">{error}</Alert>}
+
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="none"
+                spellCheck={false}
+                label={t('auth.email')}
+                icon="mail"
+                placeholder="name@university.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                label={t('auth.password')}
+                icon="lock"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                trailing={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? t('auth.hide') : t('auth.show')}
+                    aria-pressed={showPassword}
+                    className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+                  >
+                    <Icon name={showPassword ? 'eyeOff' : 'eye'} size={16} />
+                  </button>
+                }
+              />
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                block
+                loading={loading}
+                iconAfter={loading ? undefined : 'arrowRight'}
+              >
+                {loading ? t('auth.signingIn') : t('auth.signInBtn')}
+              </Button>
+            </form>
+
+            <p className="mt-8 flex items-start gap-2 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+              <Icon name="info" size={14} className="mt-px shrink-0 text-gray-400" />
+              {t(
+                'auth.helpNote',
+                'Lost your password? The library desk can reset it for you.'
+              )}
+            </p>
+          </div>
+        </main>
       </div>
+
+      {/* Art panel. Decorative, so it carries no heading and is skipped by
+          assistive tech beyond the illustration's own label. */}
+      <aside className="relative hidden lg:block lg:w-[48%] xl:w-[54%]">
+        <div className="absolute inset-0">
+          <LibraryScene />
+        </div>
+
+        {/* Caption sits on a solid scrim rather than a blur: it has to stay
+            legible over whatever part of the illustration falls behind it. */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/80 to-transparent px-12 pb-12 pt-24">
+          <p className="max-w-md font-display text-2xl font-medium leading-snug tracking-tight text-white">
+            {t(
+              'auth.tagline',
+              'Every title, borrower and due date for the Congo-Cameroon Interstate University library.'
+            )}
+          </p>
+          <p className="mt-3 text-sm text-emerald-100/80">
+            {t('auth.taglineSub', 'Catalogue · Borrowing · Reservations · Fines')}
+          </p>
+        </div>
+      </aside>
     </div>
   );
 };

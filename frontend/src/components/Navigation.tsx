@@ -5,8 +5,13 @@ import { useAuth } from "../context/AuthContext";
 import ThemeToggle from "../components/ThemeToggle";
 import { useTranslation } from "react-i18next";
 import { GET_UNREAD_NOTIFICATIONS_COUNT } from "../graphql/queries";
+import { Avatar, Icon, IconName, cn } from "./ui";
 
-const NotificationBell: React.FC = () => {
+/* ── Notification bell ────────────────────────────────────────────────────── */
+
+const NotificationBell: React.FC<{ onNavigate?: () => void }> = ({
+  onNavigate,
+}) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { data } = useQuery(GET_UNREAD_NOTIFICATIONS_COUNT, {
@@ -18,18 +23,23 @@ const NotificationBell: React.FC = () => {
   return (
     <button
       type="button"
-      onClick={() => navigate("/notifications")}
-      className="relative p-2 rounded-full text-emerald-100 hover:text-white hover:bg-emerald-700 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white"
-      title={t('notifications.title')}
-      aria-label={count > 0 ? t('notifications.unreadCount', { count }) : t('notifications.title')}
+      onClick={() => {
+        onNavigate?.();
+        navigate("/notifications");
+      }}
+      className="relative inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-50 transition-all duration-200 ease-soft hover:bg-white/10 active:scale-95"
+      title={t("notifications.title")}
+      aria-label={
+        count > 0
+          ? t("notifications.unreadCount", { count })
+          : t("notifications.title")
+      }
     >
-      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-        />
-      </svg>
+      <Icon name="bell" size={19} />
       {count > 0 && (
-        <span className="absolute top-0.5 right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white leading-none">
+        // Square-ish counter rather than a round dot: it has to hold "99+"
+        // without the glyph crowding the edges.
+        <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[1rem] items-center justify-center rounded-md border border-emerald-600 bg-amber-400 px-1 text-[0.5625rem] font-bold leading-none tabular-nums text-amber-950 dark:border-emerald-800">
           {count > 99 ? "99+" : count}
         </span>
       )}
@@ -37,248 +47,430 @@ const NotificationBell: React.FC = () => {
   );
 };
 
+/* ── Navigation ───────────────────────────────────────────────────────────── */
+
+interface NavLinkDef {
+  label: string;
+  path: string;
+  icon: IconName;
+  /** Path prefixes that should also light this item up. */
+  match?: string[];
+}
+
 const Navigation: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
   const { user, logout, isAdmin, isLibrarian } = useAuth();
   const { i18n, t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
-  const menuRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  const toggleLanguage = () => {
-    const next = i18n.language === 'en' ? 'fr' : 'en';
-    i18n.changeLanguage(next);
-    localStorage.setItem('libroware_lang', next);
-  };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const targetEl = event.target as HTMLElement;
-      if (
-        targetEl.closest(".menu-close-button") ||
-        targetEl.closest("#mobile-menu")
-      ) {
-        return;
-      }
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setIsMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    setIsMenuOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const handleEscKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsMenuOpen(false);
-    };
-    document.addEventListener("keydown", handleEscKey);
-    return () => document.removeEventListener("keydown", handleEscKey);
-  }, []);
-
-  const toggleMenu  = () => setIsMenuOpen(!isMenuOpen);
-  const closeMenu   = () => { setIsMenuOpen(false); document.body.classList.remove("mobile-menu-open"); };
-  const openMenu    = () => { setIsMenuOpen(true); document.body.classList.add("mobile-menu-open"); };
-
-  const closeButtonHandler = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsMenuOpen(false);
-    document.body.classList.remove("mobile-menu-open");
-  };
-
-  const handleNavigation = (path: string) => { closeMenu(); navigate(path); };
-
+  const staff = isAdmin() || isLibrarian();
   const dashboardLink = isAdmin()
     ? "/admin?tab=users"
     : isLibrarian()
     ? "/admin"
     : "/dashboard";
 
-  const getAdminTabLink = (tab: string) => `/admin?tab=${tab}`;
+  // The primary destinations, surfaced as real links rather than buried in a
+  // dropdown. Previously the only way to reach any page was through the avatar
+  // menu, which gave no sense of where you were in the product.
+  const primaryLinks: NavLinkDef[] = staff
+    ? [
+        { label: t("nav.libraryManagement"), path: dashboardLink, icon: "grid", match: ["/admin"] },
+        { label: t("browseBooks.title"), path: "/books", icon: "books" },
+        { label: t("notifications.title"), path: "/notifications", icon: "bell" },
+      ]
+    : [
+        { label: t("nav.dashboard"), path: "/dashboard", icon: "grid" },
+        { label: t("browseBooks.title"), path: "/books", icon: "books" },
+        { label: t("userDashboard.tabs.myRequests"), path: "/activity", icon: "history" },
+      ];
+
+  const isCurrent = (link: NavLinkDef) => {
+    const base = link.path.split("?")[0];
+    const here = location.pathname;
+    if (link.match) return link.match.some((m) => here.startsWith(m));
+    return here === base || here.startsWith(`${base}/`);
+  };
+
+  const toggleLanguage = () => {
+    const next = i18n.language === "en" ? "fr" : "en";
+    i18n.changeLanguage(next);
+    localStorage.setItem("libroware_lang", next);
+  };
+
+  // Close the profile dropdown on an outside click.
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Any navigation dismisses both menus.
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsProfileOpen(false);
+    document.body.classList.remove("mobile-menu-open");
+  }, [location.pathname, location.search]);
+
+  useEffect(() => {
+    const handleEscKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsProfileOpen(false);
+      setIsMenuOpen(false);
+      document.body.classList.remove("mobile-menu-open");
+    };
+    document.addEventListener("keydown", handleEscKey);
+    return () => document.removeEventListener("keydown", handleEscKey);
+  }, []);
+
+  // The drawer locks the page behind it; make sure the lock can't outlive it.
+  useEffect(
+    () => () => document.body.classList.remove("mobile-menu-open"),
+    []
+  );
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    document.body.classList.remove("mobile-menu-open");
+  };
+
+  const openMenu = () => {
+    setIsMenuOpen(true);
+    document.body.classList.add("mobile-menu-open");
+  };
+
+  const handleNavigation = (path: string) => {
+    closeMenu();
+    navigate(path);
+  };
+
+  const menuLinks: NavLinkDef[] = [
+    ...primaryLinks,
+    { label: t("nav.yourProfile"), path: "/profile", icon: "user" },
+    { label: t("nav.aboutLibroware"), path: "/about", icon: "info" },
+  ];
 
   return (
     <>
-      <nav className="bg-emerald-600 dark:bg-emerald-800 shadow-md text-white fixed top-0 left-0 right-0 z-[100]">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <Link
-                to="/"
-                className="text-xl font-bold text-white transition-transform hover:scale-105 duration-200"
-              >
-                Libroware
-              </Link>
-            </div>
+      {/* Keyboard users land here first. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-lg focus:bg-white focus:px-4 focus:py-2.5 focus:text-sm focus:font-medium focus:text-emerald-700 focus:shadow-lg dark:focus:bg-gray-800 dark:focus:text-emerald-300"
+      >
+        {t("nav.skipToContent", "Skip to content")}
+      </a>
 
-            <div className="hidden sm:flex sm:items-center space-x-2">
-              <ThemeToggle />
-              <NotificationBell />
+      <nav
+        className="fixed inset-x-0 top-0 z-nav h-16 border-b border-emerald-700/60 bg-emerald-700 text-white shadow-sm dark:border-emerald-950 dark:bg-emerald-900"
+        aria-label={t("nav.primary", "Primary")}
+      >
+        <div className="mx-auto flex h-full max-w-shell items-center gap-2 px-4 sm:px-6 lg:px-8">
+          {/* Brand */}
+          <Link
+            to={dashboardLink}
+            className="group flex shrink-0 items-center gap-2.5 rounded-lg py-1 pr-2 transition-opacity duration-200 hover:opacity-90"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 text-white transition-transform duration-250 ease-spring group-hover:scale-105">
+              <Icon name="books" size={19} />
+            </span>
+            <span className="font-display text-lg font-semibold tracking-tight">
+              {t("app.name", "Libroware")}
+            </span>
+          </Link>
 
-              {/* Profile dropdown */}
-              <div className="relative" ref={menuRef}>
-                <button
-                  type="button"
-                  className="flex items-center max-w-xs text-sm bg-emerald-500 dark:bg-emerald-700 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white transition-all duration-200 hover:shadow-md transform hover:scale-105"
-                  id="user-menu-button"
-                  aria-expanded={isMenuOpen}
-                  aria-haspopup="true"
-                  onClick={toggleMenu}
-                >
-                  <span className="sr-only">{t('nav.openUserMenu')}</span>
-                  {user?.profilePicture ? (
-                    <img
-                      className="h-8 w-8 rounded-full object-cover"
-                      src={user.profilePicture}
-                      alt={`${user?.firstName} ${user?.lastName}`}
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-emerald-200 dark:bg-emerald-900 flex items-center justify-center text-emerald-800 dark:text-emerald-200 font-medium">
-                      {user?.firstName?.[0]}
-                      {user?.lastName?.[0]}
-                    </div>
+          {/* Primary destinations — desktop */}
+          <div className="ml-4 hidden items-center gap-1 lg:flex">
+            {primaryLinks.map((link) => {
+              const current = isCurrent(link);
+              return (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  aria-current={current ? "page" : undefined}
+                  className={cn(
+                    "relative flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ease-soft",
+                    current
+                      ? "bg-white/20 text-white"
+                      : "text-emerald-50/80 hover:bg-white/10 hover:text-white"
                   )}
-                </button>
-
-                <div
-                  className={`absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 focus:outline-none z-10 text-gray-700 dark:text-gray-200 transition-all duration-200 transform origin-top-right
-                  ${isMenuOpen ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"}`}
-                  role="menu"
-                  aria-orientation="vertical"
-                  aria-labelledby="user-menu-button"
-                  tabIndex={-1}
                 >
-                  <div className="px-4 py-2 text-sm border-b border-gray-200 dark:border-gray-700">
-                    <div className="font-medium">{user?.firstName} {user?.lastName}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400 truncate">{user?.email}</div>
-                  </div>
+                  <Icon name={link.icon} size={17} />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
 
-                  <Link to="/profile" className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    {t('nav.yourProfile')}
-                  </Link>
-                  <Link to={dashboardLink} className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    {isAdmin() || isLibrarian() ? t('nav.libraryManagement') : t('nav.dashboard')}
-                  </Link>
-                  <Link to="/notifications" className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    {t('notifications.title')}
-                  </Link>
-                  <Link to="/about" className="block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200">
-                    {t('nav.aboutLibroware')}
-                  </Link>
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle />
+            <NotificationBell />
+
+            {/* Profile menu — desktop */}
+            <div className="relative hidden sm:block" ref={profileRef}>
+              <button
+                type="button"
+                className="ml-1 flex items-center gap-2 rounded-lg p-1 pr-2 transition-colors duration-200 hover:bg-white/10"
+                id="user-menu-button"
+                aria-expanded={isProfileOpen}
+                aria-haspopup="true"
+                onClick={() => setIsProfileOpen((v) => !v)}
+              >
+                <span className="sr-only">{t("nav.openUserMenu")}</span>
+                <Avatar
+                  src={user?.profilePicture}
+                  firstName={user?.firstName}
+                  lastName={user?.lastName}
+                  size="sm"
+                  ring
+                />
+                <Icon
+                  name="chevronDown"
+                  size={15}
+                  className={cn(
+                    "text-emerald-100 transition-transform duration-250 ease-spring",
+                    isProfileOpen && "rotate-180"
+                  )}
+                />
+              </button>
+
+              <div
+                className={cn(
+                  "absolute right-0 mt-2 w-60 origin-top-right overflow-hidden rounded-xl border border-gray-200 bg-white text-gray-700 shadow-xl transition-all duration-200 ease-spring dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200",
+                  isProfileOpen
+                    ? "scale-100 opacity-100"
+                    : "pointer-events-none scale-95 opacity-0"
+                )}
+                role="menu"
+                aria-orientation="vertical"
+                aria-labelledby="user-menu-button"
+              >
+                <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3 dark:border-gray-700">
+                  <Avatar
+                    src={user?.profilePicture}
+                    firstName={user?.firstName}
+                    lastName={user?.lastName}
+                    size="md"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                      {user?.firstName} {user?.lastName}
+                    </p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                      {user?.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-1.5">
+                  <MenuLink to="/profile" icon="user" label={t("nav.yourProfile")} />
+                  <MenuLink
+                    to={dashboardLink}
+                    icon="grid"
+                    label={staff ? t("nav.libraryManagement") : t("nav.dashboard")}
+                  />
+                  <MenuLink
+                    to="/notifications"
+                    icon="bell"
+                    label={t("notifications.title")}
+                  />
+                  <MenuLink
+                    to="/about"
+                    icon="info"
+                    label={t("nav.aboutLibroware")}
+                  />
+                </div>
+
+                <div className="border-t border-gray-200 p-1.5 dark:border-gray-700">
                   <button
-                    className="w-full text-left flex items-center justify-between px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    role="menuitem" tabIndex={-1} onClick={toggleLanguage}
+                    type="button"
+                    role="menuitem"
+                    onClick={toggleLanguage}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
-                    <span>{t('lang.switch')}</span>
-                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400">{t('lang.current')}</span>
+                    <Icon name="globe" size={17} className="text-gray-400" />
+                    <span className="flex-1 text-left">{t("lang.switch")}</span>
+                    <span className="text-2xs font-bold uppercase text-gray-500 dark:text-gray-400">
+                      {t("lang.current")}
+                    </span>
                   </button>
                   <button
-                    className="w-full text-left block px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
-                    role="menuitem" tabIndex={-1} onClick={() => logout()}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => logout()}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-red-600 transition-colors duration-150 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
                   >
-                    {t('nav.signOut')}
+                    <Icon name="logout" size={17} />
+                    {t("nav.signOut")}
                   </button>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center sm:hidden gap-1">
-              <ThemeToggle />
-              <NotificationBell />
-              {isMenuOpen ? (
-                <button
-                  type="button"
-                  className="ml-1 inline-flex items-center justify-center p-2 rounded-md text-emerald-100 hover:text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-all duration-200 menu-close-button"
-                  aria-controls="mobile-menu" aria-expanded={true} onClick={closeButtonHandler}
-                >
-                  <span className="sr-only">{t('nav.closeMenu')}</span>
-                  <div className="relative w-6 h-6 flex items-center justify-center">
-                    <span className="absolute h-0.5 w-full bg-current transform rotate-45"></span>
-                    <span className="absolute h-0.5 w-full bg-current transform -rotate-45"></span>
-                  </div>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="ml-1 inline-flex items-center justify-center p-2 rounded-md text-emerald-100 hover:text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-all duration-200"
-                  aria-controls="mobile-menu" aria-expanded={false} onClick={openMenu}
-                >
-                  <span className="sr-only">{t('nav.openMenu')}</span>
-                  <div className="relative w-6 h-6 flex items-center justify-center">
-                    <span className="absolute h-0.5 w-full bg-current transform -translate-y-1.5"></span>
-                    <span className="absolute h-0.5 w-full bg-current"></span>
-                    <span className="absolute h-0.5 w-full bg-current transform translate-y-1.5"></span>
-                  </div>
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        <div
-          className={`sm:hidden transition-all duration-300 ease-in-out overflow-visible z-[100] bg-emerald-600 dark:bg-emerald-800 ${
-            isMenuOpen ? "menu-slide-down" : "max-h-0 opacity-0 pointer-events-none"
-          }`}
-          id="mobile-menu"
-          aria-expanded={isMenuOpen}
-        >
-          <div className="container mx-auto pt-4 pb-3 border-t border-emerald-700">
-            <div className="flex items-center px-4 sm:px-6 lg:px-8">
-              <div className="flex-shrink-0 transform transition-all duration-300 hover:scale-105">
-                {user?.profilePicture ? (
-                  <img className="h-10 w-10 rounded-full object-cover" src={user.profilePicture} alt="" />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-emerald-200 dark:bg-emerald-900 flex items-center justify-center text-emerald-800 dark:text-emerald-200 font-medium shadow-md">
-                    {user?.firstName?.[0]}{user?.lastName?.[0]}
-                  </div>
-                )}
-              </div>
-              <div className="ml-3">
-                <div className="text-base font-medium text-white">{user?.firstName} {user?.lastName}</div>
-                <div className="text-sm font-medium text-emerald-100">{user?.email}</div>
-              </div>
-            </div>
-            <div className="mt-3 space-y-1 px-4 sm:px-6 lg:px-8 pb-4">
-              {[
-                { label: t('nav.yourProfile'), path: '/profile' },
-                { label: isAdmin() || isLibrarian() ? t('nav.libraryManagement') : t('nav.dashboard'), path: dashboardLink },
-                { label: t('notifications.title'), path: '/notifications' },
-                { label: t('nav.aboutLibroware'), path: '/about' },
-              ].map(({ label, path }) => (
-                <button
-                  key={path}
-                  className="w-full text-left block py-2 px-3 text-base font-medium text-emerald-100 hover:text-white hover:bg-emerald-700 hover:scale-105 transform transition-all duration-200 rounded-md hover:shadow-md relative z-[101]"
-                  onClick={() => handleNavigation(path)}
-                  tabIndex={isMenuOpen ? 0 : -1}
-                >
-                  {label}
-                </button>
-              ))}
-              <button
-                className="w-full text-left flex items-center justify-between py-2 px-3 text-base font-medium text-emerald-100 hover:text-white hover:bg-emerald-700 hover:scale-105 transform transition-all duration-200 rounded-md hover:shadow-md relative z-[101]"
-                onClick={toggleLanguage} tabIndex={isMenuOpen ? 0 : -1}
-              >
-                <span>{t('lang.switch')}</span>
-                <span className="text-xs font-bold">{t('lang.current')}</span>
-              </button>
-              <button
-                className="w-full text-left block py-2 px-3 text-base font-medium text-emerald-100 hover:text-white hover:bg-emerald-700 hover:scale-105 transform transition-all duration-200 rounded-md hover:shadow-md relative z-[101]"
-                onClick={() => { closeMenu(); logout(); }}
-                tabIndex={isMenuOpen ? 0 : -1}
-              >
-                {t('nav.signOut')}
-              </button>
-            </div>
+            {/* Drawer trigger — mobile. The two bars morph into an X rather
+                than swapping icons, so the control reads as one object. */}
+            <button
+              type="button"
+              className="ml-0.5 inline-flex h-9 w-9 items-center justify-center rounded-lg text-emerald-50 transition-all duration-200 hover:bg-white/10 active:scale-95 sm:hidden"
+              aria-controls="mobile-menu"
+              aria-expanded={isMenuOpen}
+              aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
+              onClick={() => (isMenuOpen ? closeMenu() : openMenu())}
+            >
+              <span className="relative block h-4 w-5">
+                <span
+                  className={cn(
+                    "absolute left-0 block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ease-spring",
+                    isMenuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-0.5"
+                  )}
+                />
+                <span
+                  className={cn(
+                    "absolute left-0 block h-0.5 w-5 rounded-full bg-current transition-all duration-300 ease-spring",
+                    isMenuOpen
+                      ? "top-1/2 -translate-y-1/2 -rotate-45"
+                      : "bottom-0.5"
+                  )}
+                />
+              </span>
+            </button>
           </div>
         </div>
       </nav>
+
+      {/* ── Mobile drawer ───────────────────────────────────────────────────
+          A panel sliding in from the edge, not a section pushing the page
+          down. Pushing content reflows the whole document on a device that
+          can least afford it, and loses the user's scroll position. */}
+      <div
+        className={cn(
+          "fixed inset-0 z-drawer bg-gray-900/40 transition-opacity duration-300 sm:hidden",
+          isMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={closeMenu}
+        aria-hidden="true"
+      />
+
+      <aside
+        id="mobile-menu"
+        aria-hidden={!isMenuOpen}
+        className={cn(
+          "fixed inset-y-0 right-0 z-drawer flex w-[min(20rem,85vw)] flex-col bg-white shadow-2xl transition-transform duration-300 ease-spring dark:bg-gray-900 sm:hidden",
+          isMenuOpen ? "translate-x-0" : "translate-x-full"
+        )}
+      >
+        <div className="flex items-center gap-3 border-b border-gray-200 bg-emerald-700 px-5 py-4 text-white dark:border-gray-800 dark:bg-emerald-900">
+          <Avatar
+            src={user?.profilePicture}
+            firstName={user?.firstName}
+            lastName={user?.lastName}
+            size="md"
+            ring
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">
+              {user?.firstName} {user?.lastName}
+            </p>
+            <p className="truncate text-xs text-emerald-100">{user?.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={closeMenu}
+            aria-label={t("nav.closeMenu")}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-emerald-50 transition-colors hover:bg-white/20"
+          >
+            <Icon name="close" size={18} />
+          </button>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto p-3">
+          <ul className="space-y-0.5">
+            {menuLinks.map((link) => {
+              const current = isCurrent(link);
+              return (
+                <li key={link.path}>
+                  <button
+                    type="button"
+                    tabIndex={isMenuOpen ? 0 : -1}
+                    aria-current={current ? "page" : undefined}
+                    onClick={() => handleNavigation(link.path)}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors duration-150",
+                      current
+                        ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200"
+                        : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                    )}
+                  >
+                    <Icon
+                      name={link.icon}
+                      size={18}
+                      className={
+                        current
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-gray-400"
+                      }
+                    />
+                    {link.label}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <div className="safe-bottom space-y-0.5 border-t border-gray-200 p-3 dark:border-gray-800">
+          <button
+            type="button"
+            tabIndex={isMenuOpen ? 0 : -1}
+            onClick={toggleLanguage}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+          >
+            <Icon name="globe" size={18} className="text-gray-400" />
+            <span className="flex-1 text-left">{t("lang.switch")}</span>
+            <span className="text-2xs font-bold uppercase text-gray-500 dark:text-gray-400">
+              {t("lang.current")}
+            </span>
+          </button>
+          <button
+            type="button"
+            tabIndex={isMenuOpen ? 0 : -1}
+            onClick={() => {
+              closeMenu();
+              logout();
+            }}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+          >
+            <Icon name="logout" size={18} />
+            {t("nav.signOut")}
+          </button>
+        </div>
+      </aside>
     </>
   );
 };
+
+const MenuLink: React.FC<{ to: string; icon: IconName; label: string }> = ({
+  to,
+  icon,
+  label,
+}) => (
+  <Link
+    to={to}
+    role="menuitem"
+    className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors duration-150 hover:bg-gray-100 dark:hover:bg-gray-700"
+  >
+    <Icon name={icon} size={17} className="text-gray-400" />
+    {label}
+  </Link>
+);
 
 export default Navigation;

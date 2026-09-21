@@ -5,6 +5,8 @@ import { UPDATE_USER, UPLOAD_PROFILE_PICTURE } from '../graphql/mutations';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import imageCompression from 'browser-image-compression';
+import ReactDOM from 'react-dom';
+import { Avatar, Button, Checkbox, Icon, Input, Spinner, cn } from './ui';
 
 interface ProfileEditorProps {
   onClose: () => void;
@@ -152,184 +154,184 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ onClose, onUpdate }) => {
 
   const isLoading = updateLoading || uploadLoading || isProcessingImage;
 
-  return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-white">{t('profile.edit')}</h2>
+  return ReactDOM.createPortal(
+    <>
+      <div
+        className="fixed inset-0 z-backdrop bg-gray-900/40 animate-backdrop-appear dark:bg-gray-950/70"
+        onClick={isLoading ? undefined : onClose}
+        aria-hidden="true"
+      />
 
-        <form onSubmit={handleSubmit}>
-          {/* Profile Image */}
-          <div className="mb-6 flex flex-col items-center">
-            <div
-              className="relative w-32 h-32 mb-2 cursor-pointer overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700 hover:opacity-90 transition-opacity"
-              onClick={triggerFileInput}
-            >
-              {previewImage ? (
-                <img
-                  src={previewImage}
-                  alt="Profile Preview"
-                  className="w-full h-full object-cover"
-                />
-              ) : user?.profilePicture ? (
-                <img
-                  src={user.profilePicture}
-                  alt={`${user.firstName} ${user.lastName}`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl font-semibold text-gray-400 dark:text-gray-500">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
-                </div>
-              )}
-
-              {isProcessingImage && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-white"></div>
-                </div>
-              )}
-
-              <div className="absolute bottom-0 inset-x-0 bg-black bg-opacity-60 text-white text-xs text-center py-1">
-                {t('profile.changePhoto')}
-              </div>
-            </div>
-
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageSelect}
-              accept="image/*"
-              className="hidden"
-            />
-
-            <span className="text-sm text-gray-500 dark:text-gray-400">
-              {t('profile.clickToUpload')}
-            </span>
+      {/* Bottom sheet on a phone, centred dialog from `sm` up — matching the
+          shared Modal, so every dialog in the app behaves the same way. */}
+      <div className="fixed inset-0 z-modal flex items-end justify-center sm:items-center sm:p-4">
+        <div
+          className="flex max-h-[92vh] w-full flex-col overflow-hidden rounded-t-2xl border-t border-gray-200 bg-white shadow-2xl animate-toast-drop dark:border-gray-800 dark:bg-gray-900 sm:max-h-[85vh] sm:max-w-lg sm:rounded-2xl sm:border"
+          role="dialog"
+          aria-modal="true"
+          aria-label={t('profile.edit')}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden="true">
+            <span className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
           </div>
 
-          {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('profile.firstName')}
-              </label>
-              <input
-                type="text"
-                id="firstName"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('profile.lastName')}
-              </label>
-              <input
-                type="text"
-                id="lastName"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
-                required
-              />
-            </div>
-          </div>
-
-          {/* Password Change Toggle */}
-          <div className="mb-4">
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="changePassword"
-                checked={isChangingPassword}
-                onChange={(e) => setIsChangingPassword(e.target.checked)}
-                className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded dark:bg-gray-700 dark:border-gray-600"
-              />
-              <label htmlFor="changePassword" className="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                {t('profile.changePassword')}
-              </label>
-            </div>
-          </div>
-
-          {/* Password Fields */}
-          {isChangingPassword && (
-            <div className="space-y-4 mb-6">
-              <div>
-                <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('profile.currentPassword')}
-                </label>
-                <input
-                  type="password"
-                  id="currentPassword"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
-                  required={isChangingPassword}
-                />
-              </div>
-              <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('profile.newPassword')}
-                </label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
-                  required={isChangingPassword}
-                  minLength={8}
-                />
-              </div>
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('profile.confirmNewPassword')}
-                </label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
-                  required={isChangingPassword}
-                  minLength={8}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 mt-6">
+          <header className="flex items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-800 sm:px-6">
+            <h2 className="font-display text-base font-semibold tracking-tight text-gray-900 dark:text-white sm:text-lg">
+              {t('profile.edit')}
+            </h2>
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
               disabled={isLoading}
+              aria-label={t('profile.cancel')}
+              className="-mr-1.5 inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-40 dark:hover:bg-gray-800 dark:hover:text-gray-200"
             >
-              {t('profile.cancel')}
+              <Icon name="close" size={18} />
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  {t('profile.saving')}
-                </>
-              ) : (
-                t('profile.save')
-              )}
-            </button>
-          </div>
-        </form>
+          </header>
+
+          <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+            <div className="flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
+              {/* Photo */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={triggerFileInput}
+                  className="group relative h-28 w-28 overflow-hidden rounded-full transition-transform duration-250 ease-spring hover:scale-[1.02] active:scale-[0.99]"
+                  aria-label={t('profile.changePhoto')}
+                >
+                  {previewImage ? (
+                    <img
+                      src={previewImage}
+                      alt={t('profile.changePhoto')}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <Avatar
+                      src={user?.profilePicture}
+                      firstName={user?.firstName}
+                      lastName={user?.lastName}
+                      size="2xl"
+                      className="h-28 w-28"
+                    />
+                  )}
+
+                  {isProcessingImage && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-gray-900/55 text-white">
+                      <Spinner size={26} />
+                    </span>
+                  )}
+
+                  {/* The change affordance only appears on hover/focus — a
+                      permanent black caption band across a person's face is
+                      the first thing you notice about the dialog otherwise. */}
+                  <span className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-gray-900/65 py-1.5 text-[0.625rem] font-medium uppercase tracking-wide text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
+                    <Icon name="upload" size={11} />
+                    {t('profile.changePhoto')}
+                  </span>
+                </button>
+
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageSelect}
+                  accept="image/*"
+                  className="hidden"
+                />
+
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('profile.clickToUpload')}
+                </p>
+              </div>
+
+              {/* Name */}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  id="firstName"
+                  label={t('profile.firstName')}
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  autoComplete="given-name"
+                  required
+                />
+                <Input
+                  id="lastName"
+                  label={t('profile.lastName')}
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  autoComplete="family-name"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div className="rounded-lg border border-gray-200 p-3.5 dark:border-gray-700">
+                <Checkbox
+                  id="changePassword"
+                  checked={isChangingPassword}
+                  onChange={(e) => setIsChangingPassword(e.target.checked)}
+                  label={t('profile.changePassword')}
+                />
+
+                {isChangingPassword && (
+                  <div className="mt-4 space-y-4 border-t border-gray-100 pt-4 dark:border-gray-800 animate-slide-down">
+                    <Input
+                      id="currentPassword"
+                      type="password"
+                      autoComplete="current-password"
+                      label={t('profile.currentPassword')}
+                      icon="lock"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      required={isChangingPassword}
+                    />
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      label={t('profile.newPassword')}
+                      icon="lock"
+                      hint={t('setup.minLength')}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required={isChangingPassword}
+                      minLength={8}
+                    />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      label={t('profile.confirmNewPassword')}
+                      icon="lock"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      error={
+                        confirmPassword.length > 0 && confirmPassword !== newPassword
+                          ? t('setup.mismatch')
+                          : null
+                      }
+                      required={isChangingPassword}
+                      minLength={8}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <footer className="safe-bottom flex flex-col-reverse gap-2.5 border-t border-gray-200 bg-gray-50 px-5 py-4 dark:border-gray-800 dark:bg-gray-900/60 sm:flex-row sm:justify-end sm:px-6">
+              <Button type="button" onClick={onClose} disabled={isLoading}>
+                {t('profile.cancel')}
+              </Button>
+              <Button type="submit" variant="primary" loading={isLoading}>
+                {isLoading ? t('profile.saving') : t('profile.save')}
+              </Button>
+            </footer>
+          </form>
+        </div>
       </div>
-    </div>
+    </>,
+    document.body
   );
 };
 

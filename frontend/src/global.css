@@ -1,108 +1,56 @@
-/* Modal animation */
-@keyframes modalAppear {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
+/* ───────────────────────────────────────────────────────────────────────────
+   Print
 
-/* Add this class to your tailwind.config.js if needed */
-.animate-modal-appear {
-  animation: modalAppear 0.3s ease-out;
-}
+   Everything else that used to live here — animation keyframes, modal and
+   splash motion — now sits in index.css alongside the tokens that drive it,
+   so there is one place where motion is defined and one easing vocabulary.
 
-/* Splash screen animations */
-@keyframes shimmer {
-  0% {
-    transform: translateX(-150%) skewX(-45deg);
-  }
-  100% {
-    transform: translateX(150%) skewX(-45deg);
-  }
-}
+   What remains is print: the app issues QR label sheets and borrow receipts
+   that have to come out of a physical printer cleanly.
+   ─────────────────────────────────────────────────────────────────────────── */
 
-@keyframes loadingBar {
-  0% {
-    width: 0;
+@media print {
+  /* Chrome — nav, toasts, modals backdrops, floating actions — never prints. */
+  nav,
+  .no-print,
+  [data-print="hide"] {
+    display: none !important;
   }
-  100% {
-    width: 100%;
-  }
-}
 
-@keyframes bookFlip {
-  0% {
-    transform: rotateY(0deg);
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    padding: 0 !important;
   }
-  50% {
-    transform: rotateY(180deg);
-  }
-  100% {
-    transform: rotateY(360deg);
-  }
-}
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+  /* Ink-saving: drop shadows and tinted surfaces, keep structure. */
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
-  to {
-    opacity: 1;
-  }
-}
 
-@keyframes pulse-subtle {
-  0% {
-    opacity: 0.3;
+  .card,
+  .print-sheet {
+    border: 1px solid #ccc !important;
+    background: #fff !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
-  50% {
-    opacity: 0.6;
+
+  a[href]::after {
+    content: "";
   }
-  100% {
-    opacity: 0.3;
+
+  table {
+    break-inside: auto;
   }
-}
 
-@keyframes pageFlip {
-  0% {
-    transform: rotateY(0deg);
-    box-shadow: -1px 0 5px rgba(0, 0, 0, 0.1);
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
-  100% {
-    transform: rotateY(-180deg);
-    box-shadow: 1px 0 5px rgba(0, 0, 0, 0.1);
+
+  thead {
+    display: table-header-group;
   }
-}
-
-@keyframes backdrop-appear {
-  0% {
-    opacity: 0;
-  }
-  100% {
-    opacity: 0.5;
-  }
-}
-
-.animate-backdrop-appear {
-  animation: backdrop-appear 0.3s ease-out forwards;
-}
-
-.animate-shimmer {
-  animation: shimmer 2.5s infinite;
-}
-
-.animate-book-flip {
-  animation: bookFlip 2s ease-in-out;
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 3s ease-in-out infinite;
-}
-
-.animate-toast-drop {
-  animation: modalAppear 0.4s ease-out;
 }

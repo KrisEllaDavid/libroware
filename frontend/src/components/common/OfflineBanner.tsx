@@ -1,45 +1,70 @@
-import React from 'react';
-import { useNetwork } from '../../context/NetworkContext';
+import React from "react";
+import { useNetwork } from "../../context/NetworkContext";
+import { Icon, Spinner, cn } from "../ui";
 
 const formatLastSynced = (date: Date): string => {
   const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
-  if (minutes < 1) return 'just now';
-  if (minutes === 1) return '1 minute ago';
-  return `${minutes} minutes ago`;
+  if (minutes < 1) return "just now";
+  if (minutes === 1) return "1 minute ago";
+  if (minutes < 60) return `${minutes} minutes ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours === 1) return "1 hour ago";
+  if (hours < 24) return `${hours} hours ago`;
+  return date.toLocaleDateString(undefined, { day: "numeric", month: "short" });
 };
 
+/**
+ * Connection status bar.
+ *
+ * Pinned to the bottom edge, above the home indicator. Amber for offline, blue
+ * while a queue drains — both at the `600` step rather than `500`, because
+ * white text on the lighter tone missed the 4.5:1 contrast floor, and this is
+ * the one strip of UI that has to stay readable on a bad screen in bad light.
+ */
 const OfflineBanner: React.FC = () => {
   const { isOnline, lastSyncedAt, pendingCount, isSyncing } = useNetwork();
 
   if (isOnline && !isSyncing) return null;
 
-  if (isOnline) {
-    return (
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-blue-500 dark:bg-blue-600 text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
-        <span className="w-2 h-2 rounded-full bg-white opacity-80 animate-pulse shrink-0" />
-        <span>
-          Syncing {pendingCount} action{pendingCount === 1 ? '' : 's'}...
-        </span>
-      </div>
-    );
-  }
+  const syncing = isOnline;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 bg-amber-500 dark:bg-amber-600 text-white text-sm py-2 px-4 flex items-center justify-center gap-2 shadow-lg">
-      <span className="w-2 h-2 rounded-full bg-white opacity-80 animate-pulse shrink-0" />
-      <span>
-        You're offline — showing cached data
-        {lastSyncedAt && (
-          <span className="opacity-75 ml-1 text-xs">
-            · Last synced {formatLastSynced(lastSyncedAt)}
-          </span>
+    <div
+      role="status"
+      aria-live="polite"
+      className={cn(
+        "fixed inset-x-0 bottom-0 z-nav flex items-center justify-center gap-2.5 px-4 py-2.5 text-sm font-medium text-white shadow-lg animate-slide-in-left",
+        "pb-[calc(0.625rem+env(safe-area-inset-bottom))]",
+        syncing ? "bg-blue-600" : "bg-amber-600"
+      )}
+    >
+      {syncing ? (
+        <Spinner size={15} />
+      ) : (
+        <Icon name="wifiOff" size={16} className="shrink-0" />
+      )}
+
+      <p className="min-w-0 truncate">
+        {syncing ? (
+          <>
+            Syncing {pendingCount} action{pendingCount === 1 ? "" : "s"}
+          </>
+        ) : (
+          <>
+            <span>You're offline — showing saved data</span>
+            {lastSyncedAt && (
+              <span className="ml-1.5 hidden text-white/80 sm:inline">
+                · last synced {formatLastSynced(lastSyncedAt)}
+              </span>
+            )}
+            {pendingCount > 0 && (
+              <span className="ml-1.5 text-white/80">
+                · {pendingCount} waiting to sync
+              </span>
+            )}
+          </>
         )}
-        {pendingCount > 0 && (
-          <span className="opacity-75 ml-1 text-xs">
-            · {pendingCount} action{pendingCount === 1 ? '' : 's'} waiting to sync
-          </span>
-        )}
-      </span>
+      </p>
     </div>
   );
 };

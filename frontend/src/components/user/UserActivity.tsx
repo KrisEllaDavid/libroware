@@ -1,8 +1,29 @@
 import React, { useState } from "react";
 import { useQuery } from "@apollo/client";
 import { gql } from "@apollo/client";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { fmtShort } from "../../utils/date";
+import {
+  BookCover,
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  StackedMeta,
+  StatusTag,
+  Table,
+  TableMessage,
+  TableSkeleton,
+  TableWrap,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Tabs,
+  TR,
+} from "../ui";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -50,30 +71,74 @@ type Borrow = {
   status: "BORROWED" | "RETURNED" | "OVERDUE";
 };
 
-const UserActivity: React.FC = () => {
+interface UserActivityProps {
+  /**
+   * Rendered inside the member dashboard's own tab strip, which already
+   * supplies a page heading. Standalone at `/activity` it supplies its own.
+   */
+  embedded?: boolean;
+}
+
+/** One row of the requests table. Both tabs share it; only the dates differ. */
+const BorrowRow: React.FC<{ borrow: Borrow; showReturned: boolean }> = ({
+  borrow,
+  showReturned,
+}) => (
+  <TR>
+    <TD className="max-w-[20rem]">
+      <div className="flex items-center gap-3">
+        <div className="hidden h-14 w-10 shrink-0 overflow-hidden rounded-md shadow-xs xs:block">
+          <BookCover
+            title={borrow.book.title}
+            src={borrow.book.coverImage}
+            size="sm"
+            rounded="rounded-md"
+          />
+        </div>
+        <div className="min-w-0">
+          <p className="break-words font-medium text-gray-900 dark:text-white">
+            {borrow.book.title}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+            {borrow.book.authors.map((a) => a.name).join(", ")}
+          </p>
+          <StackedMeta showBelow="sm">
+            {showReturned
+              ? `Returned ${fmtShort(borrow.returnedAt)}`
+              : `Due ${fmtShort(borrow.dueDate)}`}
+          </StackedMeta>
+        </div>
+      </div>
+    </TD>
+
+    <TD hideBelow="md" className="whitespace-nowrap">
+      {fmtShort(borrow.borrowedAt)}
+    </TD>
+
+    <TD hideBelow="sm" className="whitespace-nowrap">
+      {showReturned ? fmtShort(borrow.returnedAt) : fmtShort(borrow.dueDate)}
+    </TD>
+
+    <TD align="right">
+      <StatusTag
+        status={showReturned ? "RETURNED" : borrow.status}
+        label={showReturned ? "Completed" : "On loan"}
+      />
+    </TD>
+  </TR>
+);
+
+const UserActivity: React.FC<UserActivityProps> = ({ embedded = false }) => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"pending" | "history">("pending");
 
   // Fetch user borrows
-  const { loading, error, data } = useQuery(GET_USER_BORROWS, {
+  const { loading, error, data, refetch } = useQuery(GET_USER_BORROWS, {
     variables: { userId: user?.id },
     skip: !user?.id,
   });
 
-  const formatDate = fmtShort;
-
-  if (loading)
-    return (
-      <div className="flex justify-center py-8">Loading your activity...</div>
-    );
-  if (error)
-    return (
-      <div className="text-red-500">
-        Error loading your activity: {error.message}
-      </div>
-    );
-
-  const borrows = data?.userBorrows || [];
+  const borrows: Borrow[] = data?.userBorrows || [];
 
   // Filter borrows based on status
   const pendingBorrows = borrows.filter(
@@ -84,293 +149,98 @@ const UserActivity: React.FC = () => {
     (borrow: Borrow) => borrow.status === "RETURNED" || borrow.returnedAt
   );
 
+  const rows = activeTab === "pending" ? pendingBorrows : historyBorrows;
+  const showReturned = activeTab === "history";
+
+  const body = (
+    <Card>
+      {/* Counts sit in the tab itself rather than as a separate figure — the
+          number and the thing it counts belong together. */}
+      <Tabs
+        className="px-5 sm:px-6"
+        items={[
+          { id: "pending", label: "On loan", icon: "bookmark", count: pendingBorrows.length },
+          { id: "history", label: "History", icon: "history", count: historyBorrows.length },
+        ]}
+        active={activeTab}
+        onChange={(id) => setActiveTab(id as typeof activeTab)}
+      />
+
+      <TableWrap>
+        <Table>
+          <THead>
+            <TR className="hover:bg-transparent dark:hover:bg-transparent">
+              <TH>Book</TH>
+              <TH hideBelow="md">Requested</TH>
+              <TH hideBelow="sm">{showReturned ? "Returned" : "Due"}</TH>
+              <TH align="right">Status</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {loading ? (
+              <TableMessage colSpan={4}>
+                <TableSkeleton rows={4} cols={3} />
+              </TableMessage>
+            ) : error ? (
+              <TableMessage colSpan={4}>
+                <ErrorState message={error.message} onRetry={() => refetch()} />
+              </TableMessage>
+            ) : rows.length === 0 ? (
+              <TableMessage colSpan={4}>
+                <EmptyState
+                  icon={showReturned ? "history" : "books"}
+                  title={
+                    showReturned ? "No past requests" : "Nothing on loan"
+                  }
+                  description={
+                    showReturned
+                      ? "Books you've borrowed and returned will be listed here."
+                      : "You don't have any books out at the moment."
+                  }
+                  action={
+                    !showReturned ? (
+                      <Link to="/books">
+                        <Button variant="primary" icon="books">
+                          Browse the library
+                        </Button>
+                      </Link>
+                    ) : undefined
+                  }
+                />
+              </TableMessage>
+            ) : (
+              rows.map((borrow) => (
+                <BorrowRow
+                  key={borrow.id}
+                  borrow={borrow}
+                  showReturned={showReturned}
+                />
+              ))
+            )}
+          </TBody>
+        </Table>
+      </TableWrap>
+    </Card>
+  );
+
+  if (embedded) return body;
+
   return (
-    <div className="p-4 sm:p-6 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-100 dark:border-gray-700">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          Book Requests
-        </h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Pending / History
-        </p>
-      </div>
-
-      {/* Tabs */}
-      <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
-        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
-          <button
-            onClick={() => setActiveTab("pending")}
-            className={`${
-              activeTab === "pending"
-                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-5 border-b-2 font-medium text-sm`}
-            aria-current={activeTab === "pending" ? "page" : undefined}
-          >
-            Pending
-            {pendingBorrows.length > 0 && (
-              <span
-                className={`ml-2 px-5 py-0.5 rounded-full text-xs font-medium 
-                ${
-                  activeTab === "pending"
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
-                    : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}
-              >
-                {pendingBorrows.length}
-              </span>
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("history")}
-            className={`${
-              activeTab === "history"
-                ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
-                : "border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:border-gray-300"
-            } whitespace-nowrap py-4 px-5 border-b-2 font-medium text-sm`}
-            aria-current={activeTab === "history" ? "page" : undefined}
-          >
-            History
-            {historyBorrows.length > 0 && (
-              <span
-                className={`ml-2 px-5 py-0.5 rounded-full text-xs font-medium 
-                ${
-                  activeTab === "history"
-                    ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200"
-                    : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
-                }`}
-              >
-                {historyBorrows.length}
-              </span>
-            )}
-          </button>
-        </nav>
-      </div>
-
-      {/* Content */}
-      <div>
-        {activeTab === "pending" && (
-          <>
-            {pendingBorrows.length === 0 ? (
-              <div className="text-center py-10">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                  No pending requests
-                </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  You don't have any pending book requests at the moment.
-                </p>
-                <div className="mt-6">
-                  <a
-                    href="/books"
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                  >
-                    Browse Library
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Book
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Request Date
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Due Date
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-                    {pendingBorrows.map((borrow: Borrow) => (
-                      <tr key={borrow.id}>
-                        <td className="px-4 py-4 whitespace-normal">
-                          <div className="flex items-center">
-                            {borrow.book.coverImage ? (
-                              <img
-                                src={borrow.book.coverImage}
-                                alt={borrow.book.title}
-                                className="w-10 h-14 object-cover rounded-sm mr-3 flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-10 h-14 bg-gray-200 dark:bg-gray-700 rounded-sm mr-3 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs flex-shrink-0">
-                                No image
-                              </div>
-                            )}
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
-                                {borrow.book.title}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 break-words">
-                                {borrow.book.authors
-                                  .map((author) => author.name)
-                                  .join(", ")}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(borrow.borrowedAt)}
-                        </td>
-                        <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(borrow.dueDate)}
-                        </td>
-                        <td className="px-4 py-4 whitespace-normal">
-                          <span className="px-5 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                            Pending Approval
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-
-        {activeTab === "history" && (
-          <>
-            {historyBorrows.length === 0 ? (
-              <div className="text-center py-10">
-                <svg
-                  className="mx-auto h-12 w-12 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1}
-                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                  />
-                </svg>
-                <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">
-                  No request history
-                </h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  You haven't made any book requests yet.
-                </p>
-                <div className="mt-6">
-                  <a
-                    href="/books"
-                    className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-                  >
-                    Browse Library
-                  </a>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Book
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Requested Date
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Returned Date
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                      >
-                        Status
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-                    {historyBorrows.map((borrow: Borrow) => (
-                      <tr key={borrow.id}>
-                        <td className="px-4 py-4 whitespace-normal">
-                          <div className="flex items-center">
-                            {borrow.book.coverImage ? (
-                              <img
-                                src={borrow.book.coverImage}
-                                alt={borrow.book.title}
-                                className="w-10 h-14 object-cover rounded-sm mr-3 flex-shrink-0"
-                              />
-                            ) : (
-                              <div className="w-10 h-14 bg-gray-200 dark:bg-gray-700 rounded-sm mr-3 flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs flex-shrink-0">
-                                No image
-                              </div>
-                            )}
-                            <div>
-                              <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
-                                {borrow.book.title}
-                              </div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400 break-words">
-                                {borrow.book.authors
-                                  .map((author) => author.name)
-                                  .join(", ")}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(borrow.borrowedAt)}
-                        </td>
-                        <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">
-                          {formatDate(borrow.returnedAt)}
-                        </td>
-                        <td className="px-4 py-4 whitespace-normal">
-                          <span className="px-5 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                            Completed
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+    <div className="app-shell page">
+      <PageHeader
+        icon="history"
+        eyebrow="My library"
+        title="Book requests"
+        description="Everything you have out on loan, and everything you've returned."
+        actions={
+          <Link to="/books">
+            <Button variant="primary" icon="books">
+              Browse the library
+            </Button>
+          </Link>
+        }
+      />
+      {body}
     </div>
   );
 };

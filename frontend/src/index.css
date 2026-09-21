@@ -1,12 +1,105 @@
-@import url("https://api.fontshare.com/v2/css?f[]=clash-grotesk@400,500,600,700&display=swap");
+@import url("https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700,900&f[]=clash-grotesk@500,600,700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Tokens
+
+   The Tailwind ramps in tailwind.config.js are the source of truth for colour.
+   These variables exist for the handful of places that need a raw value —
+   chart series, inline SVG fills, gradient stops — so charts and components
+   never drift apart.
+   ─────────────────────────────────────────────────────────────────────────── */
+:root {
+  --brand-50: #eef7f2;
+  --brand-100: #d7ece0;
+  --brand-200: #b0d9c4;
+  --brand-300: #83c2a3;
+  --brand-400: #55a682;
+  --brand-500: #2f8a66;
+  --brand-600: #1f7454;
+  --brand-700: #195c44;
+  --brand-800: #164a38;
+  --brand-900: #133c2f;
+
+  --ink-50: #fafaf8;
+  --ink-100: #f4f4f1;
+  --ink-200: #e8e8e3;
+  --ink-300: #d6d6d0;
+  --ink-400: #a8a8a0;
+  --ink-500: #7b7b73;
+  --ink-600: #5c5c55;
+  --ink-700: #45453f;
+  --ink-800: #2c2c28;
+  --ink-900: #1c1c19;
+
+  --amber-500: #c9822a;
+  --amber-600: #a96620;
+  --red-500: #c44e46;
+  --red-600: #a73b34;
+  --blue-500: #3a72ac;
+  --blue-600: #2b5b8f;
+  --purple-500: #6a57a3;
+
+  /* Surfaces — semantic aliases used by the component layer below. */
+  --surface: #ffffff;
+  --surface-sunken: #f4f4f1;
+  --surface-raised: #ffffff;
+  --hairline: #e8e8e3;
+
+  /* Chart chrome. Recharts needs concrete strings, not Tailwind classes. */
+  --chart-grid: #e8e8e3;
+  --chart-axis: #7b7b73;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e8e8e3;
+  --chart-tooltip-text: #2c2c28;
+
+  /* Fixed chrome heights, so sticky offsets stop being magic numbers. */
+  --nav-h: 4rem;
+
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-soft: cubic-bezier(0.4, 0.14, 0.3, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark {
+  --surface: #1c1c19;
+  --surface-sunken: #121210;
+  --surface-raised: #2c2c28;
+  --hairline: #45453f;
+
+  --chart-grid: #45453f;
+  --chart-axis: #a8a8a0;
+  --chart-tooltip-bg: #2c2c28;
+  --chart-tooltip-border: #45453f;
+  --chart-tooltip-text: #f4f4f1;
+}
+
+/* ───────────────────────────────────────────────────────────────────────────
+   Base
+   ─────────────────────────────────────────────────────────────────────────── */
 @layer base {
   html {
-    font-family: "Clash Grotesk", sans-serif;
+    font-family: "Satoshi", "Clash Grotesk", system-ui, sans-serif;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-800 dark:bg-gray-950 dark:text-gray-200;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    /* Keep content clear of the iOS home indicator / Android nav bar. */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   h1,
@@ -15,16 +108,26 @@
   h4,
   h5,
   h6 {
-    font-family: "Clash Grotesk", sans-serif;
+    font-family: "Clash Grotesk", "Satoshi", system-ui, sans-serif;
+    @apply tracking-tight;
+    text-wrap: balance;
   }
 
-  body {
-    @apply text-gray-800 bg-white dark:bg-gray-900 dark:text-gray-200;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  p {
+    text-wrap: pretty;
   }
 
-  body.mobile-menu-open {
+  /* Data reads as data: figures line up column to column. */
+  table,
+  .tabular,
+  time,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  body.mobile-menu-open,
+  body.modal-open {
     @apply overflow-hidden;
   }
 
@@ -32,7 +135,65 @@
     @apply font-mono;
   }
 
-  /* Fix for autofill styling in forms */
+  /* One focus treatment for the entire app. Visible for keyboard users,
+     invisible for mouse users, never removed outright. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-emerald-500/60 ring-offset-2 ring-offset-white dark:ring-offset-gray-900;
+    border-radius: 0.375rem;
+  }
+
+  ::selection {
+    @apply bg-emerald-200 text-emerald-900;
+  }
+
+  .dark ::selection {
+    @apply bg-emerald-800 text-emerald-50;
+  }
+
+  /* Scrollbars, toned to the surface instead of the OS default slab. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme("colors.gray.300") transparent;
+  }
+
+  .dark * {
+    scrollbar-color: theme("colors.gray.700") transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full border-4 border-solid border-transparent bg-gray-300 dark:bg-gray-700;
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400 dark:bg-gray-600;
+    background-clip: content-box;
+  }
+
+  /* Inputs must never zoom the viewport on iOS — that needs >=16px. */
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 0.875rem);
+  }
+
+  @media (min-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: 0.875rem;
+    }
+  }
+
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
@@ -47,184 +208,400 @@
   .dark input:-webkit-autofill:focus {
     -webkit-text-fill-color: white;
   }
+
+  /* Date pickers ship a black glyph that disappears on a dark surface. */
+  .dark input[type="date"]::-webkit-calendar-picker-indicator,
+  .dark input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1) opacity(0.6);
+  }
+
+  [hidden] {
+    display: none !important;
+  }
 }
 
+/* ───────────────────────────────────────────────────────────────────────────
+   Components
+
+   Every recipe here is squared off rather than pill-shaped, and opaque rather
+   than translucent. Elevation comes from a tinted shadow plus a hairline, not
+   from a blur.
+   ─────────────────────────────────────────────────────────────────────────── */
 @layer components {
+  /* ── Layout shell ──────────────────────────────────────────────────────── */
+  .app-shell {
+    @apply mx-auto w-full max-w-shell px-4 sm:px-6 lg:px-8;
+  }
+
+  .page {
+    @apply space-y-6 py-6 sm:space-y-8 sm:py-8;
+  }
+
+  /* ── Buttons ───────────────────────────────────────────────────────────── */
   .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium 
-    transition-colors focus-visible:outline-none focus-visible:ring-2 
-    focus-visible:ring-emerald-500 focus-visible:ring-offset-2 
-    disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex select-none items-center justify-center gap-2 rounded-lg
+    text-sm font-medium leading-none transition-all duration-200 ease-soft
+    active:scale-[0.985] disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply h-9 px-3 text-[0.8125rem];
+  }
+
+  .btn-md {
+    @apply h-10 px-4;
+  }
+
+  .btn-lg {
+    @apply h-11 px-5 text-[0.9375rem];
   }
 
   .btn-primary {
-    @apply bg-emerald-500 text-white hover:bg-emerald-600 h-10 px-4 py-2;
+    @apply bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 hover:shadow-md
+    dark:bg-emerald-600 dark:hover:bg-emerald-500;
   }
 
   .btn-secondary {
-    @apply bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 h-10 px-4 py-2;
+    @apply border border-gray-200 bg-white text-gray-700 shadow-xs hover:border-gray-300
+    hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200
+    dark:hover:border-gray-600 dark:hover:bg-gray-700;
+  }
+
+  .btn-ghost {
+    @apply text-gray-600 hover:bg-gray-100 hover:text-gray-900
+    dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-white;
   }
 
   .btn-destructive {
-    @apply bg-red-500 text-white hover:bg-red-600 h-10 px-4 py-2;
+    @apply bg-red-600 text-white shadow-sm hover:bg-red-700 hover:shadow-md;
   }
 
   .btn-outline {
-    @apply border border-gray-300 bg-white hover:bg-gray-50 hover:text-gray-900;
+    @apply border border-emerald-600 text-emerald-700 hover:bg-emerald-50
+    dark:border-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-900/30;
   }
 
-  .input {
-    @apply flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm 
-    file:border-0 file:bg-transparent file:text-sm file:font-medium 
-    placeholder:text-gray-400 focus-visible:outline-none focus-visible:ring-2 
-    focus-visible:ring-emerald-500 focus-visible:ring-offset-2 
-    disabled:cursor-not-allowed disabled:opacity-50;
+  /* Icon-only control. Square with a soft radius — not a circle. */
+  .btn-icon {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg text-gray-500
+    transition-all duration-200 ease-soft hover:bg-gray-100 hover:text-gray-900
+    active:scale-95 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white;
   }
 
+  /* ── Surfaces ──────────────────────────────────────────────────────────── */
   .card {
-    @apply rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden;
+    @apply rounded-xl border border-gray-200 bg-white shadow-sm
+    dark:border-gray-800 dark:bg-gray-900;
+  }
+
+  .card-interactive {
+    @apply transition-all duration-250 ease-spring hover:-translate-y-0.5
+    hover:border-gray-300 hover:shadow-lg dark:hover:border-gray-700;
   }
 
   .card-header {
-    @apply flex flex-col space-y-1.5 p-6;
+    @apply flex flex-col gap-1 border-b border-gray-200 px-5 py-4 dark:border-gray-800 sm:px-6;
   }
 
   .card-title {
-    @apply text-xl font-semibold leading-none tracking-tight;
+    @apply font-display text-base font-semibold tracking-tight text-gray-900 dark:text-white;
   }
 
   .card-description {
-    @apply text-sm text-gray-500;
+    @apply text-sm text-gray-500 dark:text-gray-400;
   }
 
   .card-content {
-    @apply p-6 pt-0;
+    @apply px-5 py-5 sm:px-6;
   }
 
   .card-footer {
-    @apply flex items-center p-6 pt-0;
+    @apply flex items-center gap-3 border-t border-gray-200 px-5 py-4 dark:border-gray-800 sm:px-6;
   }
 
+  /* ── Form controls ─────────────────────────────────────────────────────── */
+  .input {
+    @apply block h-10 w-full rounded-lg border border-gray-200 bg-white px-3 text-sm
+    text-gray-900 shadow-xs transition-all duration-200 ease-soft
+    placeholder:text-gray-400 hover:border-gray-300
+    focus:border-emerald-500 focus:outline-none focus:ring-4 focus:ring-emerald-500/20
+    disabled:cursor-not-allowed disabled:bg-gray-50 disabled:opacity-60
+    dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500
+    dark:hover:border-gray-600 dark:focus:border-emerald-500 dark:disabled:bg-gray-900;
+  }
+
+  textarea.input {
+    @apply h-auto py-2.5 leading-relaxed;
+  }
+
+  select.input {
+    @apply cursor-pointer appearance-none bg-no-repeat pr-9;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%237B7B73' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-position: right 0.65rem center;
+    background-size: 1rem;
+  }
+
+  .dark select.input {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23A8A8A0' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round' viewBox='0 0 24 24'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  }
+
+  select.input[multiple] {
+    @apply h-auto bg-none py-1.5 pr-3;
+  }
+
+  .input-invalid {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500/20 dark:border-red-500;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300;
+  }
+
+  .field-hint {
+    @apply mt-1.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400;
+  }
+
+  .field-error {
+    @apply mt-1.5 flex items-center gap-1 text-xs font-medium text-red-600 dark:text-red-400;
+  }
+
+  /* ── Tags ──────────────────────────────────────────────────────────────── */
+  /* Rectangular with a soft radius. Reads as a data label, not a marketing pill. */
+  .tag {
+    @apply inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5
+    text-xs font-medium leading-5 whitespace-nowrap;
+  }
+
+  .tag-neutral {
+    @apply border-gray-200 bg-gray-100 text-gray-700
+    dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300;
+  }
+
+  .tag-brand {
+    @apply border-emerald-200 bg-emerald-50 text-emerald-800
+    dark:border-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200;
+  }
+
+  .tag-warning {
+    @apply border-amber-200 bg-amber-50 text-amber-800
+    dark:border-amber-800 dark:bg-amber-900/40 dark:text-amber-200;
+  }
+
+  .tag-danger {
+    @apply border-red-200 bg-red-50 text-red-800
+    dark:border-red-800 dark:bg-red-900/40 dark:text-red-200;
+  }
+
+  .tag-info {
+    @apply border-blue-200 bg-blue-50 text-blue-800
+    dark:border-blue-800 dark:bg-blue-900/40 dark:text-blue-200;
+  }
+
+  /* Legacy aliases — kept so untouched markup keeps rendering sensibly. */
   .badge {
-    @apply inline-flex items-center rounded-full border px-5 py-0.5 text-xs font-semibold 
-    transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2;
+    @apply tag tag-neutral;
   }
 
   .badge-primary {
-    @apply bg-emerald-500 text-white hover:bg-emerald-600 border-transparent;
+    @apply tag-brand;
   }
 
   .badge-secondary {
-    @apply bg-blue-100 text-blue-800 hover:bg-blue-200 border-transparent;
+    @apply tag-info;
   }
 
   .badge-outline {
-    @apply text-gray-900 border-gray-200;
+    @apply tag-neutral;
   }
 
-  .float-input-wrapper {
-    @apply relative mx-auto w-full rounded-md overflow-hidden;
+  /* ── Tabs ──────────────────────────────────────────────────────────────── */
+  /* Underlined rather than filled. Filled pill tabs are the single loudest
+     "generated interface" tell, and they fight the brand fill in the nav. */
+  .tab-bar {
+    @apply -mb-px flex items-stretch gap-1 overflow-x-auto scrollbar-none;
   }
 
-  .float-input {
-    @apply block w-full px-3 border-0 border-b border-gray-300 bg-transparent 
-    focus:ring-0 focus:border-emerald-500 sm:text-sm sm:leading-6 transition-colors
-    dark:text-white dark:border-gray-700 dark:focus:border-emerald-500;
+  .tab {
+    @apply relative inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2
+    border-transparent px-3 py-3 text-sm font-medium text-gray-500
+    transition-colors duration-200 ease-soft hover:text-gray-900
+    dark:text-gray-400 dark:hover:text-white sm:px-4;
   }
 
-  .float-input:focus {
-    @apply outline-none border-b-2 border-emerald-500;
+  .tab-active {
+    @apply border-emerald-600 text-emerald-700 dark:border-emerald-400 dark:text-emerald-300;
   }
 
-  .float-input:hover {
-    @apply border-b border-emerald-500;
-    box-shadow: 0 1px 0 0 rgba(16, 185, 129, 0.4);
+  /* Segmented control for binary/ternary filters. */
+  .segment {
+    @apply inline-flex items-center rounded-lg border border-gray-200 bg-gray-100 p-0.5
+    dark:border-gray-700 dark:bg-gray-800;
   }
 
-  .dark .float-input:hover {
-    @apply border-emerald-400;
-    box-shadow: 0 1px 0 0 rgba(52, 211, 153, 0.4);
+  .segment-item {
+    @apply rounded-md px-3 py-1.5 text-[0.8125rem] font-medium text-gray-600
+    transition-all duration-200 ease-soft hover:text-gray-900
+    dark:text-gray-400 dark:hover:text-white;
   }
 
-  .float-label {
-    @apply absolute left-3 top-4 text-gray-500 font-medium pointer-events-none origin-left
-    transition-all duration-200 ease-out;
+  .segment-item-active {
+    @apply bg-white text-gray-900 shadow-xs dark:bg-gray-700 dark:text-white;
   }
 
-  .float-input:focus ~ .float-label {
-    @apply top-2 text-xs text-emerald-500;
-  }
-
-  .dark .float-input:focus ~ .float-label {
-    @apply text-emerald-400;
-  }
-
-  .float-input:not(:placeholder-shown) ~ .float-label {
-    @apply top-2 text-xs text-emerald-500;
-  }
-
-  .dark .float-input:not(:placeholder-shown) ~ .float-label {
-    @apply text-emerald-400;
-  }
-
-  .float-highlight {
-    @apply absolute inset-0 bg-emerald-50/10 dark:bg-emerald-900/10 -z-10
-    scale-x-0 origin-left transition-transform duration-300 ease-out;
-  }
-
-  .float-input:focus ~ .float-highlight {
-    @apply scale-x-100;
-  }
-
-  /* Responsive table container for horizontal scrolling */
-  .table-container {
-    @apply w-full overflow-x-auto pb-2;
+  /* ── Tables ────────────────────────────────────────────────────────────── */
+  .table-wrap {
+    @apply w-full overflow-x-auto;
     -webkit-overflow-scrolling: touch;
   }
 
-  /* Mobile optimized table */
-  .responsive-table {
-    @apply min-w-full divide-y divide-gray-200 dark:divide-gray-700;
+  .data-table {
+    @apply min-w-full border-collapse text-sm;
   }
 
-  /* Mobile optimized grid containers */
+  .data-table thead th {
+    @apply sticky top-0 z-raised whitespace-nowrap border-b border-gray-200 bg-gray-50
+    px-4 py-3 text-left text-2xs font-semibold uppercase tracking-wider text-gray-500
+    dark:border-gray-800 dark:bg-gray-900 dark:text-gray-400;
+  }
+
+  .data-table tbody tr {
+    @apply border-b border-gray-100 transition-colors duration-150
+    last:border-0 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/60;
+  }
+
+  .data-table tbody td {
+    @apply px-4 py-3 align-middle text-gray-700 dark:text-gray-300;
+  }
+
+  .table-container {
+    @apply table-wrap;
+  }
+
+  .responsive-table {
+    @apply data-table;
+  }
+
+  /* ── Misc ──────────────────────────────────────────────────────────────── */
+  .skeleton {
+    @apply relative overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-800;
+  }
+
+  .skeleton::after {
+    @apply absolute inset-0 -translate-x-full;
+    content: "";
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.35),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
+
+  .dark .skeleton::after {
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.06),
+      transparent
+    );
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .skeleton::after {
+      animation: none;
+    }
+  }
+
+  .hairline {
+    @apply border-gray-200 dark:border-gray-800;
+  }
+
   .responsive-grid {
     @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
   }
 
-  /* Mobile responsive card */
   .mobile-card {
-    @apply rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden dark:bg-gray-800 dark:border-gray-700 
-    p-4 flex flex-col h-full;
+    @apply card flex h-full flex-col p-4;
   }
 
-  /* Responsive tab navigation */
   .responsive-tabs {
-    @apply flex overflow-x-auto pb-1;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .responsive-tabs::-webkit-scrollbar {
-    @apply hidden;
-  }
-
-  /* Modal styling */
-  .modal-open {
-    @apply overflow-hidden;
+    @apply tab-bar;
   }
 
   .modal-backdrop {
-    @apply fixed inset-0 bg-black bg-opacity-50 z-40;
+    @apply fixed inset-0 z-backdrop bg-gray-900/40 dark:bg-gray-950/60;
   }
 
-  /* Ring styles for focus states */
-  .ring-emerald-500\/30 {
-    @apply ring-2 ring-emerald-500 ring-opacity-30;
+  /* Floating-label input, kept for the existing FloatingInput component. */
+  .float-input-wrapper {
+    @apply relative w-full;
+  }
+
+  .float-input {
+    @apply block w-full rounded-lg border border-gray-200 bg-white px-3 text-sm
+    text-gray-900 shadow-xs transition-all duration-200 ease-soft
+    hover:border-gray-300 focus:border-emerald-500 focus:outline-none
+    focus:ring-4 focus:ring-emerald-500/20
+    dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:hover:border-gray-600;
+  }
+
+  .float-label {
+    @apply pointer-events-none absolute left-3 origin-left text-gray-500
+    transition-all duration-200 ease-soft dark:text-gray-400;
   }
 }
 
-/* Animations */
+/* ───────────────────────────────────────────────────────────────────────────
+   Utilities
+   ─────────────────────────────────────────────────────────────────────────── */
+@layer utilities {
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Staggered entrance. Set --i on each child to cascade them in. */
+  .stagger > * {
+    animation: fadeUp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 45ms);
+  }
+
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 0.5rem);
+  }
+
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+}
+
+/* Legacy animation names still referenced across the app. Redefined here on
+   the new easing curve so older markup inherits the softer motion. */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -234,111 +611,31 @@
   }
 }
 
-@keyframes slideIn {
+@keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateX(20px);
+    transform: translate3d(0, 10px, 0);
   }
   to {
     opacity: 1;
-    transform: translateX(0);
+    transform: translate3d(0, 0, 0);
   }
 }
 
-@keyframes slideInRight {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes slideLeft {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-100%);
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
   }
 }
 
 @keyframes modalAppear {
   from {
     opacity: 0;
-    transform: scale(0.95) translateY(10px);
+    transform: scale(0.97) translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
-    transform: scale(1) translateY(0);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.6;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-150%) skewX(-45deg);
-  }
-  100% {
-    transform: translateX(150%) skewX(-45deg);
-  }
-}
-
-@keyframes pulseSubtle {
-  0% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 0.3;
-  }
-}
-
-@keyframes slideOutRight {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-}
-
-@keyframes slideOutLeft {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateX(-20px);
+    transform: scale(1) translate3d(0, 0, 0);
   }
 }
 
@@ -347,119 +644,41 @@
     opacity: 0;
   }
   to {
-    opacity: 0.5;
+    opacity: 1;
   }
 }
 
-@keyframes loadingBar {
-  0% {
-    width: 0;
-  }
-  100% {
-    width: 100%;
-  }
-}
-
-@keyframes bounce {
+@keyframes pulseSubtle {
   0%,
   100% {
-    transform: translateY(0);
+    opacity: 0.4;
   }
   50% {
-    transform: translateY(-10px);
+    opacity: 0.75;
   }
 }
 
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.animate-modal-appear,
+.animate-toast-drop {
+  animation: modalAppear 260ms var(--ease-spring) both;
 }
 
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  .animate-slide-in {
-    animation: slideIn 0.3s ease-out;
-  }
-
-  .animate-slide-in-right {
-    animation: slideInRight 0.3s ease-out;
-  }
-
-  .animate-slide-in-left {
-    animation: slideInLeft 0.3s ease-out;
-  }
-
-  .animate-slide-left {
-    animation: slideLeft 0.3s ease-out;
-  }
-
-  .animate-modal-appear {
-    animation: modalAppear 0.3s ease-out;
-  }
-
-  .animate-pulse-subtle {
-    animation: pulseSubtle 3s ease-in-out infinite;
-  }
-
-  .animate-shimmer {
-    animation: shimmer 2.5s infinite;
-  }
-
-  .animate-backdrop-appear {
-    animation: backdropAppear 0.3s ease-out forwards;
-  }
-
-  .animate-pulse {
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  .animate-bounce {
-    animation: bounce 1s ease-in-out infinite;
-  }
-
-  .animate-rotate {
-    animation: rotate 1s linear infinite;
-  }
-
-  .animate-loadingBar {
-    animation: loadingBar 2s ease-out forwards;
-  }
-
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
-  }
-
-  .scrollbar-none {
-    scrollbar-width: none; /* Firefox */
-  }
-
-  .transition-colors {
-    transition-property: background-color, border-color, color, fill, stroke;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-  }
-
-  .animate-slide-out-right {
-    animation: slideOutRight 0.3s ease-out;
-  }
-
-  .animate-slide-out-left {
-    animation: slideOutLeft 0.3s ease-out;
-  }
-
-  .touch-pan-x {
-    touch-action: pan-x;
-  }
+.animate-backdrop-appear {
+  animation: backdropAppear 220ms var(--ease-soft) forwards;
 }
 
-/* This class adds additional blur when modals are open */
-.modal-open {
-  @apply overflow-hidden;
+.animate-pulse-subtle {
+  animation: pulseSubtle 3s ease-in-out infinite;
+}
+
+/* Respect the OS setting. Anything decorative stops; nothing disappears. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

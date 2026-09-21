@@ -1,6 +1,8 @@
 import React, { useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useTranslation } from 'react-i18next';
+import Modal from '../Modal';
+import { Icon } from '../ui';
 
 interface Props {
   book: {
@@ -12,6 +14,13 @@ interface Props {
   onClose: () => void;
 }
 
+/**
+ * Shelf label for a single title.
+ *
+ * Built on the shared Modal rather than its own fixed overlay, so it gets the
+ * escape key, the focus trap, the scroll lock and the mobile sheet behaviour
+ * the rest of the app's dialogs have.
+ */
 const BookQRModal: React.FC<Props> = ({ book, onClose }) => {
   const { t } = useTranslation();
   const printRef = useRef<HTMLDivElement>(null);
@@ -37,37 +46,51 @@ const BookQRModal: React.FC<Props> = ({ book, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 w-72 flex flex-col items-center gap-4" onClick={e => e.stopPropagation()}>
-        <h2 className="text-base font-semibold text-gray-900 dark:text-white text-center">{book.title}</h2>
+    <Modal
+      isOpen
+      size="sm"
+      type="form"
+      title={t('qr.title', 'Shelf label')}
+      confirmText={t('qr.print')}
+      cancelText={t('qr.close')}
+      showToast={false}
+      onConfirm={handlePrint}
+      onCancel={onClose}
+      keepOpenOnConfirm
+    >
+      <div className="flex flex-col items-center gap-4">
+        <p className="text-center text-sm font-medium text-gray-900 dark:text-white">
+          {book.title}
+        </p>
 
-        {/* QR code */}
-        <div ref={printRef} className="label text-center">
+        {/* The QR sits on a permanently white card even in dark mode: the code
+            has to stay high-contrast for a scanner, and this is exactly what
+            gets sent to the printer. */}
+        <div
+          ref={printRef}
+          className="label rounded-xl border border-gray-200 bg-white p-4 text-center shadow-xs dark:border-gray-700"
+        >
           <QRCodeSVG
             value={book.isbn}
-            size={180}
+            size={168}
             level="M"
             includeMargin
             style={{ display: 'block', margin: '0 auto' }}
           />
-          <p className="title">{book.title}</p>
-          <p className="isbn">{t('browseBooks.isbnLabel')} {book.isbn}</p>
+          <p className="title mt-2.5 break-words text-[13px] font-semibold text-gray-900">
+            {book.title}
+          </p>
+          <p className="isbn mt-1 font-mono text-[11px] text-gray-500">
+            {t('browseBooks.isbnLabel')} {book.isbn}
+          </p>
         </div>
 
-        <p className="text-xs text-gray-400 text-center">{t('qr.encodes')}</p>
-
-        <div className="flex gap-3 w-full">
-          <button onClick={onClose}
-            className="flex-1 py-2 px-4 rounded-lg border border-gray-300 dark:border-gray-600 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-            {t('qr.close')}
-          </button>
-          <button onClick={handlePrint}
-            className="flex-1 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium transition-all">
-            {t('qr.print')}
-          </button>
-        </div>
+        <p className="flex items-center gap-1.5 text-center text-xs text-gray-500 dark:text-gray-400">
+          <Icon name="info" size={13} className="shrink-0" />
+          {t('qr.encodes')}
+        </p>
       </div>
-    </div>
+    </Modal>
   );
 };
 

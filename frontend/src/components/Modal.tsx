@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useId } from "react";
+import React, { useEffect, useRef, useId, useCallback } from "react";
 import ReactDOM from "react-dom";
 import { useToast } from "../context/ToastContext";
+import { Button, Icon, IconName, cn } from "./ui";
 
 interface ModalProps {
   isOpen: boolean;
@@ -8,7 +9,8 @@ interface ModalProps {
   message?: React.ReactNode;
   confirmText?: string;
   cancelText?: string;
-  onConfirm?: () => void | Promise<void>;
+  /** May return a promise of anything — a mutation result is fine. */
+  onConfirm?: () => unknown | Promise<unknown>;
   onCancel?: () => void;
   children?: React.ReactNode;
   type?:
@@ -36,6 +38,47 @@ interface ModalProps {
   keepOpenOnConfirm?: boolean;
 }
 
+/** Icon + accent per modal type. Replaces the emoji that used to sit in the title. */
+const TYPE_STYLE: Record<
+  NonNullable<ModalProps["type"]>,
+  { icon: IconName | null; chip: string } | null
+> = {
+  success: {
+    icon: "checkCircle",
+    chip: "border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-400",
+  },
+  warning: {
+    icon: "warning",
+    chip: "border-amber-100 bg-amber-50 text-amber-600 dark:border-amber-900 dark:bg-amber-950/60 dark:text-amber-400",
+  },
+  danger: {
+    icon: "alert",
+    chip: "border-red-100 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950/60 dark:text-red-400",
+  },
+  delete: {
+    icon: "trash",
+    chip: "border-red-100 bg-red-50 text-red-600 dark:border-red-900 dark:bg-red-950/60 dark:text-red-400",
+  },
+  info: {
+    icon: "info",
+    chip: "border-blue-100 bg-blue-50 text-blue-600 dark:border-blue-900 dark:bg-blue-950/60 dark:text-blue-400",
+  },
+  confirm: {
+    icon: "checkCircle",
+    chip: "border-emerald-100 bg-emerald-50 text-emerald-600 dark:border-emerald-900 dark:bg-emerald-950/60 dark:text-emerald-400",
+  },
+  // Forms carry their own heading; an icon would just add noise.
+  form: null,
+};
+
+const SIZES = {
+  sm: "sm:max-w-sm",
+  md: "sm:max-w-md",
+  lg: "sm:max-w-2xl",
+  xl: "sm:max-w-3xl",
+  full: "sm:max-w-5xl",
+};
+
 const Modal: React.FC<ModalProps> = ({
   isOpen,
   title,
@@ -62,39 +105,38 @@ const Modal: React.FC<ModalProps> = ({
   const getEntityName = () => {
     if (entityName) return entityName;
 
-    // Try to extract from title if it's a string
     if (typeof title === "string") {
-      // Check for common patterns like "Delete User", "Edit Book", etc.
-      const matches = title.match(/(?:Delete|Edit|Add|Create)\s+(?:New\s+)?(\w+)$/i);
+      const matches = title.match(
+        /(?:Delete|Edit|Add|Create)\s+(?:New\s+)?(\w+)$/i
+      );
       if (matches && matches[1]) {
-        return matches[1]; // Return the captured entity name
+        return matches[1];
       }
     }
 
-    return "Item"; // Default fallback
+    return "Item";
   };
 
-  // Generate a specific success message based on action and entity
   const generateSuccessMessage = () => {
     const entity = getEntityName();
 
     if (successMessage) return successMessage;
 
     if (type === "delete") {
-      return `${entity} deleted successfully`;
+      return `${entity} deleted`;
     } else if (type === "form") {
       if (confirmText.includes("Add") || confirmText.includes("Create")) {
-        return `${entity} created successfully`;
+        return `${entity} created`;
       } else if (
         confirmText.includes("Edit") ||
         confirmText.includes("Update")
       ) {
-        return `${entity} updated successfully`;
+        return `${entity} updated`;
       } else {
-        return `${entity} saved successfully`;
+        return `${entity} saved`;
       }
     } else {
-      return `Action completed successfully`;
+      return `Done`;
     }
   };
 
@@ -123,8 +165,7 @@ const Modal: React.FC<ModalProps> = ({
     }
   };
 
-  // Handle cancel action with toast notification
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
     if (onCancel) {
       onCancel();
 
@@ -132,7 +173,7 @@ const Modal: React.FC<ModalProps> = ({
         addToast(cancelMessage, "info");
       }
     }
-  };
+  }, [onCancel, showToast, cancelMessage, addToast]);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -141,182 +182,183 @@ const Modal: React.FC<ModalProps> = ({
       }
     };
 
-    // Add class to body when modal is open to prevent scrolling
     if (isOpen) {
-      // Calculate scrollbar width to prevent layout shift
+      // Reserve the scrollbar's width so locking the body doesn't shift the
+      // page sideways behind the backdrop.
       const scrollbarWidth =
         window.innerWidth - document.documentElement.clientWidth;
       document.documentElement.style.setProperty(
         "--scrollbar-width",
         `${scrollbarWidth}px`
       );
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
       document.body.classList.add("modal-open");
     } else {
       document.body.classList.remove("modal-open");
+      document.body.style.paddingRight = "";
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => {
       window.removeEventListener("keydown", handleEscape);
       document.body.classList.remove("modal-open");
+      document.body.style.paddingRight = "";
     };
-  }, [isOpen, onCancel]);
+  }, [isOpen, handleCancel]);
 
+  // Trap focus inside the dialog while it is open. Without this, tabbing out
+  // of a modal lands on the page behind it — which is still scroll-locked, so
+  // the focus ring simply vanishes.
   useEffect(() => {
-    if (isOpen && modalRef.current) {
-      modalRef.current.focus();
-    }
+    if (!isOpen) return;
+    const node = modalRef.current;
+    if (!node) return;
+
+    node.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+      const focusables = node.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
+    node.addEventListener("keydown", onKeyDown);
+    return () => node.removeEventListener("keydown", onKeyDown);
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Determine width based on size prop
-  const sizeClasses = {
-    sm: "max-w-sm",
-    md: "max-w-md",
-    lg: "max-w-lg",
-    xl: "max-w-xl",
-    full: "max-w-full",
-  }[size];
+  const style = TYPE_STYLE[type];
+  const isDelete = type === "delete";
 
-  // Modal type styling
-  const typeClasses = {
-    success: "ring-emerald-500/30",
-    warning: "ring-yellow-500/30",
-    danger: "ring-red-500/30",
-    info: "ring-blue-500/30",
-    confirm: "ring-emerald-500/30",
-    form: "ring-blue-500/30",
-    delete: "ring-red-500/30",
-  }[type];
-
-  const typeIcon = {
-    success: "✅",
-    warning: "⚠️",
-    danger: "❌",
-    info: "ℹ️",
-    confirm: "✅",
-    form: "",
-    delete: "🗑️",
-  }[type];
-
-  // Button styling based on modal type
-  const confirmButtonClass =
-    type === "delete"
-      ? "px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md"
-      : "px-4 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md";
-
-  // Content to be rendered in the portal
   const modalContent = (
     <>
-      {/* Blur overlay */}
       <div
-        className="fixed inset-0 z-[110] bg-black/30 backdrop-blur-[2px] animate-backdrop-appear"
+        className="fixed inset-0 z-backdrop bg-gray-900/40 animate-backdrop-appear dark:bg-gray-950/70"
         onClick={handleCancel}
         aria-hidden="true"
       />
 
-      {/* Centered modal container */}
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-        {/* Actual modal */}
+      {/*
+        Bottom sheet on a phone, centred dialog from `sm` up. A centred box on a
+        360px screen leaves the confirm button under the thumb's reach and wastes
+        the top third; anchoring to the bottom edge puts the actions where the
+        hand already is.
+      */}
+      <div className="fixed inset-0 z-modal flex items-end justify-center sm:items-center sm:p-4">
         <div
           ref={modalRef}
-          className={`
-            ${sizeClasses} w-full bg-white dark:bg-gray-800 rounded-lg shadow-2xl 
-            ${typeClasses}
-            animate-toast-drop ring-2 ring-opacity-30
-            transform overflow-hidden relative`}
+          className={cn(
+            "flex max-h-[92vh] w-full flex-col overflow-hidden bg-white shadow-2xl animate-toast-drop dark:bg-gray-900",
+            "rounded-t-2xl sm:max-h-[85vh] sm:rounded-2xl",
+            "border-t border-gray-200 sm:border dark:border-gray-800",
+            SIZES[size]
+          )}
           onClick={(e) => e.stopPropagation()}
           tabIndex={-1}
           role="dialog"
           aria-modal="true"
           aria-labelledby={`modal-title-${modalId}`}
         >
-          {/* Modal Header */}
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h3
+          {/* Grab handle — the affordance that says "this sheet is dismissible". */}
+          <div className="flex justify-center pt-2.5 sm:hidden" aria-hidden="true">
+            <span className="h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
+          </div>
+
+          <header className="flex items-start gap-3 border-b border-gray-200 px-5 py-4 dark:border-gray-800 sm:px-6">
+            {style?.icon && (
+              <span
+                className={cn(
+                  "mt-px inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border",
+                  style.chip
+                )}
+                aria-hidden="true"
+              >
+                <Icon name={style.icon} size={18} />
+              </span>
+            )}
+            <h2
               id={`modal-title-${modalId}`}
-              className="text-lg font-medium text-gray-900 dark:text-white flex items-center"
+              className="min-w-0 flex-1 self-center font-display text-base font-semibold tracking-tight text-gray-900 dark:text-white sm:text-lg"
             >
-              {typeIcon && <span className="mr-2">{typeIcon}</span>}
               {title}
-            </h3>
+            </h2>
             <button
               type="button"
               onClick={handleCancel}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200 rounded-full p-1 hover:bg-gray-100 dark:hover:bg-gray-700"
-              aria-label="Close modal"
+              className="-mr-1.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-gray-400 transition-colors duration-200 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+              aria-label="Close"
             >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <Icon name="close" size={18} />
             </button>
-          </div>
+          </header>
 
-          {/* Body */}
-          <div className="px-6 py-4 overflow-y-auto max-h-[calc(80vh-10rem)]">
+          <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">
             {message && (
-              <p className="text-gray-700 dark:text-gray-300 mb-4">{message}</p>
+              <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                {message}
+              </p>
             )}
+            {message && children ? <div className="h-4" /> : null}
             {children}
           </div>
 
-          {/* Footer with enhanced buttons */}
-          <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 flex justify-end space-x-3 border-t border-gray-200 dark:border-gray-600">
-            <button
-              type="button"
-              className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 hover:shadow-md"
-              onClick={handleCancel}
-            >
+          {/*
+            Actions stack full-width on a phone and sit right-aligned from `sm`
+            up. Confirm is listed first in the stacked order so the primary
+            action is closest to the thumb, and reversed with `sm:flex-row` so
+            desktop keeps the conventional Cancel-then-Confirm reading order.
+          */}
+          <footer className="safe-bottom flex flex-col-reverse gap-2.5 border-t border-gray-200 bg-gray-50 px-5 py-4 dark:border-gray-800 dark:bg-gray-900/60 sm:flex-row sm:justify-end sm:px-6">
+            <Button variant="secondary" onClick={handleCancel} className="sm:w-auto">
               {cancelText}
-            </button>
+            </Button>
 
-            {/* Always show validation button for standard confirmation modals */}
             {(type === "confirm" ||
               type === "form" ||
               type === "info" ||
               type === "success" ||
               type === "warning" ||
               type === "danger") && (
-              <button
-                type="button"
-                className={`${confirmButtonClass} ${confirmDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+              <Button
+                variant="primary"
                 onClick={handleConfirm}
                 disabled={confirmDisabled}
+                className="sm:w-auto"
               >
                 {confirmText}
-              </button>
+              </Button>
             )}
 
-            {/* Delete button - always render for delete modals */}
-            {type === "delete" && (
-              <button
-                type="button"
-                className={`px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 hover:shadow-md ${confirmDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+            {isDelete && (
+              <Button
+                variant="destructive"
+                icon="trash"
                 onClick={handleConfirm}
                 disabled={confirmDisabled}
+                className="sm:w-auto"
               >
-                Delete
-              </button>
+                {confirmText === "Confirm" ? "Delete" : confirmText}
+              </Button>
             )}
-          </div>
+          </footer>
         </div>
       </div>
     </>
   );
 
-  // Use ReactDOM.createPortal to render the modal directly to document.body
   return ReactDOM.createPortal(modalContent, document.body);
 };
 

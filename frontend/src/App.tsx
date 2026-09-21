@@ -65,7 +65,11 @@ const AppContent: React.FC = () => {
       ) : (
         <>
           <Navigation />
-          <main className="pt-20 px-4 container mx-auto">
+          {/* The nav is fixed at 4rem; `pt-16` is the only place that offset
+              lives. Horizontal gutters belong to each page's own `app-shell`
+              wrapper — having both this element and the page apply a container
+              was what produced the doubled side padding on wide screens. */}
+          <main id="main-content" className="pt-16">
             <Routes>
               <Route path="/admin/*" element={<AdminPanel />} />
               <Route path="/profile" element={<UserProfile />} />
@@ -102,7 +106,10 @@ const App: React.FC = () => {
       <AuthProvider>
         <ToastProvider>
           <NetworkProvider>
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+            {/* `min-h-dvh` rather than `min-h-screen`: on mobile Safari the
+                `vh` unit ignores the collapsing address bar, which left a
+                strip of body background below the fold on every page. */}
+            <div className="min-h-dvh bg-gray-50 transition-colors duration-200 dark:bg-gray-950">
               <AppContent />
             </div>
           </NetworkProvider>

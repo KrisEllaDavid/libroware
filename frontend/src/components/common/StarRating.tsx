@@ -21,7 +21,7 @@ const StarRating: React.FC<StarRatingProps> = ({ value, onChange, size = 'md', l
 
   return (
     <div
-      className="inline-flex items-center gap-0.5"
+      className={interactive ? 'inline-flex items-center -ml-0.5' : 'inline-flex items-center gap-0.5'}
       role={interactive ? 'radiogroup' : 'img'}
       aria-label={label || `${value} out of 5 stars`}
     >
@@ -29,7 +29,9 @@ const StarRating: React.FC<StarRatingProps> = ({ value, onChange, size = 'md', l
         const filled = star <= Math.round(value);
         const starEl = (
           <svg
-            className={`${starSize} ${filled ? 'text-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
+            className={`${starSize} transition-colors duration-150 ${
+              filled ? 'text-amber-500' : 'text-gray-300 dark:text-gray-600'
+            }`}
             fill="currentColor"
             viewBox="0 0 20 20"
             xmlns="http://www.w3.org/2000/svg"
@@ -50,7 +52,10 @@ const StarRating: React.FC<StarRatingProps> = ({ value, onChange, size = 'md', l
             aria-checked={star === Math.round(value)}
             aria-label={`${star} star${star === 1 ? '' : 's'}`}
             onClick={() => onChange?.(star)}
-            className="focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
+            /* A touch target you can actually hit: the star glyph alone is
+               16-20px, well under the 24px minimum, so the padding does the
+               work while the visual size stays the same. */
+            className="rounded-md p-0.5 transition-transform duration-150 ease-spring hover:scale-110 active:scale-95"
           >
             {starEl}
           </button>

@@ -1,219 +1,122 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 interface SplashScreenProps {
   onFinish: () => void;
   duration?: number;
 }
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ 
+type Phase = "initial" | "logoReveal" | "textReveal" | "fadeOut";
+
+/**
+ * Cold-start splash.
+ *
+ * The previous version animated the wordmark one `<span>` per letter — nine
+ * near-identical 25-line blocks of inline styles for a single stagger. The
+ * letters are now derived from the string with a computed delay, so the whole
+ * sequence is four lines and the timing is adjustable in one place.
+ *
+ * Motion is transform/opacity only, on the app's spring curve, and the whole
+ * thing collapses to a plain fade when the OS asks for reduced motion.
+ */
+const SplashScreen: React.FC<SplashScreenProps> = ({
   onFinish,
-  duration = 5000 // Default 5 seconds
+  duration = 5000,
 }) => {
-  const [animationPhase, setAnimationPhase] = useState<'initial' | 'logoReveal' | 'textReveal' | 'fadeOut'>('initial');
+  const [phase, setPhase] = useState<Phase>("initial");
 
   useEffect(() => {
-    // Ensure we start with initial phase
-    setAnimationPhase('initial');
-    
-    // First phase: Logo reveal - start earlier to account for slower animation
-    const logoTimer = setTimeout(() => {
-      setAnimationPhase('logoReveal');
-    }, 300);
-    
-    // Second phase: Reveal text animation - delayed to give logo more time to complete
-    const revealTimer = setTimeout(() => {
-      setAnimationPhase('textReveal');
-    }, 2200);
-    
-    // Third phase: Fade out
-    const fadeTimer = setTimeout(() => {
-      setAnimationPhase('fadeOut');
-    }, duration - 800); // Start fade out before end
-    
-    // Final: Animation complete, trigger onFinish
-    const finishTimer = setTimeout(() => {
-      onFinish();
-    }, duration);
-    
-    // Clean up all timers
-    return () => {
-      clearTimeout(logoTimer);
-      clearTimeout(revealTimer);
-      clearTimeout(fadeTimer);
-      clearTimeout(finishTimer);
-    };
+    const timers = [
+      setTimeout(() => setPhase("logoReveal"), 250),
+      setTimeout(() => setPhase("textReveal"), 1400),
+      setTimeout(() => setPhase("fadeOut"), Math.max(0, duration - 700)),
+      setTimeout(onFinish, duration),
+    ];
+    return () => timers.forEach(clearTimeout);
   }, [duration, onFinish]);
 
+  const revealed = phase === "textReveal" || phase === "fadeOut";
+  const word = "Libroware";
+
   return (
-    <div 
-      className={`fixed inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-700 to-emerald-900 z-[9999]
-        ${animationPhase === 'fadeOut' ? 'opacity-0' : 'opacity-100'}
-      `}
-      style={{ transition: 'opacity 0.8s ease-in-out' }}
+    <div
+      className="fixed inset-0 z-splash flex items-center justify-center overflow-hidden bg-emerald-800 transition-opacity duration-700 ease-soft dark:bg-emerald-950"
+      style={{ opacity: phase === "fadeOut" ? 0 : 1 }}
+      role="status"
+      aria-label="Loading Libroware"
     >
-      <div className="w-full max-w-md px-8 text-center">
-        {/* Logo SVG from public folder */}
-        <div className="relative mx-auto mb-12 flex justify-center">
-          <div 
-            className={`w-52 h-52 transition-all ${animationPhase === 'initial' ? 'scale-0 opacity-0' : 'scale-100 opacity-100'}`}
-            style={{ 
-              transform: animationPhase === 'initial' ? 'scale(0) rotate(-180deg)' : 'scale(1) rotate(0deg)',
-              transition: 'transform 2s cubic-bezier(0.34, 1.3, 0.64, 1), opacity 1.5s ease-out'
-            }}
-          >
-            <img
-              src="/Logo.png"
-              alt="Libroware Logo"
-              className="w-full h-full"
-            />
-          </div>
-        </div>
-        
-        {/* Text with typing effect */}
-        <h1 className="font-serif text-4xl font-bold text-white relative">
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.3s'
-              }}
-            >
-              L
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.35s'
-              }}
-            >
-              i
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.4s'
-              }}
-            >
-              b
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.45s'
-              }}
-            >
-              r
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.5s'
-              }}
-            >
-              o
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.55s'
-              }}
-            >
-              w
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.6s'
-              }}
-            >
-              a
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.65s'
-              }}
-            >
-              r
-            </span>
-          </span>
-          <span className="relative inline-block overflow-hidden">
-            <span 
-              className={`
-                ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'translate-y-0 opacity-100' : 'translate-y-full opacity-0'}
-              `}
-              style={{ 
-                display: 'inline-block',
-                transition: 'transform 0.5s ease-out, opacity 0.5s ease-out',
-                transitionDelay: '0.7s'
-              }}
-            >
-              e
-            </span>
-          </span>
-        </h1>
-        
-        {/* Tagline with fade-in effect */}
-        <p 
-          className={`mt-4 text-emerald-100 text-lg
-            ${animationPhase === 'textReveal' || animationPhase === 'fadeOut' ? 'opacity-100' : 'opacity-0'} 
-          `}
-          style={{ 
-            transition: 'opacity 0.8s ease-out',
-            transitionDelay: '1s'
+      {/* Ambient depth: two soft radial pools rather than a flat fill or a
+          linear gradient, so the ground has a light source. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(60% 50% at 30% 20%, rgba(131,194,163,0.22), transparent 70%), radial-gradient(50% 45% at 75% 85%, rgba(47,138,102,0.28), transparent 70%)",
+        }}
+      />
+
+      <div className="relative w-full max-w-md px-8 text-center">
+        <div
+          className="mx-auto mb-10 h-32 w-32 transition-all duration-1000 ease-spring sm:h-40 sm:w-40"
+          style={{
+            transform:
+              phase === "initial" ? "scale(0.6) rotate(-12deg)" : "scale(1) rotate(0)",
+            opacity: phase === "initial" ? 0 : 1,
           }}
         >
-          Your modern library management system
+          <img
+            src="/Logo.png"
+            alt=""
+            className="h-full w-full object-contain drop-shadow-2xl"
+          />
+        </div>
+
+        <h1 className="font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+          <span className="sr-only">{word}</span>
+          <span aria-hidden="true" className="inline-flex">
+            {word.split("").map((letter, i) => (
+              <span key={i} className="inline-block overflow-hidden">
+                <span
+                  className="inline-block transition-all duration-500 ease-out"
+                  style={{
+                    transform: revealed ? "translateY(0)" : "translateY(100%)",
+                    opacity: revealed ? 1 : 0,
+                    transitionDelay: `${180 + i * 45}ms`,
+                  }}
+                >
+                  {letter}
+                </span>
+              </span>
+            ))}
+          </span>
+        </h1>
+
+        <p
+          className="mt-3.5 text-[0.9375rem] text-emerald-100/90 transition-opacity duration-700 ease-soft"
+          style={{
+            opacity: revealed ? 1 : 0,
+            transitionDelay: "700ms",
+          }}
+        >
+          Congo-Cameroon Interstate University Library
         </p>
+
+        {/* Progress rail — tells you the wait is finite. */}
+        <div
+          className="mx-auto mt-9 h-0.5 w-40 overflow-hidden rounded-full bg-white/15"
+          aria-hidden="true"
+        >
+          <div
+            className="h-full rounded-full bg-emerald-200"
+            style={{
+              width: phase === "initial" ? "0%" : "100%",
+              transition: `width ${duration - 500}ms cubic-bezier(0.4, 0.14, 0.3, 1)`,
+            }}
+          />
+        </div>
       </div>
     </div>
   );
 };
 
-export default SplashScreen; 
+export default SplashScreen;

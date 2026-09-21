@@ -1,15 +1,55 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { useParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { GET_USER, USER_BORROWS } from "../graphql/queries";
+import { GET_USER } from "../graphql/queries";
 import { useAuth } from "../context/AuthContext";
 import { User } from "../types";
-import UserBorrows from "./user/UserBorrows";
-import BorrowStatistics from "./user/BorrowStatistics";
 import { fmtShort } from "../utils/date";
 import ProfileEditor from "./ProfileEditor";
+import {
+  Avatar,
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  ErrorState,
+  Icon,
+  IconName,
+  Skeleton,
+  Tag,
+  TagTone,
+} from "./ui";
 
+const ROLE_TONE: Record<string, TagTone> = {
+  ADMIN: "accent",
+  LIBRARIAN: "info",
+  USER: "brand",
+};
+
+/** One label/value pair in the account details list. */
+const Detail: React.FC<{
+  icon: IconName;
+  label: string;
+  children: React.ReactNode;
+}> = ({ icon, label, children }) => (
+  <div className="flex items-start gap-3 py-3">
+    <span
+      className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+      aria-hidden="true"
+    >
+      <Icon name={icon} size={16} />
+    </span>
+    <div className="min-w-0">
+      <dt className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+        {label}
+      </dt>
+      <dd className="mt-1 break-words text-sm text-gray-900 dark:text-white">
+        {children}
+      </dd>
+    </div>
+  </div>
+);
 
 const UserProfile: React.FC = () => {
   const { t } = useTranslation();
@@ -24,8 +64,8 @@ const UserProfile: React.FC = () => {
   // Show loading state while auth state is being determined
   if (!isAuthenticated) {
     return (
-      <div className="text-center py-8 text-red-500">
-        {t('profile.loginRequired')}
+      <div className="app-shell page">
+        <ErrorState title={t("profile.loginRequired")} />
       </div>
     );
   }
@@ -34,8 +74,8 @@ const UserProfile: React.FC = () => {
   if (!userId) {
     console.error("No userId available - currentUser:", currentUser);
     return (
-      <div className="text-center py-8 text-red-500">
-        {t('profile.userNotFoundNoId')}
+      <div className="app-shell page">
+        <ErrorState title={t("profile.userNotFoundNoId")} />
       </div>
     );
   }
@@ -53,7 +93,20 @@ const UserProfile: React.FC = () => {
   });
 
   if (userLoading) {
-    return <div className="text-center py-8">{t('profile.loadingProfile')}</div>;
+    return (
+      <div className="app-shell page">
+        <Card>
+          <CardBody className="flex flex-col gap-6 sm:flex-row">
+            <Skeleton className="h-28 w-28 shrink-0 rounded-full" />
+            <div className="flex-1 space-y-3">
+              <Skeleton className="h-6 w-56" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-24 w-full" />
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
   }
 
   // For self-profile viewing, use the cached currentUser data
@@ -65,8 +118,12 @@ const UserProfile: React.FC = () => {
     if (userError) {
       console.error("User query error:", userError);
       return (
-        <div className="text-center py-8 text-red-500">
-          {t('profile.errorLoading', { message: userError.message })}
+        <div className="app-shell page">
+          <ErrorState
+            title={t("profile.errorLoading", { message: "" })}
+            message={userError.message}
+            onRetry={() => refetch()}
+          />
         </div>
       );
     }
@@ -74,8 +131,8 @@ const UserProfile: React.FC = () => {
     if (!userData?.user) {
       console.error("No user data found for ID:", userId);
       return (
-        <div className="text-center py-8 text-red-500">
-          {t('profile.userNotFound', { userId })}
+        <div className="app-shell page">
+          <ErrorState title={t("profile.userNotFound", { userId })} />
         </div>
       );
     }
@@ -89,15 +146,15 @@ const UserProfile: React.FC = () => {
     refetch();
   };
 
-  // Safely handle user data for display
-  const userInitials = `${user?.firstName?.charAt(0) || ""}${
-    user?.lastName?.charAt(0) || ""
-  }`;
   const userName =
-    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() || t('profile.unknownUser');
+    `${user?.firstName || ""} ${user?.lastName || ""}`.trim() ||
+    t("profile.unknownUser");
+
+  const isSelf = Boolean(currentUser && currentUser.id === userId);
+  const role = user?.role || "USER";
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="app-shell page max-w-4xl">
       {showProfileEditor && (
         <ProfileEditor
           onClose={() => setShowProfileEditor(false)}
@@ -105,146 +162,123 @@ const UserProfile: React.FC = () => {
         />
       )}
 
-      <div className="bg-white dark:bg-gray-800 shadow rounded-lg overflow-hidden mb-8">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-              {t('profile.pageTitle')}
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500 dark:text-gray-400">
-              {t('profile.pageSubtitle')}
-            </p>
-          </div>
+      <Card className="overflow-hidden">
+        {/*
+          A banner behind the avatar, with the avatar overlapping its lower
+          edge. The identity block previously sat on flat white next to a plain
+          grey circle, which made the page read as a form rather than a person.
+        */}
+        <div
+          className="h-24 bg-emerald-700 sm:h-28 dark:bg-emerald-900"
+          aria-hidden="true"
+        />
 
-          {currentUser && currentUser.id === userId && (
-            <button
-              onClick={() => setShowProfileEditor(true)}
-              className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500"
-            >
-              {t('profile.edit')}
-            </button>
-          )}
-        </div>
-
-        <div className="px-4 py-5 sm:p-6">
-          <div className="flex flex-col sm:flex-row gap-8">
-            <div className="flex-shrink-0">
-              {user?.profilePicture ? (
-                <img
-                  src={user.profilePicture}
-                  alt={userName}
-                  className="h-32 w-32 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
-                />
-              ) : (
-                <div className="h-32 w-32 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-2xl font-bold text-gray-500 dark:text-gray-400">
-                  {userInitials || "?"}
-                </div>
-              )}
-            </div>
-
-            <div className="flex-grow">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-                {userName}
-              </h2>
-
-              <div className="mt-4 space-y-4">
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('profile.email')}
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user?.email || t('profile.noEmailProvided')}
-                  </dd>
-                </div>
-
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('profile.role')}
-                  </dt>
-                  <dd className="mt-1">
-                    <span
-                      className={`inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium ${
-                        user?.role === "ADMIN"
-                          ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                          : user?.role === "LIBRARIAN"
-                          ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                          : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                      }`}
-                    >
-                      {user?.role || "USER"}
-                    </span>
-                  </dd>
-                </div>
-
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('profile.memberSince')}
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user?.createdAt
-                      ? fmtShort(user.createdAt)
-                      : t('profile.unknown')}
-                  </dd>
-                </div>
-
-                {/* Account Status */}
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('profile.accountStatus')}
-                  </dt>
-                  <dd className="mt-1">
-                    <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      {t('profile.active')}
-                    </span>
-                  </dd>
-                </div>
-
-                {/* Access Level - Different display based on user role */}
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('profile.accessLevel')}
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {user?.role === "ADMIN" && t('profile.fullAccess')}
-                    {user?.role === "LIBRARIAN" && t('profile.libraryAccess')}
-                    {user?.role === "USER" && t('profile.standardAccess')}
-                  </dd>
-                </div>
-
-                {/* Show last login or account update (placeholder) */}
-                <div>
-                  <dt className="text-sm font-medium text-gray-500 dark:text-gray-400">
-                    {t('profile.lastUpdate')}
-                  </dt>
-                  <dd className="mt-1 text-sm text-gray-900 dark:text-white">
-                    {fmtShort(user?.updatedAt ?? null)}{" "}
-                  </dd>
+        <CardBody className="pt-0">
+          <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+              <Avatar
+                src={user?.profilePicture}
+                firstName={user?.firstName}
+                lastName={user?.lastName}
+                size="2xl"
+                className="border-4 border-white shadow-md dark:border-gray-900"
+              />
+              <div className="min-w-0 pb-1">
+                <h1 className="break-words font-display text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+                  {userName}
+                </h1>
+                <p className="mt-0.5 break-all text-sm text-gray-500 dark:text-gray-400">
+                  {user?.email || t("profile.noEmailProvided")}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <Tag tone={ROLE_TONE[role] ?? "neutral"} icon="shield">
+                    {role === "ADMIN"
+                      ? t("users.roleAdmin")
+                      : role === "LIBRARIAN"
+                      ? t("users.roleLibrarian")
+                      : t("users.roleUser")}
+                  </Tag>
+                  <Tag tone="brand" dot>
+                    {t("profile.active")}
+                  </Tag>
                 </div>
               </div>
-
-              {/* Show specific role-based information */}
-              {user?.role === "ADMIN" && (
-                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <h3 className="text-md font-medium text-blue-800 dark:text-blue-300">
-                    {t('profile.staffInfo')}
-                  </h3>
-                  <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
-                    {t('profile.staffInfoText')}
-                  </p>
-                  <div className="mt-2">
-                    <Link
-                      to="/admin?tab=users"
-                      className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 dark:text-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 transition-colors duration-200"
-                    >
-                      {t('profile.goToManagement')}
-                    </Link>
-                  </div>
-                </div>
-              )}
             </div>
+
+            {isSelf && (
+              <Button
+                variant="primary"
+                icon="edit"
+                onClick={() => setShowProfileEditor(true)}
+                className="shrink-0"
+              >
+                {t("profile.edit")}
+              </Button>
+            )}
           </div>
-        </div>
-      </div>
+        </CardBody>
+      </Card>
+
+      <Card>
+        <CardHeader
+          title={t("profile.pageTitle")}
+          description={t("profile.pageSubtitle")}
+        />
+        <CardBody>
+          {/* Two columns from `sm` up, divided by a hairline rather than a box
+              per field — a boxed grid for six read-only values is heavier than
+              the values themselves. */}
+          <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              <Detail icon="mail" label={t("profile.email")}>
+                {user?.email || t("profile.noEmailProvided")}
+              </Detail>
+              <Detail icon="calendar" label={t("profile.memberSince")}>
+                {user?.createdAt ? fmtShort(user.createdAt) : t("profile.unknown")}
+              </Detail>
+              <Detail icon="refresh" label={t("profile.lastUpdate")}>
+                {fmtShort(user?.updatedAt ?? null)}
+              </Detail>
+            </div>
+
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              <Detail icon="shield" label={t("profile.role")}>
+                {role}
+              </Detail>
+              <Detail icon="checkCircle" label={t("profile.accountStatus")}>
+                {t("profile.active")}
+              </Detail>
+              <Detail icon="lock" label={t("profile.accessLevel")}>
+                {role === "ADMIN"
+                  ? t("profile.fullAccess")
+                  : role === "LIBRARIAN"
+                  ? t("profile.libraryAccess")
+                  : t("profile.standardAccess")}
+              </Detail>
+            </div>
+          </dl>
+        </CardBody>
+      </Card>
+
+      {role === "ADMIN" && (
+        <Card className="border-l-4 border-l-blue-500">
+          <CardBody className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+                {t("profile.staffInfo")}
+              </h2>
+              <p className="mt-1 max-w-prose text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                {t("profile.staffInfoText")}
+              </p>
+            </div>
+            <Link to="/admin?tab=users" className="shrink-0">
+              <Button icon="grid" iconAfter="arrowRight">
+                {t("profile.goToManagement")}
+              </Button>
+            </Link>
+          </CardBody>
+        </Card>
+      )}
     </div>
   );
 };

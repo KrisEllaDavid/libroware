@@ -13,6 +13,21 @@ import { User, Role } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../context/ToastContext';
 import Pagination from '../common/Pagination';
+import {
+  Avatar,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  PageHeader,
+  SearchInput,
+  Alert,
+  Checkbox,
+  Skeleton,
+  Tag,
+} from '../ui';
 
 interface UserFormData {
   email: string;
@@ -463,120 +478,137 @@ const UserManagement: React.FC = () => {
       });
   };
 
+  const roleTone = (role: string) =>
+    role === 'ADMIN' ? 'accent' : role === 'LIBRARIAN' ? 'info' : 'neutral';
+
   const renderContent = () => {
     if (queryError) {
       return (
-        <div className="p-6 text-center">
-          <p className="text-red-500">{t('users.errorLoading', { message: queryError.message })}</p>
-        </div>
+        <ErrorState
+          message={queryError.message}
+          onRetry={() => refetch()}
+          retryLabel={t('users.refresh')}
+        />
       );
     }
 
     if (loading) {
+      // Rows shaped like the list they replace, so nothing jumps on arrival.
       return (
-        <div className="p-6 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]" role="status">
-            <span className="sr-only">{t('common.loading')}</span>
-          </div>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors">{t('users.loadingUsers')}</p>
-        </div>
+        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li key={i} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-3.5 w-40" />
+                <Skeleton className="h-3 w-56" />
+              </div>
+              <Skeleton className="h-6 w-16" />
+            </li>
+          ))}
+        </ul>
       );
     }
 
     if (users.length === 0) {
       return (
-        <div className="p-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">{t('users.noUsersHint')}</p>
-        </div>
+        <EmptyState
+          icon="users"
+          title={searchTerm ? t('users.noMatchTitle', 'No matching members') : t('users.noUsersTitle', 'No members yet')}
+          description={searchTerm ? t('users.noMatchHint', { term: searchTerm, defaultValue: `Nothing matches “${searchTerm}”.` }) : t('users.noUsersHint')}
+          action={
+            searchTerm ? (
+              <Button variant="secondary" icon="close" onClick={() => setSearchTerm('')}>
+                {t('common.clearSearch', 'Clear search')}
+              </Button>
+            ) : (
+              <Button variant="primary" icon="userPlus" onClick={handleCreate}>
+                {t('users.addUser')}
+              </Button>
+            )
+          }
+        />
       );
     }
 
     return (
-      <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
         {users.map((user) => (
-          <li key={user.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 sm:px-6 transition-colors">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-start min-w-0">
-                {user.profilePicture ? (
-                  <img
-                    src={user.profilePicture}
-                    alt={`${user.firstName} ${user.lastName}`}
-                    className="h-10 w-10 rounded-full mr-4 object-cover flex-shrink-0"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-gray-200 dark:bg-gray-600 mr-4 flex items-center justify-center flex-shrink-0">
-                    <span className="text-gray-500 dark:text-gray-300 text-sm font-medium">
-                      {user.firstName[0]}{user.lastName[0]}
-                    </span>
-                  </div>
+          <li
+            key={user.id}
+            className="flex flex-col gap-3 px-5 py-4 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-gray-800/50 sm:flex-row sm:items-center sm:gap-4 sm:px-6"
+          >
+            <Avatar
+              src={user.profilePicture}
+              firstName={user.firstName}
+              lastName={user.lastName}
+              size="md"
+              className="shrink-0"
+            />
+
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <h4 className="truncate text-sm font-semibold text-gray-900 dark:text-white">
+                  {user.firstName} {user.lastName}
+                </h4>
+                {user.requiresPasswordChange && (
+                  <Tag tone="warning" size="sm">{t('users.newAccount')}</Tag>
                 )}
-                <div className="min-w-0 flex-1">
-                  <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors break-words">
-                    {user.firstName} {user.lastName}
-                    {user.requiresPasswordChange && (
-                      <span className="ml-2 inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200">
-                        {t('users.newAccount')}
-                      </span>
-                    )}
-                  </h4>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors break-all">{user.email}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors flex flex-wrap items-center gap-2 mt-1">
-                    <span className={`inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium ${
-                      user.role === 'ADMIN' 
-                        ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
-                        : user.role === 'LIBRARIAN'
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                          : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
-                    }`}>
-                      {user.role}
-                    </span>
-                    {!!user.activeBorrowCount && (
-                      <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300">
-                        {t('users.activeLoans', { count: user.activeBorrowCount })}
-                      </span>
-                    )}
-                    {!!user.overdueBorrowCount && (
-                      <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
-                        {t('users.overdue', { count: user.overdueBorrowCount })}
-                      </span>
-                    )}
-                    {!!user.outstandingFines && (
-                      <span className="inline-flex items-center px-5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                        {t('users.owed', { amount: user.outstandingFines.toLocaleString() })}
-                      </span>
-                    )}
-                  </p>
-                </div>
               </div>
-              {canManageUser(user) && (
-                <div className="flex flex-shrink-0 space-x-2 self-start sm:self-auto">
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(user)}
-                    className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                    title={t('users.editUserTitle')}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                      <path fillRule="evenodd" d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(user.id)}
-                    disabled={deleteLoading || user.id === currentUser?.id}
-                    className={`${
-                      user.id === currentUser?.id ? 'opacity-50 cursor-not-allowed' : ''
-                    } text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors`}
-                    title={user.id === currentUser?.id ? t('users.cannotDeleteSelf') : t('users.deleteUser')}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </button>
-                </div>
-              )}
+
+              <p className="mt-0.5 truncate text-sm text-gray-500 dark:text-gray-400">
+                {user.email}
+              </p>
+
+              {/* Standing: role always, then only the counts that are non-zero.
+                  Rendering "0 overdue" on every row is noise that makes the
+                  rows that do have overdue loans harder to spot. */}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <Tag tone={roleTone(user.role)} size="sm">
+                  {user.role === 'ADMIN'
+                    ? t('users.roleAdmin')
+                    : user.role === 'LIBRARIAN'
+                    ? t('users.roleLibrarian')
+                    : t('users.roleUser')}
+                </Tag>
+                {!!user.activeBorrowCount && (
+                  <Tag tone="neutral" size="sm" icon="bookmark">
+                    {t('users.activeLoans', { count: user.activeBorrowCount })}
+                  </Tag>
+                )}
+                {!!user.overdueBorrowCount && (
+                  <Tag tone="danger" size="sm" icon="clock">
+                    {t('users.overdue', { count: user.overdueBorrowCount })}
+                  </Tag>
+                )}
+                {!!user.outstandingFines && (
+                  <Tag tone="warning" size="sm" icon="coins">
+                    {t('users.owed', { amount: user.outstandingFines.toLocaleString() })}
+                  </Tag>
+                )}
+              </div>
             </div>
+
+            {canManageUser(user) && (
+              <div className="flex shrink-0 items-center gap-0.5 self-start sm:self-center">
+                <IconButton
+                  icon="edit"
+                  label={t('users.editUserTitle')}
+                  onClick={() => handleEdit(user)}
+                />
+                <IconButton
+                  icon="trash"
+                  tone="danger"
+                  label={
+                    user.id === currentUser?.id
+                      ? t('users.cannotDeleteSelf')
+                      : t('users.deleteUser')
+                  }
+                  disabled={deleteLoading || user.id === currentUser?.id}
+                  onClick={() => handleDelete(user.id)}
+                />
+              </div>
+            )}
           </li>
         ))}
       </ul>
@@ -586,65 +618,65 @@ const UserManagement: React.FC = () => {
   // If not an admin or librarian, don't render anything
   if (!isAdmin() && currentUser?.role !== 'LIBRARIAN') {
     return (
-      <div className="text-center">
-        <p className="text-red-500">{t('users.noPermission')}</p>
-      </div>
+      <ErrorState
+        title={t('users.noPermission')}
+        message={t(
+          'users.noPermissionHint',
+          'Ask an administrator if you need access to member records.'
+        )}
+      />
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
-        <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            {t('users.title')}
-          </h3>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder={t('users.search')}
-                className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            <div className="flex space-x-2">
-              <button
-                type="button" 
-                onClick={manualRefresh}
-                className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-gray-600 text-sm leading-4 font-medium rounded-md shadow-sm text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors"
-                title={t('users.refreshList')}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                {t('users.refresh')}
-              </button>
-              <button
-                type="button"
-                onClick={handleCreate}
-                className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 w-full sm:w-auto justify-center transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z" />
-                </svg>
-                {t('users.addUser')}
-              </button>
-            </div>
-          </div>
-        </div>
-        
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="users"
+        eyebrow={t('admin.tabs.users')}
+        title={t('users.title')}
+        description={t(
+          'users.subtitle',
+          'Accounts, roles and borrowing standing for every library member.'
+        )}
+        actions={
+          <>
+            <Button icon="refresh" onClick={manualRefresh}>
+              {t('users.refresh')}
+            </Button>
+            <Button variant="primary" icon="userPlus" onClick={handleCreate}>
+              {t('users.addUser')}
+            </Button>
+          </>
+        }
+      />
+
+      <Card>
+        <CardHeader
+          title={t('users.title')}
+          description={t('users.count', {
+            count: data?.usersCount ?? users.length,
+            defaultValue: `${(data?.usersCount ?? users.length).toLocaleString()} members`,
+          })}
+          actions={
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearch}
+              onClear={() => setSearchTerm('')}
+              placeholder={t('users.search')}
+              wrapperClassName="sm:w-72"
+            />
+          }
+        />
+
         {renderContent()}
 
-        {/* Pagination */}
         <Pagination
           page={page}
           pageSize={PAGE_SIZE}
           total={data?.usersCount ?? 0}
           onPage={(p) => { setPage(p); refetch({ skip: p * PAGE_SIZE, take: PAGE_SIZE }); }}
         />
-      </div>
+      </Card>
 
       {/* Add/Edit User Modal */}
       <Modal
@@ -657,41 +689,37 @@ const UserManagement: React.FC = () => {
         type="form"
         size="md"
       >
-        <div>
+        <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <FloatingInput
-                id="firstName"
-                name="firstName"
-                label={t('users.firstName')}
-                value={formData.firstName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-            <div>
-              <FloatingInput
-                id="lastName"
-                name="lastName"
-                label={t('users.lastName')}
-                value={formData.lastName}
-                onChange={handleInputChange}
-                required
-              />
-            </div>
-          </div>
-          <div className="mt-4">
             <FloatingInput
-              id="email"
-              name="email"
-              label={t('users.email')}
-              type="email"
-              value={formData.email}
+              id="firstName"
+              name="firstName"
+              label={t('users.firstName')}
+              value={formData.firstName}
+              onChange={handleInputChange}
+              required
+            />
+            <FloatingInput
+              id="lastName"
+              name="lastName"
+              label={t('users.lastName')}
+              value={formData.lastName}
               onChange={handleInputChange}
               required
             />
           </div>
-          <div className="mt-4">
+
+          <FloatingInput
+            id="email"
+            name="email"
+            label={t('users.email')}
+            type="email"
+            value={formData.email}
+            onChange={handleInputChange}
+            required
+          />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <FloatingInput
               id="password"
               name="password"
@@ -701,8 +729,6 @@ const UserManagement: React.FC = () => {
               onChange={handleInputChange}
               required={!isEditing}
             />
-          </div>
-          <div className="mt-4">
             <FloatingDropdown
               id="role"
               name="role"
@@ -718,10 +744,11 @@ const UserManagement: React.FC = () => {
               required
             />
           </div>
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+
+          <div>
+            <p className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
               {t('users.profilePicture')}
-            </label>
+            </p>
             {isEditing ? (
               <FileUpload
                 entityId={selectedUserId || ''}
@@ -732,29 +759,27 @@ const UserManagement: React.FC = () => {
                 buttonLabel={t('users.uploadProfilePicture')}
               />
             ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                 {t('users.uploadAfterCreate')}
-              </div>
+              </p>
             )}
           </div>
-          <div className="mt-4 flex items-center">
-            <input
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3.5 dark:border-gray-700 dark:bg-gray-800/60">
+            <Checkbox
               id="requiresPasswordChange"
               name="requiresPasswordChange"
-              type="checkbox"
-              className="h-4 w-4 text-emerald-600 focus:ring-emerald-500 border-gray-300 rounded"
               checked={formData.requiresPasswordChange || false}
               onChange={handleCheckboxChange}
+              label={t('users.requirePasswordChange')}
+              description={t(
+                'users.requirePasswordChangeHint',
+                'The member sets their own password the first time they sign in.'
+              )}
             />
-            <label htmlFor="requiresPasswordChange" className="ml-2 block text-sm text-gray-900 dark:text-gray-300">
-              {t('users.requirePasswordChange')}
-            </label>
           </div>
-          {error && (
-            <div className="mt-4 text-sm text-red-600 dark:text-red-400">
-              {error}
-            </div>
-          )}
+
+          {error && <Alert tone="danger">{error}</Alert>}
         </div>
       </Modal>
 

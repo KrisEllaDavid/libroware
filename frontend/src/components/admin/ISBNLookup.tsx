@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Alert, BookCover, Button, Icon, Tag, cn } from '../ui';
 
 interface BookData {
   title: string;
@@ -158,12 +159,16 @@ const ISBNLookup: React.FC<Props> = ({ onData }) => {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <div className="bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-3">
-      <div className="flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-        </svg>
-        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{t('books.isbnLookup')}</span>
+    /*
+      An assist panel, not a form section — tinted so it reads as optional help
+      sitting inside the book form rather than another required field group.
+    */
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+      <div className="mb-3 flex items-center gap-2">
+        <Icon name="scan" size={16} className="shrink-0 text-emerald-700 dark:text-emerald-400" />
+        <h3 className="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+          {t('books.isbnLookup')}
+        </h3>
       </div>
 
       {/* Input row */}
@@ -171,49 +176,65 @@ const ISBNLookup: React.FC<Props> = ({ onData }) => {
         <div className="flex gap-2">
           <input
             type="text"
+            inputMode="numeric"
             value={isbnInput}
             onChange={e => setIsbnInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleLookup()}
             placeholder={t('books.isbnPlaceholder')}
-            className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            aria-label={t('books.isbnLookup')}
+            className="input flex-1 font-mono"
             disabled={step === 'loading'}
           />
-          <button
+          <Button
+            variant="primary"
             onClick={handleLookup}
-            disabled={!isbnInput.trim() || step === 'loading'}
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-all font-medium"
+            disabled={!isbnInput.trim()}
+            loading={step === 'loading'}
+            className="shrink-0"
           >
             {step === 'loading' ? t('books.lookupLoading') : t('books.lookupBtn')}
-          </button>
+          </Button>
           {scanSupported && (
-            <button
+            <Button
+              icon="scan"
               onClick={startCamera}
               disabled={step === 'loading'}
-              className="px-3 py-2 border border-emerald-500 text-emerald-600 dark:text-emerald-400 text-sm rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50 transition-all"
               title={t('books.scanTitle')}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m12-4v3a1 1 0 01-1 1h-3M21 9V6a1 1 0 00-1-1h-3M8 12h8" />
-              </svg>
-            </button>
+              aria-label={t('books.scanTitle')}
+              className="shrink-0 px-3"
+            />
           )}
         </div>
       )}
 
       {/* Camera viewfinder */}
       {step === 'scanning' && (
-        <div className="relative rounded-lg overflow-hidden bg-black aspect-video max-h-56">
-          <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-          {/* Scan guide overlay */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="border-2 border-emerald-400 rounded-sm w-2/3 h-16 opacity-80" />
+        <div className="relative aspect-video max-h-56 overflow-hidden rounded-lg bg-black">
+          <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+
+          {/* Scan guide: a corner frame rather than a full box, so the barcode
+              stays visible through the target area. */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="relative h-16 w-2/3">
+              {['left-0 top-0 border-l-2 border-t-2',
+                'right-0 top-0 border-r-2 border-t-2',
+                'left-0 bottom-0 border-b-2 border-l-2',
+                'right-0 bottom-0 border-b-2 border-r-2'].map((pos) => (
+                <span
+                  key={pos}
+                  className={cn('absolute h-5 w-5 rounded-sm border-emerald-400', pos)}
+                />
+              ))}
+            </div>
           </div>
-          <div className="absolute bottom-2 left-0 right-0 text-center text-white text-xs opacity-80">
+
+          <p className="absolute inset-x-0 bottom-2 text-center text-xs text-white/85">
             {t('books.pointCamera')}
-          </div>
+          </p>
+
           <button
             onClick={reset}
-            className="absolute top-2 right-2 bg-black/50 text-white text-xs px-5 py-1 rounded hover:bg-black/70 transition-all"
+            className="absolute right-2 top-2 rounded-lg bg-gray-900/60 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-gray-900/80"
           >
             {t('common.cancel')}
           </button>
@@ -222,42 +243,62 @@ const ISBNLookup: React.FC<Props> = ({ onData }) => {
 
       {/* Error */}
       {step === 'error' && (
-        <div className="flex items-center justify-between bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-          <span className="text-sm text-red-600 dark:text-red-400">{errorMsg}</span>
-          <button onClick={reset} className="text-xs text-red-500 hover:text-red-700 ml-2">{t('common.retry')}</button>
-        </div>
+        <Alert tone="danger" className="mt-3">
+          <span className="flex flex-wrap items-center gap-2">
+            {errorMsg}
+            <button
+              onClick={reset}
+              className="font-semibold underline underline-offset-2 hover:no-underline"
+            >
+              {t('common.retry')}
+            </button>
+          </span>
+        </Alert>
       )}
 
       {/* Preview card */}
       {step === 'preview' && preview && (
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3 flex gap-3">
-          {preview.coverImage && (
-            <img src={preview.coverImage} alt={preview.title}
-              className="w-14 h-20 object-cover rounded flex-shrink-0" />
-          )}
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2">{preview.title}</p>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{preview.authors.join(', ')}</p>
-            <p className="text-xs text-gray-400 mt-0.5 font-mono">{preview.isbn} · {preview.publishedAt} · {preview.pageCount}pp</p>
+        <div className="mt-3 flex gap-3 rounded-lg border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800 animate-scale-in">
+          <div className="h-20 w-14 shrink-0 overflow-hidden rounded-md shadow-xs">
+            <BookCover
+              title={preview.title}
+              src={preview.coverImage}
+              size="sm"
+              rounded="rounded-md"
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="line-clamp-2 text-sm font-semibold text-gray-900 dark:text-white">
+              {preview.title}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+              {preview.authors.join(', ')}
+            </p>
+            <p className="mt-0.5 truncate font-mono text-xs text-gray-400">
+              {preview.isbn} · {preview.publishedAt} · {preview.pageCount}pp
+            </p>
             {preview.categories.length > 0 && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">{preview.categories.slice(0, 2).join(', ')}</p>
+              <div className="mt-1.5 flex flex-wrap gap-1">
+                {preview.categories.slice(0, 2).map((c: string) => (
+                  <Tag key={c} tone="brand" size="sm">{c}</Tag>
+                ))}
+              </div>
             )}
-            <div className="flex gap-2 mt-2">
-              <button onClick={handleUse}
-                className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs rounded-md font-medium transition-all">
+            <div className="mt-2.5 flex gap-2">
+              <Button size="sm" variant="primary" icon="check" onClick={handleUse}>
                 {t('books.useData')}
-              </button>
-              <button onClick={reset}
-                className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 text-xs rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
+              </Button>
+              <Button size="sm" onClick={reset}>
                 {t('common.cancel')}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
 
       {!scanSupported && step === 'idle' && (
-        <p className="text-xs text-gray-400">
+        <p className="mt-2.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
           {t('books.noScanSupport')}
         </p>
       )}

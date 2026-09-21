@@ -12,6 +12,18 @@ import Modal from "../Modal";
 import { fmtDate } from "../../utils/date";
 import FloatingInput from "../FloatingInput";
 import DeleteConfirmation from "../DeleteConfirmation";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  PageHeader,
+  SearchInput,
+  Skeleton,
+} from "../ui";
 import { Author } from "../../types";
 
 interface AuthorFormData {
@@ -176,95 +188,86 @@ const AuthorManagement: React.FC = () => {
 
   const renderContent = () => {
     if (queryError) {
-      return <p>{t('authors.errorLoading', { message: queryError.message })}</p>;
+      return <ErrorState message={queryError.message} onRetry={() => refetch()} />;
     }
 
     if (loading) {
       return (
-        <div className="p-6 text-center">
-          <div
-            className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]"
-            role="status"
-          >
-            <span className="sr-only">{t('common.loading')}</span>
-          </div>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400 transition-colors">
-            {t('authors.loadingAuthors')}
-          </p>
-        </div>
+        <ul className="divide-y divide-gray-100 dark:divide-gray-800">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <li key={i} className="flex items-center gap-4 px-5 py-4 sm:px-6">
+              <div className="min-w-0 flex-1 space-y-2">
+                <Skeleton className="h-3.5 w-48" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+              <Skeleton className="h-8 w-16" />
+            </li>
+          ))}
+        </ul>
       );
     }
 
     if (authors.length === 0) {
       return (
-        <div className="p-6 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors">
-            {t('authors.noAuthorsHint')}
-          </p>
-        </div>
+        <EmptyState
+          icon="user"
+          title={searchTerm ? t('authors.noMatchTitle', 'No matching authors') : t('authors.noAuthorsTitle', 'No authors yet')}
+          description={searchTerm ? undefined : t('authors.noAuthorsHint')}
+          action={
+            searchTerm ? (
+              <Button variant="secondary" icon="close" onClick={() => setSearchTerm('')}>
+                {t('common.clearSearch', 'Clear search')}
+              </Button>
+            ) : (
+              <Button variant="primary" icon="plus" onClick={handleCreate}>
+                {t('authors.addNew')}
+              </Button>
+            )
+          }
+        />
       );
     }
 
     return (
-      <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+      <ul className="divide-y divide-gray-100 dark:divide-gray-800">
         {authors.map((author) => (
           <li
             key={author.id}
-            className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 sm:px-6 transition-colors"
+            className="flex items-center gap-4 px-5 py-3.5 transition-colors duration-150 hover:bg-gray-50 dark:hover:bg-gray-800/50 sm:px-6"
           >
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="min-w-0">
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white transition-colors break-words">
-                  {author.name}
-                </h4>
-                {author.createdAt && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 transition-colors">
-                    {t('authors.added', { date: formatDate(author.createdAt) })}
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-shrink-0 space-x-2 self-start sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => handleEdit(author)}
-                  className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  title={t('authors.editAuthor')}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                    <path
-                      fillRule="evenodd"
-                      d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(author.id)}
-                  disabled={deleteLoading}
-                  className="text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                  title={t('authors.deleteAuthor')}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              </div>
+            {/* Initial disc: gives an otherwise text-only list a left edge to
+                scan down, and makes alphabetical order legible at a glance. */}
+            <span
+              aria-hidden="true"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-200 bg-gray-50 font-display text-sm font-semibold uppercase text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+            >
+              {author.name.trim().charAt(0) || '?'}
+            </span>
+
+            <div className="min-w-0 flex-1">
+              <h4 className="truncate text-sm font-medium text-gray-900 dark:text-white">
+                {author.name}
+              </h4>
+              {author.createdAt && (
+                <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                  {t('authors.added', { date: formatDate(author.createdAt) })}
+                </p>
+              )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-0.5">
+              <IconButton
+                icon="edit"
+                label={t('authors.editAuthor')}
+                onClick={() => handleEdit(author)}
+              />
+              <IconButton
+                icon="trash"
+                tone="danger"
+                label={t('authors.deleteAuthor')}
+                disabled={deleteLoading}
+                onClick={() => handleDelete(author.id)}
+              />
             </div>
           </li>
         ))}
@@ -273,46 +276,42 @@ const AuthorManagement: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
-        <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            {t('authors.title')}
-          </h3>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder={t('authors.searchPlaceholder')}
-                className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 w-full sm:w-auto justify-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              {t('authors.addNew')}
-            </button>
-          </div>
-        </div>
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="user"
+        eyebrow={t('admin.tabs.authors')}
+        title={t('authors.title')}
+        description={t(
+          'authors.subtitle',
+          'The people credited on the titles in the catalogue.'
+        )}
+        actions={
+          <Button variant="primary" icon="plus" onClick={handleCreate}>
+            {t('authors.addNew')}
+          </Button>
+        }
+      />
+
+      <Card>
+        <CardHeader
+          title={t('authors.title')}
+          description={t('authors.count', {
+            count: authors.length,
+            defaultValue: `${authors.length.toLocaleString()} authors`,
+          })}
+          actions={
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearch}
+              onClear={() => setSearchTerm('')}
+              placeholder={t('authors.searchPlaceholder')}
+              wrapperClassName="sm:w-72"
+            />
+          }
+        />
 
         {renderContent()}
-      </div>
+      </Card>
 
       {/* Form Modal */}
       <Modal
@@ -329,25 +328,17 @@ const AuthorManagement: React.FC = () => {
         }
         size="md"
       >
-        {error && (
-          <div className="mb-6 bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-            <div className="text-sm text-red-700 dark:text-red-400">
-              {error}
-            </div>
-          </div>
-        )}
+        <div className="space-y-4">
+          {error && <Alert tone="danger">{error}</Alert>}
 
-        <div className="grid grid-cols-1 gap-y-4">
-          <div className="col-span-1">
-            <FloatingInput
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              required
-              label={t('authors.nameLabel')}
-            />
-          </div>
+          <FloatingInput
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            required
+            label={t('authors.nameLabel')}
+          />
         </div>
       </Modal>
 

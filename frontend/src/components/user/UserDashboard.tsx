@@ -10,6 +10,20 @@ import UserBookView from "./UserBookView";
 import UserReservations from "./UserReservations";
 import UserFines from "./UserFines";
 import { GET_USER_FINES } from "../../graphql/queries";
+import {
+  Button,
+  Card,
+  CardBody,
+  ErrorState,
+  PageHeader,
+  ShelfBand,
+  StatCard,
+  StatSkeleton,
+  TabItem,
+  Tabs,
+  Tag,
+} from "../ui";
+import { Link } from "react-router-dom";
 
 // GraphQL queries
 const GET_USER_BORROWS = gql`
@@ -181,72 +195,68 @@ const UserDashboard: React.FC = () => {
     setActiveTab(tab);
   };
 
-  const renderTabButton = (tab: Tab, label: string) => {
-    return (
-      <button
-        key={tab}
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-          activeTab === tab
-            ? "bg-emerald-600 text-white shadow-md"
-            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-        }`}
-        onClick={() => handleTabChange(tab)}
-      >
-        {label}
-      </button>
-    );
-  };
-
   const renderTabContent = () => {
     switch (activeTab) {
       case Tab.DASHBOARD:
         return (
-          <div className="mt-6">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">{t('userDashboard.overview')}</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Total Borrows
-                  </div>
-                  <div className="text-2xl font-bold text-gray-900 dark:text-white">
-                    {userStats.totalBorrows}
-                  </div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Overdue
-                  </div>
-                  <div className="text-2xl font-bold text-red-600 dark:text-red-400">
-                    {userStats.overdueBorrows}
-                  </div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    Returned Books
-                  </div>
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {userStats.returnedBooks}
-                  </div>
-                </div>
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {t('userDashboard.outstandingFines')}
-                  </div>
-                  <div className={`text-2xl font-bold ${outstandingFines > 0 ? 'text-red-600 dark:text-red-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
-                    {outstandingFines.toLocaleString()} FCFA
-                  </div>
-                </div>
+          <div className="space-y-6">
+            {/*
+              Four figures that answer "where do I stand": what I've borrowed
+              in total, what's late, what I've given back, what I owe. Overdue
+              and fines turn red only when they are non-zero, so a member in
+              good standing sees a calm screen.
+            */}
+            {borrowsLoading ? (
+              <StatSkeleton count={4} />
+            ) : (
+              <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+                <StatCard
+                  icon="books"
+                  tone="brand"
+                  label={t('userDashboard.totalBorrows', 'Total borrows')}
+                  value={userStats.totalBorrows}
+                />
+                <StatCard
+                  icon="clock"
+                  tone={userStats.overdueBorrows > 0 ? 'danger' : 'neutral'}
+                  label={t('dashboard.overdue', 'Overdue')}
+                  value={userStats.overdueBorrows}
+                  sub={
+                    userStats.overdueBorrows > 0
+                      ? t('userDashboard.overdueHint', 'Return these to stop fines accruing.')
+                      : t('userDashboard.allOnTime', 'Nothing late.')
+                  }
+                />
+                <StatCard
+                  icon="checkCircle"
+                  tone="info"
+                  label={t('userDashboard.returned', 'Returned')}
+                  value={userStats.returnedBooks}
+                />
+                <StatCard
+                  icon="coins"
+                  tone={outstandingFines > 0 ? 'danger' : 'brand'}
+                  label={t('userDashboard.outstandingFines')}
+                  value={`${outstandingFines.toLocaleString()} F`}
+                  sub={
+                    outstandingFines > 0
+                      ? t('userFines.payInPersonNote')
+                      : t('userDashboard.noFines', 'Nothing owed.')
+                  }
+                />
               </div>
+            )}
 
-              {userStats.favoriteCategory && (
-                <div className="text-sm text-gray-600 dark:text-gray-300 mb-2">
-                  <span className="font-medium">Favorite Category:</span>{" "}
-                  {userStats.favoriteCategory}
-                </div>
-              )}
-            </div>
+            {userStats.favoriteCategory && (
+              <Card>
+                <CardBody className="flex flex-wrap items-center gap-3 py-4">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('userDashboard.favoriteCategory', 'You read most in')}
+                  </span>
+                  <Tag tone="brand" icon="tag">{userStats.favoriteCategory}</Tag>
+                </CardBody>
+              </Card>
+            )}
 
             <BorrowStatistics borrows={getFormattedBorrows()} />
           </div>
@@ -254,7 +264,7 @@ const UserDashboard: React.FC = () => {
 
       case Tab.MY_BOOKS:
         return (
-          <div className="mt-6">
+          <div>
             <UserBorrows
               userId={user?.id || ""}
               borrows={getFormattedUserBorrows()}
@@ -266,32 +276,16 @@ const UserDashboard: React.FC = () => {
         );
 
       case Tab.MY_REQUESTS:
-        return (
-          <div className="mt-6">
-            <UserActivity />
-          </div>
-        );
+        return <UserActivity embedded />;
 
       case Tab.RESERVATIONS:
-        return (
-          <div className="mt-6">
-            <UserReservations />
-          </div>
-        );
+        return <UserReservations />;
 
       case Tab.MY_FINES:
-        return (
-          <div className="mt-6">
-            <UserFines userId={user?.id || ""} />
-          </div>
-        );
+        return <UserFines userId={user?.id || ""} />;
 
       case Tab.BROWSE_BOOKS:
-        return (
-          <div className="mt-6">
-            <UserBookView />
-          </div>
-        );
+        return <UserBookView embedded />;
 
       default:
         return null;
@@ -300,26 +294,90 @@ const UserDashboard: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="text-center py-8 text-red-500">
-        You must be logged in to view this page
+      <div className="app-shell page">
+        <ErrorState
+          title={t('userDashboard.signInRequired', 'You need to be signed in')}
+          message={t(
+            'userDashboard.signInHint',
+            'Sign in to see your loans, reservations and fines.'
+          )}
+        />
       </div>
     );
   }
 
-  return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <h1 className="text-2xl font-bold mb-6">{t('userDashboard.title')}</h1>
+  const tabs: TabItem[] = [
+    { id: Tab.DASHBOARD,    label: t('userDashboard.tabs.dashboard'),    icon: 'chart' },
+    { id: Tab.MY_BOOKS,     label: t('userDashboard.tabs.myBooks'),      icon: 'books',    count: userStats.activeBorrows },
+    { id: Tab.MY_REQUESTS,  label: t('userDashboard.tabs.myRequests'),   icon: 'history' },
+    { id: Tab.RESERVATIONS, label: t('userDashboard.tabs.reservations'), icon: 'bookmark' },
+    { id: Tab.MY_FINES,     label: t('userDashboard.tabs.myFines'),      icon: 'coins' },
+    { id: Tab.BROWSE_BOOKS, label: t('userDashboard.tabs.browse'),       icon: 'search' },
+  ];
 
-      <div className="flex overflow-x-auto pb-2 mb-4 space-x-2">
-        {renderTabButton(Tab.DASHBOARD,    t('userDashboard.tabs.dashboard'))}
-        {renderTabButton(Tab.MY_BOOKS,     t('userDashboard.tabs.myBooks'))}
-        {renderTabButton(Tab.MY_REQUESTS,  t('userDashboard.tabs.myRequests'))}
-        {renderTabButton(Tab.RESERVATIONS, t('userDashboard.tabs.reservations'))}
-        {renderTabButton(Tab.MY_FINES,     t('userDashboard.tabs.myFines'))}
-        {renderTabButton(Tab.BROWSE_BOOKS, t('userDashboard.tabs.browse'))}
+  return (
+    <div className="app-shell pb-10 pt-6 sm:pt-8">
+      {/*
+        A welcome band rather than a bare H1. The member dashboard is the first
+        thing a student sees after signing in, and a line of text on grey gave
+        the product no face at all. The shelf artwork is decorative and is
+        masked out below `sm`, where the space belongs to the greeting.
+      */}
+      <div className="relative mb-6 overflow-hidden rounded-2xl bg-emerald-800 px-5 py-6 text-white sm:mb-8 sm:px-8 sm:py-8 dark:bg-emerald-900">
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 hidden w-1/2 opacity-25 sm:block"
+          aria-hidden="true"
+        >
+          <ShelfBand className="h-full w-full" />
+        </div>
+
+        <div className="relative">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-200">
+            {t('userDashboard.title')}
+          </p>
+          <h1 className="mt-1.5 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            {t('userDashboard.greeting', {
+              name: user.firstName,
+              defaultValue: `Welcome back, ${user.firstName}`,
+            })}
+          </h1>
+          <p className="mt-2 max-w-md text-sm leading-relaxed text-emerald-100/90">
+            {userStats.overdueBorrows > 0
+              ? t('userDashboard.greetingOverdue', {
+                  count: userStats.overdueBorrows,
+                  defaultValue: `You have ${userStats.overdueBorrows} book(s) past their due date.`,
+                })
+              : userStats.activeBorrows > 0
+              ? t('userDashboard.greetingActive', {
+                  count: userStats.activeBorrows,
+                  defaultValue: `You have ${userStats.activeBorrows} book(s) on loan.`,
+                })
+              : t('userDashboard.greetingIdle', 'Nothing on loan — the catalogue is open.')}
+          </p>
+
+          <Link to="/books" className="mt-4 inline-block">
+            <Button
+              variant="secondary"
+              icon="search"
+              className="border-white/25 bg-white/10 text-white hover:border-white/40 hover:bg-white/20 dark:border-white/25 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
+            >
+              {t('browseBooks.title')}
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {renderTabContent()}
+      <Tabs
+        items={tabs}
+        active={activeTab}
+        onChange={(id) => setActiveTab(id as Tab)}
+        sticky
+        className="mb-6 sm:mb-8"
+      />
+
+      <div key={activeTab} className="animate-fade-in">
+        {renderTabContent()}
+      </div>
     </div>
   );
 };

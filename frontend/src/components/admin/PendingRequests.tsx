@@ -6,6 +6,32 @@ import { SEARCH_MEMBERS, GET_BOOKS } from "../../graphql/queries";
 import { CREATE_BORROW, APPROVE_BORROW, REJECT_BORROW } from "../../graphql/mutations";
 import { useToast } from "../../context/ToastContext";
 import { fmtDate, isPast, daysPast } from "../../utils/date";
+import {
+  BookCover,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  SearchInput,
+  Segmented,
+  Skeleton,
+  Tag,
+  Table,
+  TableMessage,
+  TableSkeleton,
+  TableWrap,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Textarea,
+  TR,
+  RowActions,
+  StackedMeta,
+  cn,
+} from "../ui";
 
 // ── Approval requests ──────────────────────────────────────────────────────────
 const GET_APPROVAL_REQUESTS = gql`
@@ -119,10 +145,12 @@ const ApprovalSection: React.FC<{ onRefetchActive: () => void }> = ({ onRefetchA
 
   if (loading && requests.length === 0) {
     return (
-      <div className="bg-white dark:bg-gray-800 border dark:border-gray-700 sm:rounded-md p-6 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-amber-500 border-r-transparent" />
-        Loading approval requests…
-      </div>
+      <Card>
+        <div className="space-y-3 p-5 sm:p-6">
+          <Skeleton className="h-4 w-44" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </Card>
     );
   }
 
@@ -130,72 +158,74 @@ const ApprovalSection: React.FC<{ onRefetchActive: () => void }> = ({ onRefetchA
 
   return (
     <>
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md">
-        <div className="px-4 py-4 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-white font-bold text-sm flex-shrink-0">
-            {requests.length}
-          </span>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            Awaiting Approval
-          </h3>
-        </div>
+      {/*
+        The approval queue is work waiting on a librarian, so it leads the page
+        and carries an amber left edge — the only element on the screen that
+        does, which is what makes it read as "handle me first" without needing
+        a banner.
+      */}
+      <Card className="overflow-hidden border-l-4 border-l-amber-500">
+        <CardHeader
+          title="Awaiting approval"
+          description={`${requests.length} request${requests.length === 1 ? "" : "s"} from members`}
+        />
 
-        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+        <div className="divide-y divide-gray-100 dark:divide-gray-800">
           {requests.map((req) => (
-            <div key={req.id} className="px-4 py-4 sm:px-6 flex flex-col sm:flex-row sm:items-center gap-4">
-              {/* Book cover */}
-              <div className="flex-shrink-0">
-                {req.book.coverImage ? (
-                  <img src={req.book.coverImage} alt={req.book.title}
-                    className="h-16 w-12 object-cover rounded shadow" />
-                ) : (
-                  <div className="h-16 w-12 rounded shadow bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                    <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                )}
+            <div key={req.id} className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:px-6">
+              <div className="h-16 w-12 shrink-0 overflow-hidden rounded-md shadow-xs">
+                <BookCover title={req.book.title} src={req.book.coverImage} size="sm" rounded="rounded-md" />
               </div>
 
-              {/* Info */}
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900 dark:text-white text-sm">{req.book.title}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{req.book.authors.map((a) => a.name).join(', ')}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              <div className="min-w-0 flex-1">
+                <p className="break-words text-sm font-semibold text-gray-900 dark:text-white">
+                  {req.book.title}
+                </p>
+                <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                  {req.book.authors.map((a) => a.name).join(', ')}
+                </p>
+                <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
                   <span className="font-medium text-gray-700 dark:text-gray-300">
                     {req.user.firstName} {req.user.lastName}
                   </span>{' '}
                   · {req.user.email}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">
+                <p className="mt-0.5 text-xs text-gray-400 dark:text-gray-500">
                   Requested {formatDate(req.borrowedAt)} · due {formatDate(req.dueDate)}
                 </p>
                 {req.note && (
-                  <p className="mt-1 text-xs italic text-gray-500 dark:text-gray-400 line-clamp-2">"{req.note}"</p>
+                  /* The member's own words, set apart by a rule rather than
+                     italics so a long note stays readable. */
+                  <p className="mt-2 border-l-2 border-gray-200 pl-2.5 text-xs leading-relaxed text-gray-500 dark:border-gray-700 dark:text-gray-400 line-clamp-3">
+                    {req.note}
+                  </p>
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 flex-shrink-0">
-                <button
+              <div className="flex shrink-0 gap-2">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon="check"
                   onClick={() => approveBorrow({ variables: { id: req.id } })}
                   disabled={approveLoading}
-                  className="px-4 py-1.5 text-sm font-medium rounded-md bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-50 transition-colors"
                 >
                   Approve
-                </button>
-                <button
+                </Button>
+                <Button
+                  size="sm"
+                  icon="close"
                   onClick={() => { setRejectTarget(req); setRejectReason(''); }}
                   disabled={approveLoading}
-                  className="px-4 py-1.5 text-sm font-medium rounded-md border border-red-400 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 transition-colors"
+                  className="text-red-600 hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
                 >
                   Reject
-                </button>
+                </Button>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Reject Reason Modal */}
       <Modal
@@ -222,18 +252,14 @@ const ApprovalSection: React.FC<{ onRefetchActive: () => void }> = ({ onRefetchA
               </span>
               ? The book will be made available again.
             </p>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Reason <span className="text-gray-400 font-normal">(optional)</span>
-              </label>
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                rows={3}
-                placeholder="e.g. Book reserved for another patron, account issues…"
-                className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
-              />
-            </div>
+            <Textarea
+              label="Reason"
+              hint="Optional. The member sees this on their request."
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              rows={3}
+              placeholder="e.g. Reserved for another member, account on hold"
+            />
           </div>
         )}
       </Modal>
@@ -390,128 +416,188 @@ const PendingRequests: React.FC = () => {
   const renderContent = () => {
     if (error) {
       return (
-        <div className="p-6 text-center">
-          <div className="text-red-500 mb-2">Error loading pending requests:</div>
-          <pre className="text-xs bg-red-50 dark:bg-red-900/20 p-3 rounded text-red-700 dark:text-red-300 overflow-auto max-h-40">
-            {error.message}
-          </pre>
-          <button
-            onClick={() => { if (!useFallbackQuery) setUseFallbackQuery(true); else refetch(); }}
-            className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-          >
-            Try Again
-          </button>
-        </div>
+        <ErrorState
+          title="Could not load active borrows"
+          message={error.message}
+          onRetry={() => {
+            if (!useFallbackQuery) setUseFallbackQuery(true);
+            else refetch();
+          }}
+        />
       );
     }
 
     if (loading) {
       return (
-        <div className="p-6 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent" />
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading active borrows…</p>
-        </div>
+        <TableWrap>
+          <Table>
+            <TBody>
+              <TableMessage colSpan={6}>
+                <TableSkeleton rows={6} cols={4} />
+              </TableMessage>
+            </TBody>
+          </Table>
+        </TableWrap>
       );
     }
 
     if (filteredBorrows.length === 0) {
       return (
-        <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">
-          {searchTerm ? "No borrows match your search." : "No active borrows."}
-        </div>
+        <EmptyState
+          icon="checkCircle"
+          title={searchTerm ? "No matching borrows" : "Nothing is out on loan"}
+          description={
+            searchTerm
+              ? `Nothing matches "${searchTerm}".`
+              : "Every copy is back on the shelf."
+          }
+          action={
+            searchTerm ? (
+              <Button variant="secondary" icon="close" onClick={() => setSearchTerm("")}>
+                Clear search
+              </Button>
+            ) : (
+              <Button variant="primary" icon="arrowRight" onClick={() => setIsCheckoutModalOpen(true)}>
+                Check out a book
+              </Button>
+            )
+          }
+        />
       );
     }
 
     return (
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead className="bg-gray-50 dark:bg-gray-800">
-            <tr>
-              {["Book", "User", "Borrowed Date", "Due Date", "Status", "Actions"].map((h, i) => (
-                <th key={h} scope="col"
-                  className={`px-4 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider ${i === 5 ? 'text-right' : 'text-left'}`}>
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
-            {filteredBorrows.map((borrow) => (
-              <tr key={borrow.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                <td className="px-4 py-4 whitespace-normal">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white break-words">{borrow.book.title}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">ISBN: {borrow.book.isbn}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 break-words">{borrow.book.authors.map((a) => a.name).join(', ')}</div>
-                </td>
-                <td className="px-4 py-4 whitespace-normal">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white break-words">{borrow.user.firstName} {borrow.user.lastName}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400">{borrow.user.email}</div>
-                </td>
-                <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400">{formatDate(borrow.borrowedAt)}</td>
-                <td className="px-4 py-4 whitespace-normal">
-                  <span className={`text-sm ${isOverdue(borrow.dueDate) ? "text-red-600 dark:text-red-400 font-medium" : "text-gray-500 dark:text-gray-400"}`}>
-                    {formatDate(borrow.dueDate)}
-                    {isOverdue(borrow.dueDate) && ` (${daysOverdue(borrow.dueDate)}d overdue)`}
-                  </span>
-                </td>
-                <td className="px-4 py-4 whitespace-normal">
-                  <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    isOverdue(borrow.dueDate)
-                      ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                      : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                  }`}>
-                    {isOverdue(borrow.dueDate) ? "Overdue" : "Borrowed"}
-                  </span>
-                </td>
-                <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                  <button onClick={() => handleExtend(borrow)}
-                    className="px-3 py-1 rounded-md text-emerald-700 dark:text-emerald-400 border border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
-                    Extend
-                  </button>
-                  <button onClick={() => handleReturn(borrow)} disabled={returnLoading}
-                    className="px-3 py-1 rounded-md text-white bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-                    Return
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <TableWrap>
+        <Table>
+          <THead>
+            <TR className="hover:bg-transparent dark:hover:bg-transparent">
+              <TH>Book</TH>
+              <TH hideBelow="md">Member</TH>
+              <TH hideBelow="lg">Borrowed</TH>
+              <TH hideBelow="sm">Due</TH>
+              <TH hideBelow="sm">Status</TH>
+              <TH align="right">Actions</TH>
+            </TR>
+          </THead>
+          <TBody>
+            {filteredBorrows.map((borrow) => {
+              const late = isOverdue(borrow.dueDate);
+              const lateBy = daysOverdue(borrow.dueDate);
+              return (
+                <TR key={borrow.id}>
+                  <TD className="max-w-[20rem]">
+                    <p className="break-words font-medium text-gray-900 dark:text-white">
+                      {borrow.book.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                      {borrow.book.authors.map((a) => a.name).join(", ")}
+                    </p>
+                    <StackedMeta showBelow="md">
+                      {borrow.user.firstName} {borrow.user.lastName}
+                    </StackedMeta>
+                    <StackedMeta showBelow="sm" label="Due">
+                      {formatDate(borrow.dueDate)}
+                      {late && ` — ${lateBy}d overdue`}
+                    </StackedMeta>
+                  </TD>
+
+                  <TD hideBelow="md" className="max-w-[14rem]">
+                    <p className="truncate font-medium text-gray-800 dark:text-gray-100">
+                      {borrow.user.firstName} {borrow.user.lastName}
+                    </p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                      {borrow.user.email}
+                    </p>
+                  </TD>
+
+                  <TD hideBelow="lg" className="whitespace-nowrap text-gray-500 dark:text-gray-400">
+                    {formatDate(borrow.borrowedAt)}
+                  </TD>
+
+                  <TD hideBelow="sm" className="whitespace-nowrap">
+                    <span
+                      className={cn(
+                        late
+                          ? "font-medium text-red-600 dark:text-red-400"
+                          : "text-gray-600 dark:text-gray-300"
+                      )}
+                    >
+                      {formatDate(borrow.dueDate)}
+                    </span>
+                    {late && (
+                      <p className="mt-0.5 text-2xs text-red-500">{lateBy} days late</p>
+                    )}
+                  </TD>
+
+                  <TD hideBelow="sm">
+                    <Tag tone={late ? "danger" : "brand"} dot>
+                      {late ? "Overdue" : "On loan"}
+                    </Tag>
+                  </TD>
+
+                  <TD align="right">
+                    <RowActions className="gap-2">
+                      <Button size="sm" icon="calendar" onClick={() => handleExtend(borrow)}>
+                        Extend
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="primary"
+                        icon="check"
+                        onClick={() => handleReturn(borrow)}
+                        disabled={returnLoading}
+                      >
+                        Return
+                      </Button>
+                    </RowActions>
+                  </TD>
+                </TR>
+              );
+            })}
+          </TBody>
+        </Table>
+      </TableWrap>
     );
   };
 
+  const overdueCount = filteredBorrows.filter((b) => isOverdue(b.dueDate)).length;
+
   return (
-    <div className="space-y-6">
-      {/* ── Awaiting Approval ── */}
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="inbox"
+        eyebrow="Circulation"
+        title="Borrowing"
+        description="Requests waiting on approval, and everything currently out on loan."
+        actions={
+          <Button variant="primary" icon="arrowRight" onClick={() => setIsCheckoutModalOpen(true)}>
+            Check out a book
+          </Button>
+        }
+      />
+
       <ApprovalSection onRefetchActive={() => refetch()} />
 
-      {/* ── Active Borrows ── */}
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md">
-        <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-            Active Borrows
-          </h3>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search books or users..."
-                className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            <button
-              onClick={() => setIsCheckoutModalOpen(true)}
-              className="px-4 py-2 text-sm font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 transition-colors whitespace-nowrap"
-            >
-              Check Out Book
-            </button>
-          </div>
-        </div>
+      <Card>
+        <CardHeader
+          title="Active borrows"
+          description={
+            overdueCount > 0
+              ? `${filteredBorrows.length} on loan · ${overdueCount} overdue`
+              : `${filteredBorrows.length} on loan`
+          }
+          actions={
+            <SearchInput
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onClear={() => setSearchTerm("")}
+              placeholder="Search books or members"
+              wrapperClassName="sm:w-72"
+            />
+          }
+        />
         {renderContent()}
-      </div>
+      </Card>
 
       {/* Return Modal */}
       <Modal
@@ -544,19 +630,17 @@ const PendingRequests: React.FC = () => {
               {" "}— currently due {formatDate(selectedBorrow.dueDate)}
               {isOverdue(selectedBorrow.dueDate) && ` (${daysOverdue(selectedBorrow.dueDate)}d overdue)`}.
             </p>
-            <div className="flex gap-2">
-              {EXTEND_GRACE_DAYS.map((d) => (
-                <button key={d} type="button" onClick={() => setExtendDays(d)}
-                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                    extendDays === d
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}>
-                  +{d} days
-                </button>
-              ))}
+            <div>
+              <p className="mb-1.5 text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
+                Extend by
+              </p>
+              <Segmented
+                value={String(extendDays)}
+                onChange={(v) => setExtendDays(Number(v))}
+                options={EXTEND_GRACE_DAYS.map((d) => ({ value: String(d), label: `+${d} days` }))}
+              />
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500">
+            <p className="rounded-lg bg-gray-50 px-3 py-2.5 text-xs text-gray-600 dark:bg-gray-800/60 dark:text-gray-300">
               New due date:{" "}
               {formatDate((() => {
                 const base = isOverdue(selectedBorrow.dueDate) ? new Date() : new Date(selectedBorrow.dueDate);
@@ -582,72 +666,62 @@ const PendingRequests: React.FC = () => {
         size="lg"
       >
         <div className="space-y-5">
+          {/* Step 1 — member. A chosen member collapses to a summary card so
+              the modal reads as a filled-in form, not two live search boxes. */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Member</label>
+            <p className="mb-1.5 text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
+              Member
+            </p>
             {selectedMember ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
+              <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-700 dark:bg-gray-800/60 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-900 dark:text-white break-words">{selectedMember.firstName} {selectedMember.lastName}</div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 break-all">{selectedMember.email}</div>
+                  <p className="break-words text-sm font-medium text-gray-900 dark:text-white">
+                    {selectedMember.firstName} {selectedMember.lastName}
+                  </p>
+                  <p className="break-all text-xs text-gray-500 dark:text-gray-400">
+                    {selectedMember.email}
+                  </p>
                   {(selectedMember.overdueBorrowCount > 0 || selectedMember.outstandingFines > 0) && (
-                    <div className="text-xs text-red-600 dark:text-red-400 mt-0.5">
-                      {selectedMember.overdueBorrowCount > 0 && `${selectedMember.overdueBorrowCount} overdue book(s)`}
-                      {selectedMember.overdueBorrowCount > 0 && selectedMember.outstandingFines > 0 && " · "}
-                      {selectedMember.outstandingFines > 0 && `${selectedMember.outstandingFines.toLocaleString()} FCFA owed`}
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {selectedMember.overdueBorrowCount > 0 && (
+                        <Tag tone="danger" size="sm" icon="clock">
+                          {selectedMember.overdueBorrowCount} overdue
+                        </Tag>
+                      )}
+                      {selectedMember.outstandingFines > 0 && (
+                        <Tag tone="warning" size="sm" icon="coins">
+                          {selectedMember.outstandingFines.toLocaleString()} FCFA owed
+                        </Tag>
+                      )}
                     </div>
                   )}
                 </div>
-                <button type="button" onClick={() => setSelectedMember(null)}
-                  className="flex-shrink-0 self-start sm:self-auto text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                <Button size="sm" onClick={() => setSelectedMember(null)} className="shrink-0 self-start sm:self-auto">
                   Change
-                </button>
+                </Button>
               </div>
             ) : (
               <>
-                <input type="text" placeholder="Search by name or email…" value={memberSearch}
+                <SearchInput
+                  value={memberSearch}
                   onChange={(e) => setMemberSearch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+                  onClear={() => setMemberSearch("")}
+                  placeholder="Search by name or email"
+                />
                 {memberResults?.users?.length > 0 && (
-                  <ul className="mt-1 border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700 max-h-40 overflow-y-auto">
+                  <ul className="mt-2 max-h-44 divide-y divide-gray-100 overflow-y-auto overscroll-contain rounded-lg border border-gray-200 dark:divide-gray-800 dark:border-gray-700">
                     {memberResults.users.map((u: any) => (
                       <li key={u.id}>
-                        <button type="button" onClick={() => setSelectedMember(u)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700">
-                          <div className="text-gray-900 dark:text-white">{u.firstName} {u.lastName}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{u.email}</div>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Book</label>
-            {selectedBook ? (
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 px-3 py-2 rounded-md border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700">
-                <div className="text-sm font-medium text-gray-900 dark:text-white break-words min-w-0">{selectedBook.title}</div>
-                <button type="button" onClick={() => setSelectedBook(null)}
-                  className="flex-shrink-0 self-start sm:self-auto text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                  Change
-                </button>
-              </div>
-            ) : (
-              <>
-                <input type="text" placeholder="Search by title…" value={bookSearch}
-                  onChange={(e) => setBookSearch(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                {bookResults?.books?.length > 0 && (
-                  <ul className="mt-1 border border-gray-200 dark:border-gray-700 rounded-md divide-y divide-gray-100 dark:divide-gray-700 max-h-40 overflow-y-auto">
-                    {bookResults.books.map((b: any) => (
-                      <li key={b.id}>
-                        <button type="button" disabled={b.available <= 0} onClick={() => setSelectedBook(b)}
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed flex justify-between">
-                          <span className="text-gray-900 dark:text-white">{b.title}</span>
-                          <span className={`text-xs ${b.available > 0 ? "text-gray-400" : "text-red-500"}`}>
-                            {b.available > 0 ? `${b.available} available` : "unavailable"}
+                        <button
+                          type="button"
+                          onClick={() => setSelectedMember(u)}
+                          className="w-full px-3.5 py-2.5 text-left transition-colors hover:bg-gray-50 dark:hover:bg-gray-800"
+                        >
+                          <span className="block text-sm text-gray-900 dark:text-white">
+                            {u.firstName} {u.lastName}
+                          </span>
+                          <span className="block text-xs text-gray-500 dark:text-gray-400">
+                            {u.email}
                           </span>
                         </button>
                       </li>
@@ -658,20 +732,63 @@ const PendingRequests: React.FC = () => {
             )}
           </div>
 
+          {/* Step 2 — title */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Loan period</label>
-            <div className="flex gap-2">
-              {[7, 14, 21, 30].map((d) => (
-                <button key={d} type="button" onClick={() => setCheckoutDays(d)}
-                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                    checkoutDays === d
-                      ? "bg-emerald-600 text-white border-emerald-600"
-                      : "border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                  }`}>
-                  {d} days
-                </button>
-              ))}
-            </div>
+            <p className="mb-1.5 text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
+              Book
+            </p>
+            {selectedBook ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-700 dark:bg-gray-800/60 sm:flex-row sm:items-center sm:justify-between">
+                <p className="min-w-0 break-words text-sm font-medium text-gray-900 dark:text-white">
+                  {selectedBook.title}
+                </p>
+                <Button size="sm" onClick={() => setSelectedBook(null)} className="shrink-0 self-start sm:self-auto">
+                  Change
+                </Button>
+              </div>
+            ) : (
+              <>
+                <SearchInput
+                  value={bookSearch}
+                  onChange={(e) => setBookSearch(e.target.value)}
+                  onClear={() => setBookSearch("")}
+                  placeholder="Search by title"
+                />
+                {bookResults?.books?.length > 0 && (
+                  <ul className="mt-2 max-h-44 divide-y divide-gray-100 overflow-y-auto overscroll-contain rounded-lg border border-gray-200 dark:divide-gray-800 dark:border-gray-700">
+                    {bookResults.books.map((b: any) => (
+                      <li key={b.id}>
+                        <button
+                          type="button"
+                          disabled={b.available <= 0}
+                          onClick={() => setSelectedBook(b)}
+                          className="flex w-full items-center justify-between gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-gray-800"
+                        >
+                          <span className="min-w-0 truncate text-sm text-gray-900 dark:text-white">
+                            {b.title}
+                          </span>
+                          <Tag tone={b.available > 0 ? "neutral" : "danger"} size="sm">
+                            {b.available > 0 ? `${b.available} free` : "None free"}
+                          </Tag>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* Step 3 — loan period */}
+          <div>
+            <p className="mb-1.5 text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
+              Loan period
+            </p>
+            <Segmented
+              value={String(checkoutDays)}
+              onChange={(v) => setCheckoutDays(Number(v))}
+              options={[7, 14, 21, 30].map((d) => ({ value: String(d), label: `${d} days` }))}
+            />
           </div>
         </div>
       </Modal>

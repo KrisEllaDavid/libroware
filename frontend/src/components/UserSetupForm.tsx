@@ -1,23 +1,31 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { useTranslation } from 'react-i18next';
 import { UPDATE_USER } from '../graphql/mutations';
-import FloatingInput from './FloatingInput';
 import { useAuth } from '../context/AuthContext';
+import { Alert, Button, Card, CardBody, Icon, Input, cn } from './ui';
 
 interface PasswordData {
   password: string;
   confirmPassword: string;
 }
 
+/** Four checks, shown live. Each one is a rule the submit handler enforces. */
+const rules = [
+  { id: 'length', test: (p: string) => p.length >= 8, label: 'At least 8 characters' },
+  { id: 'letter', test: (p: string) => /[a-zA-Z]/.test(p), label: 'Contains a letter' },
+  { id: 'number', test: (p: string) => /\d/.test(p), label: 'Contains a number' },
+];
+
 const UserSetupForm: React.FC = () => {
   const { t } = useTranslation();
   const { user, login: authLogin } = useAuth();
-  const [passwordData, setPasswordData] = useState<PasswordData>({ 
-    password: '', 
-    confirmPassword: '' 
+  const [passwordData, setPasswordData] = useState<PasswordData>({
+    password: '',
+    confirmPassword: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [reveal, setReveal] = useState(false);
 
   const [updateUser, { loading }] = useMutation(UPDATE_USER, {
     onCompleted: (data: { updateUser: any }) => {
@@ -26,7 +34,7 @@ const UserSetupForm: React.FC = () => {
         ...data.updateUser,
         requiresPasswordChange: false
       };
-      
+
       // Update auth context with the updated user info
       const token = localStorage.getItem('token') || '';
       authLogin(token, updatedUser);
@@ -44,10 +52,19 @@ const UserSetupForm: React.FC = () => {
     setPasswordData({ ...passwordData, [name]: value });
   };
 
+  const passed = useMemo(
+    () => rules.map((r) => ({ ...r, ok: r.test(passwordData.password) })),
+    [passwordData.password]
+  );
+
+  const mismatch =
+    passwordData.confirmPassword.length > 0 &&
+    passwordData.password !== passwordData.confirmPassword;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     // Basic validation
     if (!passwordData.password.trim()) {
       setError(t('setup.required'));
@@ -70,7 +87,7 @@ const UserSetupForm: React.FC = () => {
       await updateUser({
         variables: {
           id: user.id,
-          input: { 
+          input: {
             password: passwordData.password,
             requiresPasswordChange: false
           }
@@ -81,63 +98,109 @@ const UserSetupForm: React.FC = () => {
     }
   };
 
+  const revealToggle = (
+    <button
+      type="button"
+      onClick={() => setReveal((v) => !v)}
+      aria-label={reveal ? t('auth.hide') : t('auth.show')}
+      aria-pressed={reveal}
+      className="flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+    >
+      <Icon name={reveal ? 'eyeOff' : 'eye'} size={16} />
+    </button>
+  );
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4 py-12">
-      <div className="max-w-md w-full space-y-8 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md">
-        <div>
-          <h1 className="text-center text-3xl font-extrabold text-gray-900 dark:text-white">{t('setup.welcome')}</h1>
-          <h2 className="mt-6 text-center text-2xl font-bold text-gray-900 dark:text-white">{t('setup.setPassword')}</h2>
-          <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+    <div className="flex min-h-dvh items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-950">
+      <div className="w-full max-w-md animate-fade-up">
+        <div className="mb-6 text-center">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-md">
+            <Icon name="lock" size={24} />
+          </span>
+          <h1 className="font-display text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+            {t('setup.welcome')}
+          </h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-gray-500 dark:text-gray-400">
             {t('setup.subtitle')}
           </p>
         </div>
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-md">
-              <div className="text-sm text-red-700 dark:text-red-400">{error}</div>
-            </div>
-          )}
-          
-          <div className="space-y-4">
-            <div>
-              <FloatingInput
+
+        <Card>
+          <CardBody>
+            <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+              {error && <Alert tone="danger">{error}</Alert>}
+
+              <Input
                 id="password"
                 name="password"
-                type="password"
+                type={reveal ? 'text' : 'password'}
+                autoComplete="new-password"
+                label={t('setup.newPassword')}
+                icon="lock"
                 value={passwordData.password}
                 onChange={handleChange}
+                trailing={revealToggle}
                 required
-                label={t('setup.newPassword')}
               />
-            </div>
-            
-            <div>
-              <FloatingInput
+
+              {/* Requirements, checked live. Telling someone their password is
+                  too short only after they submit twice is the slowest way to
+                  communicate a rule. */}
+              <ul className="space-y-1.5">
+                {passed.map((rule) => (
+                  <li
+                    key={rule.id}
+                    className={cn(
+                      'flex items-center gap-2 text-xs transition-colors duration-200',
+                      rule.ok
+                        ? 'text-emerald-700 dark:text-emerald-400'
+                        : 'text-gray-500 dark:text-gray-400'
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        'flex h-4 w-4 shrink-0 items-center justify-center rounded-md border transition-colors duration-200',
+                        rule.ok
+                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                          : 'border-gray-300 dark:border-gray-600'
+                      )}
+                      aria-hidden="true"
+                    >
+                      {rule.ok && <Icon name="check" size={10} strokeWidth={3} />}
+                    </span>
+                    {rule.label}
+                  </li>
+                ))}
+              </ul>
+
+              <Input
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
+                type={reveal ? 'text' : 'password'}
+                autoComplete="new-password"
+                label={t('setup.confirmPass')}
+                icon="lock"
                 value={passwordData.confirmPassword}
                 onChange={handleChange}
+                error={mismatch ? t('setup.mismatch') : null}
                 required
-                label={t('setup.confirmPass')}
               />
-            </div>
-          </div>
-          
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 transition-all"
-            >
-              {loading ? t('setup.setting') : t('setup.setBtn')}
-            </button>
-          </div>
-        </form>
+
+              <Button
+                type="submit"
+                variant="primary"
+                size="lg"
+                block
+                loading={loading}
+              >
+                {loading ? t('setup.setting') : t('setup.setBtn')}
+              </Button>
+            </form>
+          </CardBody>
+        </Card>
       </div>
     </div>
   );
 };
 
-export default UserSetupForm; 
+export default UserSetupForm;

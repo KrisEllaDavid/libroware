@@ -1,5 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { REMOTE_URL, LOCAL_URL } from "../config/api";
+import {
+  Alert,
+  Button,
+  Card,
+  CardBody,
+  CardFooter,
+  EmptyState,
+  Icon,
+  Input,
+  PageHeader,
+  cn,
+} from "./ui";
 
 interface Settings {
   apiUrl: string;
@@ -63,103 +75,155 @@ const ElectronSettings: React.FC = () => {
 
   if (!api) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-500">Settings are only available in the desktop application.</p>
+      <div className="app-shell page">
+        <EmptyState
+          icon="settings"
+          title="Desktop only"
+          description="Connection settings are available in the Libroware desktop application."
+        />
       </div>
     );
   }
 
+  /** One selectable endpoint. A radio in substance, so it behaves like one. */
+  const Option: React.FC<{
+    selected: boolean;
+    onSelect: () => void;
+    title: string;
+    detail: string;
+    mono?: boolean;
+  }> = ({ selected, onSelect, title, detail, mono }) => (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={cn(
+        "flex w-full items-start gap-3 rounded-lg border p-3.5 text-left transition-all duration-200 ease-soft active:scale-[0.995]",
+        selected
+          ? "border-emerald-500 bg-emerald-50 dark:border-emerald-500 dark:bg-emerald-950/40"
+          : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+      )}
+    >
+      {/* The control itself, not just a coloured border — a tinted panel alone
+          doesn't say "chosen" the way a filled radio does. */}
+      <span
+        className={cn(
+          "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+          selected
+            ? "border-emerald-600 bg-emerald-600"
+            : "border-gray-300 dark:border-gray-600"
+        )}
+        aria-hidden="true"
+      >
+        {selected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-gray-900 dark:text-white">
+          {title}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 block break-all text-xs text-gray-500 dark:text-gray-400",
+            mono && "font-mono"
+          )}
+        >
+          {detail}
+        </span>
+      </span>
+    </button>
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 px-4 py-12">
-      <div className="max-w-lg mx-auto bg-white dark:bg-gray-800 rounded-xl shadow-md p-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">Connection Settings</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mb-8">
-          Choose which backend server this desktop app connects to. A restart is needed after saving.
-        </p>
+    <div className="app-shell page max-w-2xl">
+      <PageHeader
+        icon="settings"
+        eyebrow="Desktop"
+        title="Connection settings"
+        description="Choose which backend server this desktop app connects to. The app needs a restart after saving."
+      />
 
-        {/* Preset buttons */}
-        <div className="space-y-3 mb-6">
-          {PRESETS.map((preset) => (
-            <button
-              key={preset.value}
-              onClick={() => handlePreset(preset.value)}
-              className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all ${
-                !useCustom && settings.apiUrl === preset.value
-                  ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                  : "border-gray-200 dark:border-gray-700 hover:border-emerald-300"
-              }`}
-            >
-              <span className="block font-medium text-gray-800 dark:text-gray-200">{preset.label}</span>
-              <span className="block text-xs text-gray-400 font-mono mt-0.5">{preset.value}</span>
-            </button>
-          ))}
+      <Card>
+        <CardBody className="space-y-5">
+          <div role="radiogroup" aria-label="Backend server" className="space-y-2.5">
+            {PRESETS.map((preset) => (
+              <Option
+                key={preset.value}
+                selected={!useCustom && settings.apiUrl === preset.value}
+                onSelect={() => handlePreset(preset.value)}
+                title={preset.label}
+                detail={preset.value}
+                mono
+              />
+            ))}
 
-          {/* Custom URL option */}
-          <button
-            onClick={() => { setUseCustom(true); setStatus("idle"); setSaved(false); }}
-            className={`w-full text-left px-4 py-3 rounded-lg border-2 transition-all ${
-              useCustom
-                ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20"
-                : "border-gray-200 dark:border-gray-700 hover:border-emerald-300"
-            }`}
-          >
-            <span className="block font-medium text-gray-800 dark:text-gray-200">Custom URL</span>
-            <span className="block text-xs text-gray-400 mt-0.5">Enter your own backend address</span>
-          </button>
-        </div>
-
-        {useCustom && (
-          <input
-            type="url"
-            value={customUrl}
-            onChange={(e) => { setCustomUrl(e.target.value); setStatus("idle"); setSaved(false); }}
-            placeholder="http://192.168.x.x:5000/graphql"
-            className="w-full mb-6 px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600
-                       bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono text-sm
-                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          />
-        )}
-
-        {/* Active URL display */}
-        <div className="mb-6 px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg">
-          <span className="text-xs text-gray-500 dark:text-gray-400 block">Active endpoint</span>
-          <span className="text-sm font-mono text-gray-800 dark:text-gray-200 break-all">{activeUrl}</span>
-        </div>
-
-        {/* Status */}
-        {status !== "idle" && (
-          <div className={`mb-4 px-3 py-2 rounded-lg text-sm ${
-            status === "testing" ? "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400" :
-            status === "ok"      ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400" :
-                                   "bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-400"
-          }`}>
-            {status === "testing" ? "Testing connection…" : statusMsg}
+            <Option
+              selected={useCustom}
+              onSelect={() => { setUseCustom(true); setStatus("idle"); setSaved(false); }}
+              title="Custom URL"
+              detail="Point the app at your own backend address"
+            />
           </div>
-        )}
 
-        <div className="flex gap-3">
-          <button
+          {useCustom && (
+            <div className="animate-slide-down">
+              <Input
+                type="url"
+                inputMode="url"
+                autoCapitalize="none"
+                spellCheck={false}
+                label="Backend address"
+                value={customUrl}
+                onChange={(e) => { setCustomUrl(e.target.value); setStatus("idle"); setSaved(false); }}
+                placeholder="http://192.168.x.x:5000/graphql"
+                className="font-mono"
+              />
+            </div>
+          )}
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-3 dark:border-gray-700 dark:bg-gray-800/60">
+            <p className="text-2xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+              Active endpoint
+            </p>
+            <p className="mt-1 break-all font-mono text-sm text-gray-800 dark:text-gray-200">
+              {activeUrl}
+            </p>
+          </div>
+
+          {status !== "idle" && (
+            <Alert
+              tone={status === "ok" ? "success" : status === "fail" ? "danger" : "info"}
+            >
+              {status === "testing" ? "Testing connection…" : statusMsg}
+            </Alert>
+          )}
+
+          {saved && (
+            <Alert tone="success" title="Saved">
+              Restart Libroware for the new endpoint to take effect.
+            </Alert>
+          )}
+        </CardBody>
+
+        <CardFooter className="justify-end">
+          <Button
+            icon="refresh"
             onClick={handleTest}
-            disabled={status === "testing"}
-            className="flex-1 py-2 px-4 rounded-lg border border-emerald-500 text-emerald-600
-                       hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all
-                       disabled:opacity-50 text-sm font-medium"
+            loading={status === "testing"}
           >
-            Test Connection
-          </button>
-          <button
-            onClick={handleSave}
-            className="flex-1 py-2 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-700
-                       text-white text-sm font-medium transition-all"
-          >
-            {saved ? "Saved!" : "Save & Restart"}
-          </button>
-        </div>
+            Test connection
+          </Button>
+          <Button variant="primary" icon="check" onClick={handleSave}>
+            {saved ? "Saved" : "Save and restart"}
+          </Button>
+        </CardFooter>
+      </Card>
 
-        <p className="mt-6 text-xs text-gray-400 text-center">
-          Changes take effect after restarting the application.
-        </p>
-      </div>
+      <p className="flex items-center justify-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <Icon name="info" size={13} />
+        Changes take effect after restarting the application.
+      </p>
     </div>
   );
 };

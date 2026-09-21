@@ -4,6 +4,29 @@ import { useTranslation } from 'react-i18next';
 import { GET_ALL_FINES, GET_FINE_RATE } from '../../graphql/queries';
 import { WAIVE_FINE, MARK_FINE_PAID, SET_FINE_RATE } from '../../graphql/mutations';
 import { useToast } from '../../context/ToastContext';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  EmptyState,
+  Input,
+  PageHeader,
+  RowActions,
+  Segmented,
+  StackedMeta,
+  StatCard,
+  Table,
+  TableMessage,
+  TableSkeleton,
+  TableWrap,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Tag,
+  TR,
+} from '../ui';
 
 interface Fine {
   id: string;
@@ -55,126 +78,242 @@ const FinesManagement: React.FC = () => {
   };
 
   const fines: Fine[] = data?.allFines ?? [];
-  const totalOutstanding = fines.filter(f => !f.waived && !f.paidAt).reduce((s, f) => s + f.amount, 0);
+  const outstanding = fines.filter(f => !f.waived && !f.paidAt);
+  const totalOutstanding = outstanding.reduce((s, f) => s + f.amount, 0);
+  const totalCollected = fines.filter(f => f.paidAt).reduce((s, f) => s + f.amount, 0);
+  const totalWaived = fines.filter(f => f.waived).reduce((s, f) => s + f.amount, 0);
+
+  const fmt = (n: number) => `${n.toLocaleString()} FCFA`;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('fines.title')}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {t('fines.outstanding')}: <span className="font-semibold text-red-600">{totalOutstanding.toLocaleString()} FCFA</span>
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-gray-500 dark:text-gray-400">
-            {t('fines.currentRate')}:{' '}
-            <span className="font-semibold text-gray-900 dark:text-white">
-              {currentRate !== undefined ? `${currentRate.toLocaleString()} FCFA` : '—'}
-            </span>
-          </span>
-          <button onClick={openRateForm}
-            className="px-4 py-2 text-sm border border-emerald-500 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all">
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="coins"
+        eyebrow="Circulation"
+        title={t('fines.title')}
+        description={t(
+          'fines.subtitle',
+          'Overdue charges raised against members, and the daily rate they accrue at.'
+        )}
+        actions={
+          <Button
+            icon="settings"
+            onClick={openRateForm}
+            aria-expanded={showRateForm}
+          >
             {t('fines.setRate')}
-          </button>
-        </div>
+          </Button>
+        }
+      />
+
+      {/* The three figures a librarian is actually asked about, before the
+          row-by-row detail. */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard
+          icon="coins"
+          tone={totalOutstanding > 0 ? 'danger' : 'brand'}
+          label={t('fines.outstanding')}
+          value={fmt(totalOutstanding)}
+          sub={t('fines.outstandingSub', {
+            count: outstanding.length,
+            defaultValue: `${outstanding.length} unpaid`,
+          })}
+        />
+        <StatCard
+          icon="checkCircle"
+          tone="brand"
+          label={t('fines.paid')}
+          value={fmt(totalCollected)}
+        />
+        <StatCard
+          icon="shield"
+          tone="warning"
+          label={t('fines.waived')}
+          value={fmt(totalWaived)}
+          sub={t('fines.currentRateSub', {
+            rate: currentRate !== undefined ? currentRate.toLocaleString() : '—',
+            defaultValue: `Rate: ${currentRate !== undefined ? currentRate.toLocaleString() : '—'} FCFA per day`,
+          })}
+        />
       </div>
 
-      {/* Rate form */}
+      {/* Rate editor — inline, not a modal. Changing the rate is a one-field
+          edit; a dialog for it would be heavier than the task. */}
       {showRateForm && (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex gap-3 items-end">
-          <div className="flex-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('fines.rateLabel')}
-              {currentRate !== undefined && (
-                <span className="text-gray-400 dark:text-gray-500 font-normal">
-                  {' '}({t('fines.currentlyValue', { value: currentRate.toLocaleString() })})
-                </span>
+        <Card className="animate-slide-down">
+          <CardBody>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+              <Input
+                type="number"
+                min="0"
+                step="50"
+                inputMode="numeric"
+                value={newRate}
+                onChange={(e) => setNewRate(e.target.value)}
+                placeholder={t('fines.ratePlaceholder')}
+                label={t('fines.rateLabel')}
+                hint={
+                  currentRate !== undefined
+                    ? t('fines.currentlyValue', { value: currentRate.toLocaleString() })
+                    : undefined
+                }
+                wrapperClassName="flex-1"
+              />
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  onClick={() => setFineRate({ variables: { ratePerDay: parseFloat(newRate) } })}
+                  disabled={!newRate || isNaN(parseFloat(newRate))}
+                >
+                  {t('fines.apply')}
+                </Button>
+                <Button onClick={() => setShowRateForm(false)}>
+                  {t('common.cancel', 'Cancel')}
+                </Button>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
+
+      <Card>
+        <CardHeader
+          title={t('fines.title')}
+          description={t('fines.count', {
+            count: fines.length,
+            defaultValue: `${fines.length} charges`,
+          })}
+          actions={
+            <Segmented
+              value={filter}
+              onChange={(v) => setFilter(v as typeof filter)}
+              options={[
+                { value: 'all', label: t('fines.filter.all') },
+                { value: 'pending', label: t('fines.filter.pending') },
+                { value: 'waived', label: t('fines.filter.waived') },
+              ]}
+            />
+          }
+        />
+
+        <TableWrap>
+          <Table>
+            <THead>
+              <TR className="hover:bg-transparent dark:hover:bg-transparent">
+                <TH>{t('fines.member')}</TH>
+                <TH hideBelow="md">{t('fines.book')}</TH>
+                <TH hideBelow="sm" align="right">{t('fines.daysOverdue')}</TH>
+                <TH align="right">{t('fines.amount')}</TH>
+                <TH hideBelow="sm">{t('fines.status')}</TH>
+                <TH align="right">{t('fines.actions')}</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {loading ? (
+                <TableMessage colSpan={6}>
+                  <TableSkeleton rows={6} cols={5} />
+                </TableMessage>
+              ) : fines.length === 0 ? (
+                <TableMessage colSpan={6}>
+                  <EmptyState
+                    icon="checkCircle"
+                    title={t('fines.noFines')}
+                    description={t(
+                      'fines.noFinesHint',
+                      'Nothing is overdue. Charges appear here automatically once a loan passes its due date.'
+                    )}
+                  />
+                </TableMessage>
+              ) : (
+                fines.map((fine) => {
+                  const isPaid = !!fine.paidAt;
+                  const isWaived = fine.waived;
+                  return (
+                    <TR key={fine.id}>
+                      <TD className="max-w-[16rem]">
+                        <p className="truncate font-medium text-gray-900 dark:text-white">
+                          {fine.borrow.user.firstName} {fine.borrow.user.lastName}
+                        </p>
+                        <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                          {fine.borrow.user.email}
+                        </p>
+                        <StackedMeta showBelow="md">{fine.borrow.book.title}</StackedMeta>
+                        <StackedMeta showBelow="sm">
+                          {fine.daysOverdue}
+                          {t('fines.daysSuffix')} · {isWaived
+                            ? t('fines.waived')
+                            : isPaid
+                            ? t('fines.paid')
+                            : t('fines.pending')}
+                        </StackedMeta>
+                      </TD>
+
+                      <TD hideBelow="md" className="max-w-[16rem]">
+                        <span className="line-clamp-2 break-words">{fine.borrow.book.title}</span>
+                      </TD>
+
+                      <TD hideBelow="sm" align="right">
+                        <span data-numeric className="font-medium text-red-600 dark:text-red-400">
+                          {fine.daysOverdue}
+                          {t('fines.daysSuffix')}
+                        </span>
+                      </TD>
+
+                      <TD align="right">
+                        <span
+                          data-numeric
+                          className="whitespace-nowrap font-semibold text-gray-900 dark:text-white"
+                        >
+                          {fine.amount.toLocaleString()}
+                          <span className="ml-1 text-xs font-normal text-gray-400">FCFA</span>
+                        </span>
+                      </TD>
+
+                      <TD hideBelow="sm">
+                        <Tag
+                          tone={isWaived ? 'neutral' : isPaid ? 'brand' : 'danger'}
+                          dot
+                        >
+                          {isWaived
+                            ? t('fines.waived')
+                            : isPaid
+                            ? t('fines.paid')
+                            : t('fines.pending')}
+                        </Tag>
+                      </TD>
+
+                      <TD align="right">
+                        {!isWaived && !isPaid ? (
+                          <RowActions className="gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => waiveFine({ variables: { borrowId: fine.borrowId } })}
+                            >
+                              {t('fines.waive')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="primary"
+                              icon="check"
+                              onClick={() => markPaid({ variables: { borrowId: fine.borrowId } })}
+                            >
+                              {t('fines.markPaid')}
+                            </Button>
+                          </RowActions>
+                        ) : (
+                          <span className="text-gray-300 dark:text-gray-600" aria-hidden="true">
+                            —
+                          </span>
+                        )}
+                      </TD>
+                    </TR>
+                  );
+                })
               )}
-            </label>
-            <input type="number" min="0" step="50" value={newRate} onChange={e => setNewRate(e.target.value)}
-              placeholder={t('fines.ratePlaceholder')}
-              className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-          </div>
-          <button onClick={() => setFineRate({ variables: { ratePerDay: parseFloat(newRate) } })}
-            disabled={!newRate || isNaN(parseFloat(newRate))}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 transition-all">
-            {t('fines.apply')}
-          </button>
-        </div>
-      )}
-
-      {/* Filter tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
-        {(['all', 'pending', 'waived'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 text-sm rounded-md capitalize transition-all ${filter === f ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
-            {t(`fines.filter.${f}`)}
-          </button>
-        ))}
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div className="text-center py-12 text-gray-400">{t('common.loading')}</div>
-      ) : fines.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">{t('fines.noFines')}</div>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                {[t('fines.member'), t('fines.book'), t('fines.daysOverdue'), t('fines.amount'), t('fines.status'), t('fines.actions')].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {fines.map(fine => {
-                const isPaid   = !!fine.paidAt;
-                const isWaived = fine.waived;
-                return (
-                  <tr key={fine.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-gray-900 dark:text-white">{fine.borrow.user.firstName} {fine.borrow.user.lastName}</div>
-                      <div className="text-xs text-gray-400">{fine.borrow.user.email}</div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{fine.borrow.book.title}</td>
-                    <td className="px-4 py-3 text-center font-medium text-red-600">{fine.daysOverdue}{t('fines.daysSuffix')}</td>
-                    <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white">{fine.amount.toLocaleString()} FCFA</td>
-                    <td className="px-4 py-3">
-                      {isWaived ? (
-                        <span className="px-5 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500">{t('fines.waived')}</span>
-                      ) : isPaid ? (
-                        <span className="px-5 py-0.5 text-xs rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">{t('fines.paid')}</span>
-                      ) : (
-                        <span className="px-5 py-0.5 text-xs rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400">{t('fines.pending')}</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      {!isWaived && !isPaid && (
-                        <div className="flex gap-2">
-                          <button onClick={() => waiveFine({ variables: { borrowId: fine.borrowId } })}
-                            className="text-xs px-5 py-1 rounded border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                            {t('fines.waive')}
-                          </button>
-                          <button onClick={() => markPaid({ variables: { borrowId: fine.borrowId } })}
-                            className="text-xs px-5 py-1 rounded bg-emerald-600 hover:bg-emerald-700 text-white transition-all">
-                            {t('fines.markPaid')}
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      )}
+            </TBody>
+          </Table>
+        </TableWrap>
+      </Card>
     </div>
   );
 };

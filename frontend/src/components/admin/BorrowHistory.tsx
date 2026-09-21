@@ -2,6 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import { gql } from '@apollo/client';
 import Pagination from '../common/Pagination';
+import {
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  SearchInput,
+  Segmented,
+  StatusTag,
+  StackedMeta,
+  Table,
+  TableMessage,
+  TableSkeleton,
+  TableWrap,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from '../ui';
 import { fmtDate } from '../../utils/date';
 
 const PAGE_SIZE = 25;
@@ -159,61 +180,26 @@ const BorrowHistory: React.FC = () => {
     try {
       if (loading || fallbackLoading) {
         return (
-          <div className="flex flex-col items-center justify-center p-8">
-            <div className="animate-spin mb-2">
-              <svg className="h-8 w-8 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </div>
-            <p className="text-gray-600 dark:text-gray-300">
-              {useFallbackQuery 
-                ? "Loading fallback data..." 
-                : "Loading borrow history..."}
-            </p>
-          </div>
+          <TableWrap>
+            <Table>
+              <TBody>
+                <TableMessage colSpan={6}>
+                  <TableSkeleton rows={8} cols={5} />
+                </TableMessage>
+              </TBody>
+            </Table>
+          </TableWrap>
         );
       }
 
       if (error || fallbackError) {
         const currentError = error || fallbackError;
         return (
-          <div className="flex flex-col items-center justify-center p-8">
-            <svg className="h-12 w-12 text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="text-lg font-medium text-red-600 dark:text-red-400 mb-1">Error Loading Data</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {currentError?.message || "Failed to load borrow history."}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => useFallbackQuery ? fallbackRefetch() : primaryRefetch()}
-                className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-              >
-                Try Again
-              </button>
-              {!useFallbackQuery && (
-                <button
-                  onClick={() => setUseFallbackQuery(true)}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
-                >
-                  Use Fallback Query
-                </button>
-              )}
-              {useFallbackQuery && (
-                <button
-                  onClick={() => {
-                    setUseFallbackQuery(false);
-                    primaryRefetch();
-                  }}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
-                >
-                  Try Original Query
-                </button>
-              )}
-            </div>
-          </div>
+          <ErrorState
+            title="Could not load borrow history"
+            message={currentError?.message || "Failed to load borrow history."}
+            onRetry={() => (useFallbackQuery ? fallbackRefetch() : primaryRefetch())}
+          />
         );
       }
 
@@ -221,200 +207,162 @@ const BorrowHistory: React.FC = () => {
 
       if (filteredBorrows.length === 0) {
         return (
-          <div className="flex flex-col items-center justify-center p-8">
-            <svg className="h-12 w-12 text-gray-400 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">No Borrows Found</h3>
-            {searchTerm ? (
-              <p className="text-gray-500 dark:text-gray-400 mb-4">No results matching "{searchTerm}". Try a different search term.</p>
-            ) : filter !== 'all' ? (
-              <p className="text-gray-500 dark:text-gray-400 mb-4">No {filter === 'active' ? 'active' : 'returned'} borrows found.</p>
-            ) : (
-              <p className="text-gray-500 dark:text-gray-400 mb-4">There are no borrow records in the system yet.</p>
-            )}
-            <div className="flex flex-wrap gap-2">
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm('')}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
-                >
-                  Clear Search
-                </button>
-              )}
-              {filter !== 'all' && (
-                <button
-                  onClick={() => { setFilter('all'); setPage(0); }}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-                >
-                  View All Borrows
-                </button>
-              )}
-              {useFallbackQuery && (
-                <button
+          <EmptyState
+            icon="history"
+            title="No borrow records"
+            description={
+              searchTerm
+                ? `Nothing matches "${searchTerm}". Try a member's name or a title.`
+                : filter !== 'all'
+                ? `No ${filter === 'active' ? 'active' : 'returned'} borrows in this period.`
+                : 'Borrowing activity will appear here once books start circulating.'
+            }
+            action={
+              searchTerm ? (
+                <Button variant="secondary" icon="close" onClick={() => setSearchTerm('')}>
+                  Clear search
+                </Button>
+              ) : filter !== 'all' ? (
+                <Button
+                  variant="secondary"
                   onClick={() => {
-                    setUseFallbackQuery(false);
-                    primaryRefetch();
+                    setFilter('all');
+                    setPage(0);
                   }}
-                  className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
                 >
-                  Try Original Query
-                </button>
-              )}
-              <button
-                onClick={() => useFallbackQuery ? fallbackRefetch() : primaryRefetch()}
-                className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition"
-              >
-                Refresh Data
-              </button>
-            </div>
-          </div>
+                  Show all borrows
+                </Button>
+              ) : undefined
+            }
+          />
         );
       }
 
       return (
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Book
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  User
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Borrowed Date
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Due Date
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Returned Date
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+        <TableWrap>
+          <Table>
+            <THead>
+              <TR className="hover:bg-transparent dark:hover:bg-transparent">
+                <TH>Book</TH>
+                <TH hideBelow="md">Member</TH>
+                <TH hideBelow="lg">Borrowed</TH>
+                <TH hideBelow="sm">Due</TH>
+                <TH hideBelow="lg">Returned</TH>
+                <TH align="right">Status</TH>
+              </TR>
+            </THead>
+            <TBody>
               {filteredBorrows.map((borrow: Borrow) => (
-                <tr key={borrow.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">{borrow.book.title}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">ISBN: {borrow.book.isbn}</div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                      {borrow.book.authors.map(author => author.name).join(', ')}
-                    </div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                <TR key={borrow.id}>
+                  <TD className="max-w-[20rem]">
+                    <p className="break-words font-medium text-gray-900 dark:text-white">
+                      {borrow.book.title}
+                    </p>
+                    <p className="mt-0.5 truncate text-xs text-gray-500 dark:text-gray-400">
+                      {borrow.book.authors.map((author) => author.name).join(', ')}
+                    </p>
+                    <StackedMeta showBelow="md">
                       {borrow.user.firstName} {borrow.user.lastName}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">{borrow.user.email}</div>
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    </StackedMeta>
+                    <StackedMeta showBelow="sm" label="Due">
+                      {formatDate(borrow.dueDate)}
+                    </StackedMeta>
+                  </TD>
+
+                  <TD hideBelow="md" className="max-w-[14rem]">
+                    <p className="truncate font-medium text-gray-800 dark:text-gray-100">
+                      {borrow.user.firstName} {borrow.user.lastName}
+                    </p>
+                    <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                      {borrow.user.email}
+                    </p>
+                  </TD>
+
+                  <TD hideBelow="lg" className="whitespace-nowrap">
                     {formatDate(borrow.borrowedAt)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                  </TD>
+
+                  <TD hideBelow="sm" className="whitespace-nowrap">
                     {formatDate(borrow.dueDate)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {formatDate(borrow.returnedAt)}
-                  </td>
-                  <td className="px-4 py-4 whitespace-nowrap">
-                    <span className={`px-5 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      borrow.status === 'RETURNED' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                        : borrow.status === 'OVERDUE'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                          : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    }`}>
-                      {borrow.status === 'RETURNED' 
-                        ? 'Returned' 
-                        : borrow.status === 'OVERDUE' 
-                          ? 'Overdue' 
-                          : 'Borrowed'}
-                    </span>
-                  </td>
-                </tr>
+                  </TD>
+
+                  <TD hideBelow="lg" className="whitespace-nowrap">
+                    {/* An em-dash rather than an empty cell: a blank reads as a
+                        rendering fault, a dash reads as "not yet returned". */}
+                    {borrow.returnedAt ? formatDate(borrow.returnedAt) : (
+                      <span className="text-gray-400" aria-label="Not returned">—</span>
+                    )}
+                  </TD>
+
+                  <TD align="right">
+                    <StatusTag
+                      status={borrow.status}
+                      label={
+                        borrow.status === 'RETURNED'
+                          ? 'Returned'
+                          : borrow.status === 'OVERDUE'
+                          ? 'Overdue'
+                          : 'On loan'
+                      }
+                    />
+                  </TD>
+                </TR>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </TBody>
+          </Table>
+        </TableWrap>
       );
     } catch (err) {
       console.error('Unexpected error in renderContent:', err);
       return (
-        <div className="flex flex-col items-center justify-center p-8">
-          <svg className="h-12 w-12 text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <h3 className="text-lg font-medium text-red-600 dark:text-red-400 mb-1">Unexpected Error</h3>
-          <p className="text-gray-500 dark:text-gray-400 mb-4">Something went wrong while displaying borrow history.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-          >
-            Reload Page
-          </button>
-        </div>
+        <ErrorState
+          title="Unexpected error"
+          message="Something went wrong while displaying borrow history."
+          onRetry={() => window.location.reload()}
+          retryLabel="Reload"
+        />
       );
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
-        <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            Borrow History {useFallbackQuery && <span className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 px-5 py-1 rounded-full ml-2">Using Fallback</span>}
-          </h3>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search books or users..."
-                className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="history"
+        eyebrow="Circulation"
+        title="Borrow history"
+        description="Every loan the library has issued, past and present."
+      />
+
+      <Card>
+        <CardHeader
+          title="Records"
+          description={`${(primaryData?.borrowsCount ?? filteredBorrows.length).toLocaleString()} records`}
+          actions={
+            <>
+              <SearchInput
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                onClear={() => setSearchTerm('')}
+                placeholder="Search books or members"
+                wrapperClassName="sm:w-64"
               />
-            </div>
-            <div className="w-full sm:w-auto flex space-x-2">
-              <button
-                onClick={() => { setFilter('all'); setPage(0); }}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  filter === 'all'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                } transition-colors`}
-              >
-                All
-              </button>
-              <button
-                onClick={() => { setFilter('active'); setPage(0); }}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  filter === 'active'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                } transition-colors`}
-              >
-                Active
-              </button>
-              <button
-                onClick={() => { setFilter('returned'); setPage(0); }}
-                className={`px-3 py-1 text-sm rounded-md ${
-                  filter === 'returned'
-                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200'
-                    : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                } transition-colors`}
-              >
-                Returned
-              </button>
-            </div>
-          </div>
-        </div>
-        
+              <Segmented
+                value={filter}
+                onChange={(v) => {
+                  setFilter(v as typeof filter);
+                  setPage(0);
+                }}
+                options={[
+                  { value: 'all', label: 'All' },
+                  { value: 'active', label: 'Active' },
+                  { value: 'returned', label: 'Returned' },
+                ]}
+              />
+            </>
+          }
+        />
+
         {renderContent()}
 
         <Pagination
@@ -423,7 +371,7 @@ const BorrowHistory: React.FC = () => {
           total={primaryData?.borrowsCount ?? 0}
           onPage={(p) => setPage(p)}
         />
-      </div>
+      </Card>
     </div>
   );
 };

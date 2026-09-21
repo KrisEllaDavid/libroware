@@ -5,13 +5,36 @@ import { GET_DELETED_USERS, GET_DELETED_BOOKS } from '../../graphql/queries';
 import { RESTORE_USER, HARD_DELETE_USER, RESTORE_BOOK, HARD_DELETE_BOOK } from '../../graphql/mutations';
 import { useToast } from '../../context/ToastContext';
 import { fmtShort } from '../../utils/date';
+import Modal from '../Modal';
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+  RowActions,
+  Segmented,
+  StackedMeta,
+  Table,
+  TableMessage,
+  TableSkeleton,
+  TableWrap,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Tag,
+  TagTone,
+  TR,
+} from '../ui';
 
 type Section = 'users' | 'books';
 
-const ROLE_BADGE: Record<string, string> = {
-  ADMIN:     'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-  LIBRARIAN: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400',
-  USER:      'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300',
+const ROLE_TONE: Record<string, TagTone> = {
+  ADMIN: 'danger',
+  LIBRARIAN: 'warning',
+  USER: 'neutral',
 };
 
 const DeletedRecords: React.FC = () => {
@@ -42,148 +65,204 @@ const DeletedRecords: React.FC = () => {
   const fmtDate = fmtShort;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900 dark:text-white">{t('admin.tabs.deleted')}</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-            {t('deletedRecords.subtitle')}
-          </p>
-        </div>
-      </div>
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="trash"
+        eyebrow="Administration"
+        title={t('admin.tabs.deleted', 'Recycle bin')}
+        description={t('deletedRecords.subtitle')}
+      />
 
-      {/* Section tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
-        {(['users', 'books'] as Section[]).map(s => (
-          <button key={s} onClick={() => setSection(s)}
-            className={`px-5 py-1.5 text-sm rounded-md capitalize transition-all ${
-              section === s
-                ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white font-medium'
-                : 'text-gray-500 dark:text-gray-400'
-            }`}>
-            {s === 'users' ? t('deletedRecords.sectionUsers') : t('deletedRecords.sectionBooks')} {s === 'users' ? `(${deletedUsers.length})` : `(${deletedBooks.length})`}
-          </button>
-        ))}
-      </div>
+      <Card>
+        <CardHeader
+          title={
+            section === 'users'
+              ? t('deletedRecords.sectionUsers')
+              : t('deletedRecords.sectionBooks')
+          }
+          description={
+            section === 'users'
+              ? `${deletedUsers.length} removed`
+              : `${deletedBooks.length} removed`
+          }
+          actions={
+            <Segmented
+              value={section}
+              onChange={(v) => setSection(v as Section)}
+              options={[
+                {
+                  value: 'users',
+                  label: `${t('deletedRecords.sectionUsers')} (${deletedUsers.length})`,
+                },
+                {
+                  value: 'books',
+                  label: `${t('deletedRecords.sectionBooks')} (${deletedBooks.length})`,
+                },
+              ]}
+            />
+          }
+        />
 
-      {/* Content */}
-      {loading ? (
-        <div className="text-center py-12 text-gray-500 dark:text-gray-400">{t('common.loading')}</div>
-      ) : isEmpty ? (
-        <div className="text-center py-16 bg-white dark:bg-gray-800 rounded-xl border border-dashed border-gray-300 dark:border-gray-600">
-          <p className="text-gray-500 dark:text-gray-400 text-sm">{section === 'users' ? t('deletedRecords.noneFoundUsers') : t('deletedRecords.noneFoundBooks')}</p>
-          <p className="text-gray-400 dark:text-gray-500 text-xs mt-1">{t('deletedRecords.appearHere')}</p>
-        </div>
-      ) : section === 'users' ? (
-        // ── Deleted users table ─────────────────────────────────────────────
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                {[t('deletedRecords.colUser'), t('deletedRecords.colRole'), t('deletedRecords.colDeletedOn'), t('users.actions')].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {deletedUsers.map((u: any) => (
-                <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900 dark:text-white">{u.firstName} {u.lastName}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{u.email}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`px-5 py-0.5 text-xs rounded-full font-medium ${ROLE_BADGE[u.role] ?? ''}`}>{u.role}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{fmtDate(u.deletedAt)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex gap-2">
-                      <button onClick={() => restoreUser({ variables: { id: u.id } })}
-                        className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-all">
-                        {t('deletedRecords.restore')}
-                      </button>
-                      <button onClick={() => setConfirmId(u.id)}
-                        className="px-3 py-1 text-xs border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                        {t('deletedRecords.deletePermanently')}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      ) : (
-        // ── Deleted books table ─────────────────────────────────────────────
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                {[t('deletedRecords.colBook'), t('books.authors'), t('deletedRecords.colDeletedOn'), t('users.actions')].map(h => (
-                  <th key={h} className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-              {deletedBooks.map((b: any) => (
-                <tr key={b.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900 dark:text-white">{b.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{t('browseBooks.isbnLabel')} {b.isbn}</p>
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">
-                    {b.authors.map((a: any) => a.name).join(', ') || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs">{fmtDate(b.deletedAt)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="flex gap-2">
-                      <button onClick={() => restoreBook({ variables: { id: b.id } })}
-                        className="px-3 py-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white rounded-md transition-all">
-                        {t('deletedRecords.restore')}
-                      </button>
-                      <button onClick={() => setConfirmId(b.id)}
-                        className="px-3 py-1 text-xs border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
-                        {t('deletedRecords.deletePermanently')}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          </div>
-        </div>
-      )}
+        <TableWrap>
+          <Table>
+            <THead>
+              <TR className="hover:bg-transparent dark:hover:bg-transparent">
+                <TH>
+                  {section === 'users'
+                    ? t('deletedRecords.colUser')
+                    : t('deletedRecords.colBook')}
+                </TH>
+                <TH hideBelow="md">
+                  {section === 'users'
+                    ? t('deletedRecords.colRole')
+                    : t('books.authors', 'Authors')}
+                </TH>
+                <TH hideBelow="sm">{t('deletedRecords.colDeletedOn')}</TH>
+                <TH align="right">{t('users.actions', 'Actions')}</TH>
+              </TR>
+            </THead>
+            <TBody>
+              {loading ? (
+                <TableMessage colSpan={4}>
+                  <TableSkeleton rows={5} cols={3} />
+                </TableMessage>
+              ) : isEmpty ? (
+                <TableMessage colSpan={4}>
+                  <EmptyState
+                    icon="restore"
+                    title={
+                      section === 'users'
+                        ? t('deletedRecords.noneFoundUsers')
+                        : t('deletedRecords.noneFoundBooks')
+                    }
+                    description={t('deletedRecords.appearHere')}
+                  />
+                </TableMessage>
+              ) : section === 'users' ? (
+                deletedUsers.map((u: any) => (
+                  <TR key={u.id}>
+                    <TD className="max-w-[18rem]">
+                      <p className="truncate font-medium text-gray-900 dark:text-white">
+                        {u.firstName} {u.lastName}
+                      </p>
+                      <p className="truncate text-xs text-gray-500 dark:text-gray-400">
+                        {u.email}
+                      </p>
+                      <StackedMeta showBelow="sm">
+                        {t('deletedRecords.colDeletedOn')}: {fmtDate(u.deletedAt)}
+                      </StackedMeta>
+                    </TD>
+                    <TD hideBelow="md">
+                      <Tag tone={ROLE_TONE[u.role] ?? 'neutral'} size="sm">
+                        {u.role}
+                      </Tag>
+                    </TD>
+                    <TD hideBelow="sm" className="whitespace-nowrap text-xs">
+                      {fmtDate(u.deletedAt)}
+                    </TD>
+                    <TD align="right">
+                      <RowActions className="gap-2">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          icon="restore"
+                          onClick={() => restoreUser({ variables: { id: u.id } })}
+                        >
+                          {t('deletedRecords.restore')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          icon="trash"
+                          onClick={() => setConfirmId(u.id)}
+                          className="text-red-600 hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                        >
+                          {t('deletedRecords.deletePermanently')}
+                        </Button>
+                      </RowActions>
+                    </TD>
+                  </TR>
+                ))
+              ) : (
+                deletedBooks.map((b: any) => (
+                  <TR key={b.id}>
+                    <TD className="max-w-[18rem]">
+                      <p className="break-words font-medium text-gray-900 dark:text-white">
+                        {b.title}
+                      </p>
+                      <p className="truncate font-mono text-xs text-gray-500 dark:text-gray-400">
+                        {t('browseBooks.isbnLabel')} {b.isbn}
+                      </p>
+                      <StackedMeta showBelow="md">
+                        {b.authors.map((a: any) => a.name).join(', ') || '—'}
+                      </StackedMeta>
+                      <StackedMeta showBelow="sm">
+                        {t('deletedRecords.colDeletedOn')}: {fmtDate(b.deletedAt)}
+                      </StackedMeta>
+                    </TD>
+                    <TD hideBelow="md" className="max-w-[14rem] text-xs">
+                      <span className="line-clamp-2">
+                        {b.authors.map((a: any) => a.name).join(', ') || '—'}
+                      </span>
+                    </TD>
+                    <TD hideBelow="sm" className="whitespace-nowrap text-xs">
+                      {fmtDate(b.deletedAt)}
+                    </TD>
+                    <TD align="right">
+                      <RowActions className="gap-2">
+                        <Button
+                          size="sm"
+                          variant="primary"
+                          icon="restore"
+                          onClick={() => restoreBook({ variables: { id: b.id } })}
+                        >
+                          {t('deletedRecords.restore')}
+                        </Button>
+                        <Button
+                          size="sm"
+                          icon="trash"
+                          onClick={() => setConfirmId(b.id)}
+                          className="text-red-600 hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
+                        >
+                          {t('deletedRecords.deletePermanently')}
+                        </Button>
+                      </RowActions>
+                    </TD>
+                  </TR>
+                ))
+              )}
+            </TBody>
+          </Table>
+        </TableWrap>
+      </Card>
 
-      {/* Permanent delete confirmation overlay */}
-      {confirmId && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 w-80">
-            <h3 className="text-base font-semibold text-gray-900 dark:text-white mb-2">{t('deletedRecords.confirmTitle')}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">
-              {t('deletedRecords.confirmBodyPrefix')}<strong>{t('deletedRecords.confirmBodyBold')}</strong>{t('deletedRecords.confirmBodySuffix')}
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setConfirmId(null)}
-                className="flex-1 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all">
-                {t('common.cancel')}
-              </button>
-              <button onClick={() =>
-                section === 'users'
-                  ? hardDeleteUser({ variables: { id: confirmId } })
-                  : hardDeleteBook({ variables: { id: confirmId } })
-              }
-                className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-all">
-                {t('deletedRecords.deletePermanently')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/*
+        Permanent deletion now goes through the app's own Modal rather than a
+        bespoke overlay. That gets it the escape handler, focus trap, scroll
+        lock and mobile sheet treatment every other dialog already has — all of
+        which the hand-rolled version was missing, on the single most
+        destructive action in the product.
+      */}
+      <Modal
+        isOpen={!!confirmId}
+        type="delete"
+        size="sm"
+        title={t('deletedRecords.confirmTitle')}
+        confirmText={t('deletedRecords.deletePermanently')}
+        cancelText={t('common.cancel')}
+        showToast={false}
+        onCancel={() => setConfirmId(null)}
+        onConfirm={() =>
+          section === 'users'
+            ? hardDeleteUser({ variables: { id: confirmId } })
+            : hardDeleteBook({ variables: { id: confirmId } })
+        }
+      >
+        <Alert tone="danger">
+          {t('deletedRecords.confirmBodyPrefix')}
+          <strong>{t('deletedRecords.confirmBodyBold')}</strong>
+          {t('deletedRecords.confirmBodySuffix')}
+        </Alert>
+      </Modal>
     </div>
   );
 };

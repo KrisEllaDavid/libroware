@@ -2,10 +2,74 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+
+    <title>Libroware — Library Management</title>
+    <meta
+      name="description"
+      content="Libroware is the library management system for Congo-Cameroon Interstate University: catalogue, borrowing, reservations, fines and member records in one place."
+    />
+    <meta name="application-name" content="Libroware" />
+    <meta name="apple-mobile-web-app-title" content="Libroware" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="color-scheme" content="light dark" />
+
+    <!-- Matches the nav bar in each theme so the mobile browser chrome
+         blends into the app instead of banding against it. -->
+    <meta
+      name="theme-color"
+      content="#1F7454"
+      media="(prefers-color-scheme: light)"
+    />
+    <meta
+      name="theme-color"
+      content="#164A38"
+      media="(prefers-color-scheme: dark)"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Libroware" />
+    <meta property="og:title" content="Libroware — Library Management" />
+    <meta
+      property="og:description"
+      content="Catalogue, borrowing, reservations, fines and member records in one place."
+    />
+    <meta property="og:image" content="/logo512.png" />
+    <meta name="twitter:card" content="summary" />
+
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Libroware Management System</title>
+    <link rel="mask-icon" href="/Logo.svg" color="#1F7454" />
+
+    <link rel="preconnect" href="https://api.fontshare.com" />
+    <link rel="preconnect" href="https://cdn.fontshare.com" crossorigin />
+
+    <!-- Paint the correct background before the bundle evaluates, so a dark-mode
+         reload doesn't flash a white page. Mirrors ThemeContext's own logic. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("theme");
+          var dark =
+            saved === "dark" ||
+            (!saved &&
+              window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches);
+          if (dark) document.documentElement.classList.add("dark");
+          document.documentElement.style.backgroundColor = dark
+            ? "#121210"
+            : "#FAFAF8";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

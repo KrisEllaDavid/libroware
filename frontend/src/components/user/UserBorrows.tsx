@@ -8,6 +8,19 @@ import { useToast } from "../../context/ToastContext";
 import { useOfflineMutation } from "../../offline/useOfflineMutation";
 import { useQueuedMutations } from "../../offline/useQueuedMutations";
 import { adjustBookAvailable, setBorrowReturned } from "../../offline/cacheUpdates";
+import {
+  BookCover,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  CardGridSkeleton,
+  SearchInput,
+  Segmented,
+  Tag,
+  cn,
+} from "../ui";
 
 interface UserBorrowsProps {
   userId: string;
@@ -111,188 +124,234 @@ const UserBorrows: React.FC<UserBorrowsProps> = ({
     return true;
   });
 
-  if (loading)
-    return <div className="text-center py-4">{t("userBorrows.loading")}</div>;
-  if (error)
+  if (loading) return <CardGridSkeleton count={6} />;
+
+  if (error) {
     return (
-      <div className="text-red-500 py-4">
-        {t("userBorrows.errorLoading", { message: error.message })}
-      </div>
+      <Card>
+        <ErrorState
+          message={t("userBorrows.errorLoading", { message: error.message })}
+          onRetry={() => refetch()}
+        />
+      </Card>
     );
+  }
+
+  /** Days until (positive) or past (negative) the due date. */
+  const daysLeft = (due: string) =>
+    Math.ceil((new Date(due).getTime() - Date.now()) / 86_400_000);
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800 dark:text-white mb-3 sm:mb-0">
-          {t("userDashboard.tabs.myBooks")}
-        </h2>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder={t("books.search")}
-              className="pl-8 pr-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-emerald-500 focus:border-emerald-500 w-full sm:w-64"
+    <Card>
+      <CardHeader
+        title={t("userDashboard.tabs.myBooks")}
+        description={t("userBorrows.count", {
+          count: filteredBorrows.length,
+          defaultValue: `${filteredBorrows.length} books`,
+        })}
+        actions={
+          <>
+            <SearchInput
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onClear={() => setSearchTerm("")}
+              placeholder={t("books.search")}
+              wrapperClassName="sm:w-60"
             />
-            <svg
-              className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400 dark:text-gray-500"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
+            <Segmented
+              value={filter}
+              onChange={(v) => setFilter(v as typeof filter)}
+              options={[
+                { value: "all", label: t("userBorrows.filterAll") },
+                { value: "active", label: t("userBorrows.filterActive") },
+                { value: "returned", label: t("userBorrows.filterReturned") },
+              ]}
+            />
+          </>
+        }
+      />
 
-          <div className="inline-flex rounded-md shadow-sm">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-4 py-2 text-sm font-medium rounded-l-lg border ${
-                filter === "all"
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
-              }`}
-            >
-              {t("userBorrows.filterAll")}
-            </button>
-            <button
-              onClick={() => setFilter("active")}
-              className={`px-4 py-2 text-sm font-medium border-t border-b ${
-                filter === "active"
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
-              }`}
-            >
-              {t("userBorrows.filterActive")}
-            </button>
-            <button
-              onClick={() => setFilter("returned")}
-              className={`px-4 py-2 text-sm font-medium rounded-r-lg border ${
-                filter === "returned"
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white dark:bg-gray-700 text-gray-700 dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600"
-              }`}
-            >
-              {t("userBorrows.filterReturned")}
-            </button>
-          </div>
-        </div>
+      <div className="p-5 sm:p-6">
+        {filteredBorrows.length === 0 ? (
+          <EmptyState
+            icon="books"
+            title={
+              searchTerm
+                ? t("userBorrows.noMatch")
+                : t("userBorrows.noBorrows")
+            }
+            description={
+              searchTerm
+                ? undefined
+                : t(
+                    "userBorrows.noBorrowsHint",
+                    "Books you borrow will appear here with their due dates."
+                  )
+            }
+            action={
+              searchTerm ? (
+                <Button variant="secondary" icon="close" onClick={() => setSearchTerm("")}>
+                  {t("common.clearSearch", "Clear search")}
+                </Button>
+              ) : undefined
+            }
+          />
+        ) : (
+          <ul className="stagger grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredBorrows.map((borrow, i) => {
+              const isPending = borrow.status === "PENDING_APPROVAL";
+              const isOverdue = borrow.status === "OVERDUE";
+              const isReturned = Boolean(borrow.returnedAt);
+              const left = daysLeft(borrow.dueDate);
+              const dueSoon = !isReturned && !isPending && left >= 0 && left <= 3;
+
+              return (
+                <li key={borrow.id} style={{ ['--i' as any]: i }}>
+                  <Card
+                    className={cn(
+                      "flex h-full flex-col overflow-hidden",
+                      /* The state that needs action gets the coloured edge.
+                         Everything calm stays neutral, so an overdue book is
+                         visible from across the grid. */
+                      isOverdue && "border-l-4 border-l-red-500",
+                      dueSoon && "border-l-4 border-l-amber-500"
+                    )}
+                  >
+                    <div className="flex gap-4 p-4">
+                      <div className="h-[6.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-lg shadow-sm">
+                        <BookCover
+                          title={borrow.book.title}
+                          src={borrow.book.coverImage}
+                          author={borrow.book.authors.map((a) => a.name).join(", ")}
+                          rounded="rounded-lg"
+                        />
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900 dark:text-white">
+                          {borrow.book.title}
+                        </h3>
+                        <p className="mt-0.5 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+                          {borrow.book.authors.map((a) => a.name).join(", ")}
+                        </p>
+
+                        <div className="mt-2">
+                          <Tag
+                            tone={
+                              isPending
+                                ? "warning"
+                                : isOverdue
+                                ? "danger"
+                                : isReturned
+                                ? "neutral"
+                                : dueSoon
+                                ? "warning"
+                                : "brand"
+                            }
+                            dot
+                          >
+                            {isPending
+                              ? t("borrows.PENDING_APPROVAL")
+                              : isOverdue
+                              ? t("borrows.OVERDUE")
+                              : isReturned
+                              ? t("borrows.RETURNED")
+                              : t("userBorrows.statusActive")}
+                          </Tag>
+                        </div>
+
+                        {/*
+                          "Due in 2 days" beats a bare date: the member doesn't
+                          have to do the arithmetic to know whether they're
+                          about to be fined.
+                        */}
+                        {!isReturned && !isPending && (
+                          <p
+                            className={cn(
+                              "mt-2 text-xs font-medium",
+                              isOverdue
+                                ? "text-red-600 dark:text-red-400"
+                                : dueSoon
+                                ? "text-amber-700 dark:text-amber-400"
+                                : "text-gray-500 dark:text-gray-400"
+                            )}
+                          >
+                            {isOverdue
+                              ? `${Math.abs(left)} ${Math.abs(left) === 1 ? "day" : "days"} overdue`
+                              : left === 0
+                              ? "Due today"
+                              : `Due in ${left} ${left === 1 ? "day" : "days"}`}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-gray-100 px-4 py-3 text-xs dark:border-gray-800">
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          {t("userBorrows.borrowedLabel")}
+                        </dt>
+                        <dd className="font-medium text-gray-700 dark:text-gray-200">
+                          {fmtShort(borrow.borrowedAt)}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-gray-500 dark:text-gray-400">
+                          {t("userBorrows.dueLabel")}
+                        </dt>
+                        <dd className="font-medium text-gray-700 dark:text-gray-200">
+                          {fmtShort(borrow.dueDate)}
+                        </dd>
+                      </div>
+                      {borrow.returnedAt && (
+                        <div className="col-span-2 flex justify-between gap-2">
+                          <dt className="text-gray-500 dark:text-gray-400">
+                            {t("userBorrows.returnedLabel")}
+                          </dt>
+                          <dd className="font-medium text-gray-700 dark:text-gray-200">
+                            {fmtShort(borrow.returnedAt)}
+                          </dd>
+                        </div>
+                      )}
+                    </dl>
+
+                    {/* The action sits at the card's foot, so a row of cards
+                        with different title lengths still lines its buttons up. */}
+                    {(isPending || !borrow.returnedAt) && (
+                      <div className="mt-auto border-t border-gray-100 p-4 dark:border-gray-800">
+                        {isPending ? (
+                          <Button
+                            block
+                            icon="close"
+                            onClick={() => handleCancelRequest(borrow.id)}
+                            loading={cancellingBorrowId === borrow.id}
+                          >
+                            {t("userBorrows.cancelRequest")}
+                          </Button>
+                        ) : (
+                          <Button
+                            block
+                            variant="primary"
+                            icon="check"
+                            onClick={() => handleReturnBook(borrow.id)}
+                            disabled={isReturnQueued(borrow.id)}
+                            loading={returningBorrowId === borrow.id}
+                          >
+                            {isReturnQueued(borrow.id)
+                              ? t("userBorrows.returningSync")
+                              : t("userBorrows.returnBook")}
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
-
-      {filteredBorrows.length === 0 ? (
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-          {searchTerm
-            ? t("userBorrows.noMatch")
-            : t("userBorrows.noBorrows")}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBorrows.map((borrow) => (
-            <div
-              key={borrow.id}
-              className="bg-gray-50 dark:bg-gray-700 rounded-lg shadow overflow-hidden flex flex-col"
-            >
-              <div className="h-48 bg-gray-200 dark:bg-gray-600 flex items-center justify-center overflow-hidden">
-                {borrow.book.coverImage ? (
-                  <img
-                    src={borrow.book.coverImage}
-                    alt={borrow.book.title}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="text-gray-400 dark:text-gray-500">
-                    {t("userBorrows.noCover")}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 flex-grow">
-                <h3 className="font-bold text-gray-800 dark:text-white text-lg mb-1">
-                  {borrow.book.title}
-                </h3>
-                <p className="text-gray-600 dark:text-gray-300 text-sm mb-2">
-                  {borrow.book.authors.map((a) => a.name).join(", ")}
-                </p>
-
-                <div className="mt-3 space-y-1 text-sm">
-                  <p className="text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">{t("userBorrows.borrowedLabel")}</span>{" "}
-                    {fmtShort(borrow.borrowedAt)}
-                  </p>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    <span className="font-medium">{t("userBorrows.dueLabel")}</span>{" "}
-                    {fmtShort(borrow.dueDate)}
-                  </p>
-                  {borrow.returnedAt && (
-                    <p className="text-gray-600 dark:text-gray-400">
-                      <span className="font-medium">{t("userBorrows.returnedLabel")}</span>{" "}
-                      {fmtShort(borrow.returnedAt)}
-                    </p>
-                  )}
-
-                  <p
-                    className={`font-medium ${
-                      borrow.status === "PENDING_APPROVAL"
-                        ? "text-amber-600 dark:text-amber-400"
-                        : borrow.status === "OVERDUE"
-                        ? "text-red-600 dark:text-red-400"
-                        : borrow.returnedAt
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-emerald-600 dark:text-emerald-400"
-                    }`}
-                  >
-                    {t("userBorrows.statusLabel")}{" "}
-                    {borrow.status === "PENDING_APPROVAL"
-                      ? t("borrows.PENDING_APPROVAL")
-                      : borrow.status === "OVERDUE"
-                      ? t("borrows.OVERDUE")
-                      : borrow.returnedAt
-                      ? t("borrows.RETURNED")
-                      : t("userBorrows.statusActive")}
-                  </p>
-                </div>
-              </div>
-
-              {borrow.status === "PENDING_APPROVAL" ? (
-                <div className="p-4 pt-0">
-                  <button
-                    onClick={() => handleCancelRequest(borrow.id)}
-                    disabled={cancellingBorrowId === borrow.id}
-                    className="w-full py-2 px-4 border border-amber-400 rounded-md shadow-sm text-sm font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {cancellingBorrowId === borrow.id
-                      ? t("borrows.processing")
-                      : t("userBorrows.cancelRequest")}
-                  </button>
-                </div>
-              ) : !borrow.returnedAt ? (
-                <div className="p-4 pt-0">
-                  <button
-                    onClick={() => handleReturnBook(borrow.id)}
-                    disabled={returningBorrowId === borrow.id || isReturnQueued(borrow.id)}
-                    className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isReturnQueued(borrow.id)
-                      ? t("userBorrows.returningSync")
-                      : returningBorrowId === borrow.id
-                      ? t("borrows.processing")
-                      : t("userBorrows.returnBook")}
-                  </button>
-                </div>
-              ) : null}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
+    </Card>
   );
 };
 

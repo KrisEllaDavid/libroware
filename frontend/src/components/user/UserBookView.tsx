@@ -11,6 +11,23 @@ import { adjustBookAvailable } from '../../offline/cacheUpdates';
 import { fmtShort } from '../../utils/date';
 import Modal from '../Modal';
 import StarRating from '../common/StarRating';
+import {
+  Alert,
+  BookCover,
+  Button,
+  Card,
+  CardGridSkeleton,
+  EmptyState,
+  ErrorState,
+  Icon,
+  PageHeader,
+  SearchInput,
+  Select,
+  Spinner,
+  Tag,
+  Textarea,
+  cn,
+} from '../ui';
 
 const GET_BOOKS = gql`
   query GetBooks {
@@ -124,15 +141,19 @@ const ScanPanel: React.FC<ScanPanelProps> = ({ onIsbn, onClose }) => {
   };
 
   return (
-    <div className="mt-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 space-y-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+    <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/30 animate-slide-down">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-emerald-800 dark:text-emerald-300">
+          <Icon name="scan" size={16} />
           {t('browseBooks.scanBook')}
-        </span>
-        <button onClick={() => { stopCamera(); onClose(); }} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+        </h3>
+        <button
+          type="button"
+          onClick={() => { stopCamera(); onClose(); }}
+          aria-label={t('common.close', 'Close')}
+          className="inline-flex h-7 w-7 items-center justify-center rounded-md text-gray-400 transition-colors hover:bg-white hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-200"
+        >
+          <Icon name="close" size={15} />
         </button>
       </div>
 
@@ -140,68 +161,87 @@ const ScanPanel: React.FC<ScanPanelProps> = ({ onIsbn, onClose }) => {
         <div className="flex gap-2">
           <input
             type="text"
+            inputMode="numeric"
             value={isbnInput}
             onChange={(e) => setIsbnInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleManualLookup()}
             placeholder={t('books.isbnPlaceholder')}
-            className="flex-1 px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            aria-label={t('books.isbnPlaceholder')}
+            className="input flex-1 font-mono"
             disabled={step === 'loading'}
           />
-          <button
+          <Button
+            variant="primary"
             onClick={handleManualLookup}
-            disabled={!isbnInput.trim() || step === 'loading'}
-            className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm rounded-lg disabled:opacity-50 font-medium"
+            disabled={!isbnInput.trim()}
+            loading={step === 'loading'}
+            className="shrink-0"
           >
-            {step === 'loading' ? t('common.loading') : t('books.lookupBtn')}
-          </button>
+            {t('books.lookupBtn')}
+          </Button>
           {scanSupported && (
-            <button
+            <Button
+              icon="scan"
               onClick={startCamera}
               disabled={step === 'loading'}
-              className="px-3 py-2 border border-emerald-500 text-emerald-600 dark:text-emerald-400 text-sm rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
               title={t('books.scanTitle')}
-            >
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m12-4v3a1 1 0 01-1 1h-3M21 9V6a1 1 0 00-1-1h-3M8 12h8" />
-              </svg>
-            </button>
+              aria-label={t('books.scanTitle')}
+              className="shrink-0 px-3"
+            />
           )}
         </div>
       )}
 
       {step === 'scanning' && (
-        <div className="relative rounded-lg overflow-hidden bg-black aspect-video max-h-56">
-          <video ref={videoRef} className="w-full h-full object-cover" muted playsInline />
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="border-2 border-emerald-400 rounded-sm w-2/3 h-16 opacity-80" />
+        <div className="relative aspect-video max-h-56 overflow-hidden rounded-lg bg-black">
+          <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
+
+          {/* Corner frame keeps the barcode itself visible inside the target. */}
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <div className="relative h-16 w-2/3">
+              {['left-0 top-0 border-l-2 border-t-2',
+                'right-0 top-0 border-r-2 border-t-2',
+                'left-0 bottom-0 border-b-2 border-l-2',
+                'right-0 bottom-0 border-b-2 border-r-2'].map((pos) => (
+                <span key={pos} className={cn('absolute h-5 w-5 rounded-sm border-emerald-400', pos)} />
+              ))}
+            </div>
           </div>
-          <div className="absolute bottom-2 left-0 right-0 text-center text-white text-xs opacity-80">
+
+          <p className="absolute inset-x-0 bottom-2 text-center text-xs text-white/85">
             {t('books.pointCamera')}
-          </div>
+          </p>
+
           <button
             onClick={() => { stopCamera(); setStep('idle'); }}
-            className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded hover:bg-black/70"
+            className="absolute right-2 top-2 rounded-lg bg-gray-900/60 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-gray-900/80"
           >
             {t('common.cancel')}
           </button>
         </div>
       )}
 
-      {errorMsg && (
-        <div className="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-          {errorMsg}
-        </div>
-      )}
+      {errorMsg && <Alert tone="danger" className="mt-3">{errorMsg}</Alert>}
 
       {!scanSupported && step === 'idle' && (
-        <p className="text-xs text-gray-400">{t('books.noScanSupport')}</p>
+        <p className="mt-2.5 text-xs leading-relaxed text-gray-500 dark:text-gray-400">
+          {t('books.noScanSupport')}
+        </p>
       )}
     </div>
   );
 };
 
 // ── Main component ─────────────────────────────────────────────────────────────
-const UserBookView: React.FC = () => {
+interface UserBookViewProps {
+  /**
+   * Rendered inside the member dashboard's tab strip, which already
+   * provides the page shell and heading.
+   */
+  embedded?: boolean;
+}
+
+const UserBookView: React.FC<UserBookViewProps> = ({ embedded = false }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
   const { addToast } = useToast();
@@ -402,55 +442,43 @@ const UserBookView: React.FC = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
   };
 
-  if (loading) return <div className="p-4 text-center">{t('browseBooks.loading')}</div>;
-  if (error) return <div className="p-4 text-red-500">{t('browseBooks.errorLoading', { message: error.message })}</div>;
-
   const filteredBooks = getFilteredBooks();
   const categories = getCategories();
 
-  return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <h1 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">{t('browseBooks.title')}</h1>
+  const toolbar = (
+    <div className="space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <SearchInput
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          onClear={() => setSearchTerm('')}
+          placeholder={t('browseBooks.search')}
+          wrapperClassName="flex-1"
+        />
 
-      {/* Search, filter, and scan */}
-      <div className="flex flex-col md:flex-row gap-4 mb-4">
-        <div className="flex-1">
-          <input
-            type="text"
-            placeholder={t('browseBooks.search')}
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="md:w-52">
-          <select
-            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-emerald-500 focus:border-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-          >
-            <option value="">{t('browseBooks.allCats')}</option>
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-        </div>
-        <button
-          onClick={() => { setShowScanPanel(!showScanPanel); setScanError(''); }}
-          className={`flex items-center gap-2 px-4 py-2 rounded-md border font-medium text-sm transition-all ${
-            showScanPanel
-              ? 'bg-emerald-600 text-white border-emerald-600'
-              : 'border-emerald-500 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20'
-          }`}
+        <Select
+          aria-label={t('browseBooks.allCats')}
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+          wrapperClassName="sm:w-56"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9V6a1 1 0 011-1h3M3 15v3a1 1 0 001 1h3m12-4v3a1 1 0 01-1 1h-3M21 9V6a1 1 0 00-1-1h-3M8 12h8" />
-          </svg>
+          <option value="">{t('browseBooks.allCats')}</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>{c.name}</option>
+          ))}
+        </Select>
+
+        <Button
+          icon="scan"
+          variant={showScanPanel ? 'primary' : 'secondary'}
+          onClick={() => { setShowScanPanel(!showScanPanel); setScanError(''); }}
+          aria-expanded={showScanPanel}
+          className="shrink-0"
+        >
           {t('browseBooks.scanBook')}
-        </button>
+        </Button>
       </div>
 
-      {/* Scan panel */}
       {showScanPanel && (
         <ScanPanel
           onIsbn={handleScanIsbn}
@@ -458,78 +486,167 @@ const UserBookView: React.FC = () => {
         />
       )}
 
-      {/* Scan state feedback */}
       {isbnLoading && (
-        <div className="mt-2 text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500 border-r-transparent" />
+        <p className="flex items-center gap-2 text-sm text-emerald-700 dark:text-emerald-400">
+          <Spinner size={15} />
           {t('browseBooks.scanLooking')}
-        </div>
-      )}
-      {scanError && (
-        <div className="mt-2 text-sm text-red-600 dark:text-red-400">{scanError}</div>
+        </p>
       )}
 
-      {/* Books grid */}
-      <div className="mt-6">
-        {filteredBooks.length === 0 ? (
-          <div className="text-center py-8 text-gray-500 dark:text-gray-400">{t('browseBooks.noBooks')}</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredBooks.map((book: Book) => (
-              <div key={book.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 flex flex-col">
-                <div className="h-48 overflow-hidden bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                  {book.coverImage ? (
-                    <img src={book.coverImage} alt={book.title} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="text-gray-400 dark:text-gray-500 text-center p-4">
-                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                      {t('browseBooks.noCoverImage')}
-                    </div>
+      {scanError && <Alert tone="danger">{scanError}</Alert>}
+    </div>
+  );
+
+  const grid = loading ? (
+    <CardGridSkeleton count={8} />
+  ) : error ? (
+    <Card>
+      <ErrorState
+        message={t('browseBooks.errorLoading', { message: error.message })}
+        onRetry={() => refetch()}
+      />
+    </Card>
+  ) : filteredBooks.length === 0 ? (
+    <Card>
+      <EmptyState
+        icon="search"
+        title={t('browseBooks.noBooks')}
+        description={
+          searchTerm || selectedCategory
+            ? t('browseBooks.noBooksHint', 'Try a different title, author or category.')
+            : undefined
+        }
+        action={
+          searchTerm || selectedCategory ? (
+            <Button
+              variant="secondary"
+              icon="close"
+              onClick={() => { setSearchTerm(''); setSelectedCategory(''); }}
+            >
+              {t('browseBooks.clearFilters', 'Clear filters')}
+            </Button>
+          ) : undefined
+        }
+      />
+    </Card>
+  ) : (
+    /*
+      The shelf. Cover art gets a fixed 2:3 aspect box so the grid stays on a
+      rhythm whatever the source image is, and the two actions are pinned to
+      the card's foot with `mt-auto` — otherwise a long title pushes one card's
+      buttons a row lower than its neighbour's.
+    */
+    <ul className="stagger grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+      {filteredBooks.map((book: Book, i: number) => (
+        <li key={book.id} style={{ ['--i' as any]: i }}>
+          <Card interactive className="flex h-full flex-col overflow-hidden">
+            <div className="relative aspect-[2/3] w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <BookCover
+                title={book.title}
+                src={book.coverImage}
+                author={book.authors.map((a) => a.name).join(', ')}
+                rounded="rounded-none"
+              />
+              {book.available === 0 && (
+                <span className="absolute left-2 top-2">
+                  <Tag tone="danger" size="sm">{t('browseBooks.currentlyUnavailable')}</Tag>
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-1 flex-col p-3.5 sm:p-4">
+              <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900 dark:text-white">
+                {book.title}
+              </h3>
+              <p className="mt-1 line-clamp-1 text-xs text-gray-500 dark:text-gray-400">
+                {book.authors.map((a) => a.name).join(', ')}
+              </p>
+
+              {book.categories.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {book.categories.slice(0, 2).map((c) => (
+                    <Tag key={c.id} tone="neutral" size="sm">{c.name}</Tag>
+                  ))}
+                </div>
+              )}
+
+              <p className="mt-2.5 text-xs text-gray-500 dark:text-gray-400">
+                <span
+                  data-numeric
+                  className={cn(
+                    'font-semibold',
+                    book.available > 0
+                      ? 'text-emerald-700 dark:text-emerald-400'
+                      : 'text-red-600 dark:text-red-400'
                   )}
-                </div>
-                <div className="p-4 flex-1 flex flex-col">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white mb-1 line-clamp-2">{book.title}</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">{book.authors.map((a) => a.name).join(', ')}</p>
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {book.categories.map((c) => (
-                      <span key={c.id} className="inline-block px-2 py-0.5 text-xs font-medium rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200">
-                        {c.name}
-                      </span>
-                    ))}
+                >
+                  {book.available}
+                </span>{' '}
+                {t('browseBooks.of')} {book.quantity} {t('browseBooks.available').toLowerCase()}
+              </p>
+
+              <div className="mt-auto pt-3">
+                {book.available > 0 ? (
+                  <div className="flex flex-col gap-2 xl:flex-row">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      block
+                      onClick={() => handleBookSelect(book, 'BORROW')}
+                    >
+                      {t('reservations.borrow')}
+                    </Button>
+                    <Button
+                      size="sm"
+                      block
+                      onClick={() => handleBookSelect(book, 'READ')}
+                    >
+                      {t('reservations.read')}
+                    </Button>
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 flex-1 line-clamp-2">
-                    {book.description || t('browseBooks.noDescription')}
-                  </p>
-                  <div className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                    <span className="font-medium">{t('browseBooks.available')}:</span> {book.available} {t('browseBooks.of')} {book.quantity}
-                  </div>
-                  <div className="flex space-x-2 mt-auto">
-                    {book.available > 0 ? (
-                      <>
-                        <button onClick={() => handleBookSelect(book, 'BORROW')} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-md transition-all text-sm">
-                          {t('reservations.borrow')}
-                        </button>
-                        <button onClick={() => handleBookSelect(book, 'READ')} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-all text-sm">
-                          {t('reservations.read')}
-                        </button>
-                      </>
-                    ) : (
-                      <button
-                        onClick={() => createReservation({ variables: { bookId: book.id } })}
-                        className="w-full bg-amber-500 hover:bg-amber-600 text-white font-medium py-2 px-4 rounded-md disabled:opacity-50 transition-all text-sm"
-                      >
-                        {t('reservations.reserve')}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                ) : (
+                  <Button
+                    size="sm"
+                    block
+                    icon="bookmark"
+                    onClick={() => createReservation({ variables: { bookId: book.id } })}
+                  >
+                    {t('reservations.reserve')}
+                  </Button>
+                )}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+            </div>
+          </Card>
+        </li>
+      ))}
+    </ul>
+  );
+
+  const body = (
+    <div className="space-y-5">
+      {toolbar}
+      {grid}
+    </div>
+  );
+
+  return (
+    <>
+      {embedded ? (
+        body
+      ) : (
+        <div className="app-shell page">
+          <PageHeader
+            icon="books"
+            eyebrow={t('userDashboard.title')}
+            title={t('browseBooks.title')}
+            description={t(
+              'browseBooks.subtitle',
+              'Search the catalogue, borrow what is on the shelf and reserve what is out.'
+            )}
+          />
+          {body}
+        </div>
+      )}
 
       {/* Borrow/Read Modal */}
       {selectedBook && (
@@ -548,54 +665,89 @@ const UserBookView: React.FC = () => {
           }
           onConfirm={handleSubmit}
         >
-          {/* Pending-approval notice */}
-          <div className="mb-4 flex items-start gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-            <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-xs text-amber-700 dark:text-amber-300">{t('browseBooks.approvalNotice')}</p>
-          </div>
+          <Alert tone="warning" className="mb-4">
+            {t('browseBooks.approvalNotice')}
+          </Alert>
 
-          <div className="flex flex-col md:flex-row md:space-x-6">
-            <div className="flex-shrink-0 mx-auto sm:mx-0 mb-4 md:mb-0">
-              <img
-                src={selectedBook?.coverImage || '/default-book-cover.jpg'}
-                alt={`Cover of ${selectedBook?.title}`}
-                className="rounded-lg object-cover shadow-md"
-                style={{ maxWidth: '160px' }}
-              />
-            </div>
-            <div className="flex-grow">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 break-words">{selectedBook?.title}</h3>
-              <div className="text-sm text-gray-600 dark:text-gray-300 mb-4">
-                <p><span className="font-medium">{t('browseBooks.authorsLabel')}</span> {selectedBook?.authors?.map((a) => a.name).join(', ')}</p>
-                <p><span className="font-medium">{t('browseBooks.isbnLabel')}</span> {selectedBook?.isbn}</p>
-                <p><span className="font-medium">{t('browseBooks.categoriesLabel')}</span> {selectedBook?.categories?.map((c) => c.name).join(', ')}</p>
-                {selectedBook?.available !== undefined && (
-                  <p>
-                    <span className="font-medium">{t('browseBooks.available')}:</span> {selectedBook?.available}
-                    {selectedBook.available === 0 && <span className="text-red-500 ml-2">{t('browseBooks.currentlyUnavailable')}</span>}
-                  </p>
-                )}
-              </div>
-
-              <div className="mb-4">
-                <label htmlFor="note" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  {t('browseBooks.notesLabel')}
-                </label>
-                <textarea
-                  id="note"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
-                  rows={3}
-                  placeholder={t('browseBooks.notesPlaceholder')}
+          <div className="flex flex-col gap-5 sm:flex-row">
+            <div className="mx-auto w-32 shrink-0 sm:mx-0 sm:w-40">
+              <div className="aspect-[2/3] overflow-hidden rounded-lg shadow-md">
+                <BookCover
+                  title={selectedBook?.title ?? ''}
+                  src={selectedBook?.coverImage}
+                  author={selectedBook?.authors?.map((a) => a.name).join(', ')}
+                  size="lg"
+                  rounded="rounded-lg"
                 />
               </div>
+            </div>
+
+            <div className="min-w-0 flex-1 space-y-4">
+              <div>
+                <h3 className="break-words font-display text-lg font-semibold tracking-tight text-gray-900 dark:text-white">
+                  {selectedBook?.title}
+                </h3>
+                <p className="mt-0.5 text-sm text-gray-500 dark:text-gray-400">
+                  {selectedBook?.authors?.map((a) => a.name).join(', ')}
+                </p>
+              </div>
+
+              {/* A definition list, so label and value stay paired when the
+                  values wrap — the old run of <p> collapsed into a paragraph
+                  on narrow screens. */}
+              <dl className="space-y-1.5 border-y border-gray-100 py-3 text-sm dark:border-gray-800">
+                <div className="flex gap-2">
+                  <dt className="w-24 shrink-0 text-gray-500 dark:text-gray-400">
+                    {t('browseBooks.isbnLabel')}
+                  </dt>
+                  <dd className="min-w-0 break-all font-mono text-xs text-gray-700 dark:text-gray-200">
+                    {selectedBook?.isbn}
+                  </dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="w-24 shrink-0 text-gray-500 dark:text-gray-400">
+                    {t('browseBooks.categoriesLabel')}
+                  </dt>
+                  <dd className="flex min-w-0 flex-wrap gap-1">
+                    {selectedBook?.categories?.length
+                      ? selectedBook.categories.map((c) => (
+                          <Tag key={c.id} tone="neutral" size="sm">{c.name}</Tag>
+                        ))
+                      : '—'}
+                  </dd>
+                </div>
+                {selectedBook?.available !== undefined && (
+                  <div className="flex gap-2">
+                    <dt className="w-24 shrink-0 text-gray-500 dark:text-gray-400">
+                      {t('browseBooks.available')}
+                    </dt>
+                    <dd data-numeric className="font-medium text-gray-700 dark:text-gray-200">
+                      {selectedBook.available} {t('browseBooks.of')} {selectedBook.quantity}
+                      {selectedBook.available === 0 && (
+                        <span className="ml-2 font-normal text-red-600 dark:text-red-400">
+                          {t('browseBooks.currentlyUnavailable')}
+                        </span>
+                      )}
+                    </dd>
+                  </div>
+                )}
+              </dl>
+
+              <Textarea
+                id="note"
+                label={t('browseBooks.notesLabel')}
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                rows={3}
+                placeholder={t('browseBooks.notesPlaceholder')}
+              />
 
               {borrowType === 'BORROW' && (
                 <div>
-                  <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  <label
+                    htmlFor="dueDate"
+                    className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300"
+                  >
                     {t('browseBooks.returnByLabel')}
                   </label>
                   <input
@@ -603,73 +755,92 @@ const UserBookView: React.FC = () => {
                     id="dueDate"
                     value={selectedDueDate.toISOString().split('T')[0]}
                     onChange={(e) => setSelectedDueDate(new Date(e.target.value))}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white"
+                    className="input"
                     min={getMinDate()}
                     max={getMaxDate()}
                   />
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{t('browseBooks.borrowPeriodHint')}</p>
+                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    {t('browseBooks.borrowPeriodHint')}
+                  </p>
                 </div>
               )}
 
-              {submitError && <p className="mt-2 text-sm text-red-600 dark:text-red-400">{submitError}</p>}
+              {submitError && <Alert tone="danger">{submitError}</Alert>}
             </div>
           </div>
 
           {/* Reviews section */}
-          <div className="mt-6 border-t border-gray-200 dark:border-gray-700 pt-4">
-            <h4 className="text-md font-semibold text-gray-900 dark:text-white mb-2 flex items-center gap-2">
-              {t('reviews.title')}
+          <div className="mt-6 border-t border-gray-200 pt-5 dark:border-gray-800">
+            <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h4 className="font-display text-base font-semibold tracking-tight text-gray-900 dark:text-white">
+                {t('reviews.title')}
+              </h4>
               {reviews.length > 0 && (
-                <span className="flex items-center gap-1 text-sm font-normal text-gray-600 dark:text-gray-300">
+                <span className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                   <StarRating value={avgRating} size="sm" />
-                  {avgRating.toFixed(1)} ({t('reviews.count', { count: reviews.length })})
+                  <span data-numeric className="font-medium text-gray-700 dark:text-gray-200">
+                    {avgRating.toFixed(1)}
+                  </span>
+                  <span>({t('reviews.count', { count: reviews.length })})</span>
                 </span>
               )}
-            </h4>
-            <div className="mb-4 p-3 rounded-md bg-gray-50 dark:bg-gray-700/50">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3.5 dark:border-gray-700 dark:bg-gray-800/60">
+              <p className="mb-2 text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
                 {myReview ? t('reviews.yourReview') : t('reviews.leaveReview')}
               </p>
               <StarRating value={reviewRating} onChange={setReviewRating} />
-              <textarea
+              <Textarea
                 value={reviewComment}
                 onChange={(e) => setReviewComment(e.target.value)}
                 rows={2}
                 maxLength={2000}
                 placeholder={t('reviews.commentPlaceholder')}
-                className="mt-2 w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:ring-emerald-500 focus:border-emerald-500 dark:bg-gray-700 dark:text-white text-sm"
+                className="mt-2.5"
               />
-              <div className="mt-2 flex gap-2">
-                <button
-                  type="button"
+              <div className="mt-2.5 flex gap-2">
+                <Button
+                  size="sm"
+                  variant="primary"
                   onClick={handleSubmitReview}
                   disabled={reviewRating < 1}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md disabled:opacity-50"
                 >
                   {myReview ? t('reviews.update') : t('reviews.post')}
-                </button>
+                </Button>
                 {myReview && (
-                  <button
-                    type="button"
+                  <Button
+                    size="sm"
+                    icon="trash"
                     onClick={() => deleteReview({ variables: { id: myReview.id } })}
-                    className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 border border-red-300 dark:border-red-700 rounded-md disabled:opacity-50"
+                    className="text-red-600 hover:border-red-300 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/30"
                   >
                     {t('common.delete')}
-                  </button>
+                  </Button>
                 )}
               </div>
             </div>
+
             {reviews.length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('reviews.empty')}</p>
+              <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">{t('reviews.empty')}</p>
             ) : (
-              <ul className="space-y-3 max-h-48 overflow-y-auto">
+              <ul className="mt-3 max-h-56 space-y-3 overflow-y-auto overscroll-contain">
                 {reviews.map((review) => (
-                  <li key={review.id} className="text-sm border-b border-gray-100 dark:border-gray-700 pb-2 last:border-0">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-800 dark:text-white">{review.userName}</span>
+                  <li
+                    key={review.id}
+                    className="border-b border-gray-100 pb-3 text-sm last:border-0 last:pb-0 dark:border-gray-800"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate font-medium text-gray-800 dark:text-white">
+                        {review.userName}
+                      </span>
                       <StarRating value={review.rating} size="sm" />
                     </div>
-                    {review.comment && <p className="mt-1 text-gray-600 dark:text-gray-300">{review.comment}</p>}
+                    {review.comment && (
+                      <p className="mt-1 leading-relaxed text-gray-600 dark:text-gray-300">
+                        {review.comment}
+                      </p>
+                    )}
                     <p className="mt-1 text-xs text-gray-400 dark:text-gray-500">
                       {fmtShort(review.createdAt)}
                     </p>
@@ -680,7 +851,7 @@ const UserBookView: React.FC = () => {
           </div>
         </Modal>
       )}
-    </div>
+    </>
   );
 };
 

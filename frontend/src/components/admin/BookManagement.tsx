@@ -19,6 +19,30 @@ import BookQRModal from "./BookQRModal";
 import QRLabelSheet from "./QRLabelSheet";
 import ISBNLookup from "./ISBNLookup";
 import Pagination from "../common/Pagination";
+import {
+  Alert,
+  BookCover,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  ErrorState,
+  IconButton,
+  PageHeader,
+  RowActions,
+  SearchInput,
+  StackedMeta,
+  Table,
+  TableMessage,
+  TableSkeleton,
+  TableWrap,
+  TBody,
+  TD,
+  TH,
+  THead,
+  Tag,
+  TR,
+} from "../ui";
 
 interface Author {
   id: string;
@@ -491,250 +515,215 @@ const BookManagement: React.FC = () => {
     }));
   };
 
-  if (queryError) return <p>Error loading books: {queryError.message}</p>;
+  if (queryError) {
+    return (
+      <ErrorState
+        title="Could not load the catalogue"
+        message={queryError.message}
+        onRetry={() => refetch()}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white shadow dark:bg-gray-800 dark:border dark:border-gray-700 sm:rounded-md transition-colors">
-        <div className="px-4 py-5 border-b border-gray-200 dark:border-gray-700 sm:px-6 flex flex-col sm:flex-row justify-between sm:items-center space-y-4 sm:space-y-0">
-          <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white transition-colors">
-            Books
-          </h3>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                placeholder="Search books..."
-                className="input w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
-                value={searchTerm}
-                onChange={handleSearch}
-              />
-            </div>
-            <button
-              type="button"
+    <div className="space-y-6 sm:space-y-8">
+      <PageHeader
+        icon="books"
+        eyebrow="Catalogue"
+        title="Books"
+        description="Every title the library holds, with its copies, authors and shelf categories."
+        actions={
+          <>
+            <Button
+              icon="print"
               onClick={() => setShowLabelSheet(true)}
               disabled={books.length === 0}
-              className="inline-flex items-center px-3 py-2 border border-emerald-500 text-sm leading-4 font-medium rounded-md text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-40 w-full sm:w-auto justify-center transition-all"
               title="Print QR labels for all books"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              Print QR Labels
-            </button>
-            <button
-              type="button"
-              onClick={handleCreate}
-              className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 w-full sm:w-auto justify-center"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 mr-2"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path d="M11 17a1 1 0 001.447.894l4-2A1 1 0 0017 15V9.236a1 1 0 00-1.447-.894l-4 2a1 1 0 00-.553.894V17zM15.211 6.276a1 1 0 000-1.788l-4.764-2.382a1 1 0 00-.894 0L4.789 4.488a1 1 0 000 1.788l4.764 2.382a1 1 0 00.894 0l4.764-2.382zM4.447 8.342A1 1 0 003 9.236V15a1 1 0 00.553.894l4 2A1 1 0 009 17v-5.764a1 1 0 00-.553-.894l-4-2z" />
-              </svg>
-              Add Book
-            </button>
-          </div>
-        </div>
+              Print QR labels
+            </Button>
+            <Button variant="primary" icon="plus" onClick={handleCreate}>
+              Add book
+            </Button>
+          </>
+        }
+      />
 
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-            <thead className="bg-gray-50 dark:bg-gray-800">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Title
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
-                >
-                  ISBN
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell"
-                >
-                  Authors
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell"
-                >
-                  Categories
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
-                >
-                  Quantity
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
-                >
-                  Available
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                >
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+      <Card>
+        <CardHeader
+          title="Catalogue"
+          description={`${(data?.booksCount ?? books.length).toLocaleString()} titles`}
+          actions={
+            <SearchInput
+              value={searchTerm}
+              onChange={handleSearch}
+              onClear={() => setSearchTerm("")}
+              placeholder="Search by title, author or ISBN"
+              wrapperClassName="sm:w-80"
+            />
+          }
+        />
+
+        {/*
+          Columns drop from the right as the viewport narrows: categories and
+          authors go first, then ISBN and the copy counts. Everything dropped
+          reappears as a secondary line under the title, so a phone still shows
+          the whole record -- stacked instead of ruled.
+        */}
+        <TableWrap>
+          <Table>
+            <THead>
+              <TR className="hover:bg-transparent dark:hover:bg-transparent">
+                <TH>Title</TH>
+                <TH hideBelow="sm">ISBN</TH>
+                <TH hideBelow="md">Authors</TH>
+                <TH hideBelow="lg">Categories</TH>
+                <TH hideBelow="sm" align="right">Copies</TH>
+                <TH align="right">Actions</TH>
+              </TR>
+            </THead>
+            <TBody>
               {loading ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center">
-                    <div
-                      className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-emerald-500 border-r-transparent align-[-0.125em]"
-                      role="status"
-                    >
-                      <span className="sr-only">Loading...</span>
-                    </div>
-                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-400">
-                      Loading books...
-                    </p>
-                  </td>
-                </tr>
+                <TableMessage colSpan={6}>
+                  <TableSkeleton rows={8} cols={4} />
+                </TableMessage>
               ) : books.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center justify-center p-8">
-                      <svg
-                        className="h-12 w-12 text-gray-400 mb-3"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={1.5}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <p className="text-gray-500 dark:text-gray-400 text-center mb-4">
-                        {searchTerm
-                          ? `No books match "${searchTerm}"`
-                          : 'No books found. Click "Add Book" to create one.'}
-                      </p>
-                      {searchTerm && (
-                        <button
-                          onClick={() => setSearchTerm("")}
-                          className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 transition"
-                        >
-                          Clear Search
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
+                <TableMessage colSpan={6}>
+                  <EmptyState
+                    icon="books"
+                    title={searchTerm ? "No matching books" : "The catalogue is empty"}
+                    description={
+                      searchTerm
+                        ? `Nothing matches "${searchTerm}". Try an author name or an ISBN.`
+                        : "Add the library's first title to get started."
+                    }
+                    action={
+                      searchTerm ? (
+                        <Button variant="secondary" icon="close" onClick={() => setSearchTerm("")}>
+                          Clear search
+                        </Button>
+                      ) : (
+                        <Button variant="primary" icon="plus" onClick={handleCreate}>
+                          Add book
+                        </Button>
+                      )
+                    }
+                  />
+                </TableMessage>
               ) : (
-                books.map((book) => (
-                  <tr
-                    key={book.id}
-                    className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                  >
-                    <td className="px-4 py-4 whitespace-normal">
-                      <div className="text-sm font-medium text-gray-900 dark:text-white break-words">
-                        {book.title}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
-                        ISBN: {book.isbn}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 md:hidden break-words">
-                        Authors: {book.authors.map((a) => a.name).join(", ")}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 md:hidden break-words">
-                        Categories:{" "}
-                        {book.categories.map((c) => c.name).join(", ")}
-                      </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 sm:hidden">
-                        {book.quantity} copies, {book.available} available
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                      {book.isbn}
-                    </td>
-                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell break-words">
-                      {book.authors.map((a) => a.name).join(", ")}
-                    </td>
-                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell break-words">
-                      {book.categories.map((c) => c.name).join(", ")}
-                    </td>
-                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                      {book.quantity}
-                    </td>
-                    <td className="px-4 py-4 whitespace-normal text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                      {book.available}
-                    </td>
-                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-center space-x-2">
-                        <button
-                          onClick={() => setQrBook(book)}
-                          className="text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          aria-label={`QR code for ${book.title}`}
-                          title="Show QR Code"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleEdit(book)}
-                          className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          aria-label={`Edit ${book.title}`}
-                          title="Edit Book"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828z" />
-                            <path
-                              fillRule="evenodd"
-                              d="M2 6a2 2 0 012-2h4a1 1 0 010 2H4v10h10v-4a1 1 0 112 0v4a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"
-                              clipRule="evenodd"
+                books.map((book) => {
+                  const authorNames = book.authors.map((a) => a.name).join(", ");
+                  const out = book.quantity - book.available;
+                  return (
+                    <TR key={book.id}>
+                      <TD className="max-w-[22rem]">
+                        <div className="flex items-start gap-3">
+                          {/* A thumbnail turns a wall of text into a shelf you
+                              can scan. Titles with no cover art get a drawn one
+                              rather than a grey box. */}
+                          <div className="hidden h-14 w-10 shrink-0 overflow-hidden rounded-md shadow-xs xs:block">
+                            <BookCover
+                              title={book.title}
+                              src={book.coverImage}
+                              size="sm"
+                              rounded="rounded-md"
                             />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={() => handleDelete(book.id)}
-                          className="text-red-500 hover:text-red-700 dark:hover:text-red-300 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                          aria-label={`Delete ${book.title}`}
-                          title="Delete Book"
+                          </div>
+                          <div className="min-w-0">
+                            <p className="break-words font-medium text-gray-900 dark:text-white">
+                              {book.title}
+                            </p>
+                            <StackedMeta showBelow="md">
+                              {authorNames || "Unknown author"}
+                            </StackedMeta>
+                            <StackedMeta showBelow="sm" label="ISBN">
+                              {book.isbn}
+                            </StackedMeta>
+                            <StackedMeta showBelow="sm">
+                              {book.available} of {book.quantity} available
+                            </StackedMeta>
+                          </div>
+                        </div>
+                      </TD>
+
+                      <TD hideBelow="sm" className="font-mono text-xs text-gray-500 dark:text-gray-400">
+                        {book.isbn}
+                      </TD>
+
+                      <TD hideBelow="md" className="max-w-[14rem]">
+                        <span className="line-clamp-2 break-words">{authorNames}</span>
+                      </TD>
+
+                      <TD hideBelow="lg" className="max-w-[14rem]">
+                        <div className="flex flex-wrap gap-1">
+                          {book.categories.slice(0, 2).map((c) => (
+                            <Tag key={c.id} tone="neutral" size="sm">
+                              {c.name}
+                            </Tag>
+                          ))}
+                          {book.categories.length > 2 && (
+                            <Tag tone="neutral" size="sm">
+                              +{book.categories.length - 2}
+                            </Tag>
+                          )}
+                        </div>
+                      </TD>
+
+                      {/* Availability, not two bare integers. "3 / 12" plus a
+                          tone tells you at a glance whether a title is out. */}
+                      <TD hideBelow="sm" align="right">
+                        <span
+                          data-numeric
+                          className={
+                            book.available === 0
+                              ? "font-semibold text-red-600 dark:text-red-400"
+                              : "font-medium text-gray-700 dark:text-gray-200"
+                          }
                         >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          {book.available}
+                          <span className="text-gray-400"> / {book.quantity}</span>
+                        </span>
+                        {out > 0 && (
+                          <p className="mt-0.5 text-2xs text-gray-400">{out} on loan</p>
+                        )}
+                      </TD>
+
+                      <TD align="right">
+                        <RowActions>
+                          <IconButton
+                            icon="qr"
+                            tone="brand"
+                            label={`QR code for ${book.title}`}
+                            onClick={() => setQrBook(book)}
+                          />
+                          <IconButton
+                            icon="edit"
+                            label={`Edit ${book.title}`}
+                            onClick={() => handleEdit(book)}
+                          />
+                          <IconButton
+                            icon="trash"
+                            tone="danger"
+                            label={`Delete ${book.title}`}
+                            onClick={() => handleDelete(book.id)}
+                          />
+                        </RowActions>
+                      </TD>
+                    </TR>
+                  );
+                })
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TBody>
+          </Table>
+        </TableWrap>
+
+        <Pagination
+          page={page}
+          pageSize={25}
+          total={data?.booksCount ?? 0}
+          onPage={(p) => setPage(p)}
+        />
+      </Card>
 
       {/* Add/Edit Book Modal */}
       <Modal
@@ -754,9 +743,9 @@ const BookManagement: React.FC = () => {
       >
         <div className="space-y-4">
           {justCreated && (
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 px-4 py-3 rounded text-sm">
-              The book was created. You can upload a cover image below, or click "Done" to finish.
-            </div>
+            <Alert tone="success" title="Book created">
+              Upload a cover image below, or choose Done to finish.
+            </Alert>
           )}
           {/* ISBN auto-fill — only shown when creating a new book */}
           {!isEditing && (
@@ -878,10 +867,10 @@ const BookManagement: React.FC = () => {
               required
               error={fieldErrors.quantity}
             />
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Cover Image
-              </label>
+            <div>
+              <p className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
+                Cover image
+              </p>
               {isEditing ? (
                 <FileUpload
                   entityId={selectedBookId || ""}
@@ -892,148 +881,126 @@ const BookManagement: React.FC = () => {
                   buttonLabel="Upload Cover Image"
                 />
               ) : formData.coverImage ? (
-                <div className="space-y-2">
+                <div className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 dark:border-gray-700">
                   <img
                     src={formData.coverImage}
-                    alt="Book cover"
-                    className="w-16 h-24 object-cover rounded border border-gray-200 dark:border-gray-600"
+                    alt={`Cover for ${formData.title || "this book"}`}
+                    className="h-24 w-16 shrink-0 rounded-md object-cover shadow-xs"
                   />
-                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                    Cover from ISBN lookup — will be saved with the book.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
-                    className="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 underline"
-                  >
-                    Remove
-                  </button>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-400">
+                      Found by ISBN lookup. It will be saved with the book.
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon="close"
+                      className="mt-1.5 -ml-2"
+                      onClick={() => setFormData(prev => ({ ...prev, coverImage: '' }))}
+                    >
+                      Remove
+                    </Button>
+                  </div>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  You can upload a cover image after creating the book.
+                <p className="text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+                  You can upload a cover once the book has been created.
                 </p>
               )}
             </div>
           </div>
 
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div>
+            <p className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
               Authors
-            </label>
-            <div className="flex items-center space-x-2">
+            </p>
+            <div className="flex items-start gap-2">
               <select
                 name="authorIds"
+                aria-label="Authors"
                 multiple
                 value={formData.authorIds}
                 onChange={handleMultiSelectChange}
-                className="input h-auto min-h-[80px] w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                className="input min-h-[7rem] w-full py-2"
               >
                 {authors.map((author) => (
-                  <option
-                    key={author.id}
-                    value={author.id}
-                    className="py-1 px-5 dark:text-gray-100"
-                  >
+                  <option key={author.id} value={author.id} className="rounded px-1 py-1">
                     {author.name}
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
+              <Button
+                icon="plus"
                 onClick={handleShowAuthorCreate}
-                className="btn btn-secondary h-10 px-3 py-2 flex-shrink-0 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
-                title="Add New Author"
+                title="Add a new author"
+                className="shrink-0"
               >
-                <span className="sr-only">Add New Author</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
+                New
+              </Button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Hold Ctrl or Cmd to select multiple authors
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              Hold Ctrl (Cmd on Mac) to select more than one.
             </p>
             {pendingAuthorNames.length > 0 && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                Will also add on save: {pendingAuthorNames.join(", ")}{" "}
-                <button type="button" onClick={() => setPendingAuthorNames([])} className="underline hover:no-underline">
+              <p className="mt-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                Will also be created on save: {pendingAuthorNames.join(", ")}{" "}
+                <button
+                  type="button"
+                  onClick={() => setPendingAuthorNames([])}
+                  className="font-medium underline underline-offset-2 hover:no-underline"
+                >
                   remove
                 </button>
               </p>
             )}
           </div>
 
-          <div className="space-y-1">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <div>
+            <p className="mb-1.5 block text-[0.8125rem] font-medium text-gray-700 dark:text-gray-300">
               Categories
-            </label>
-            <div className="flex items-center space-x-2">
+            </p>
+            <div className="flex items-start gap-2">
               <select
                 name="categoryIds"
+                aria-label="Categories"
                 multiple
                 value={formData.categoryIds}
                 onChange={handleMultiSelectChange}
-                className="input h-auto min-h-[80px] w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+                className="input min-h-[7rem] w-full py-2"
               >
                 {categories.map((category) => (
-                  <option
-                    key={category.id}
-                    value={category.id}
-                    className="py-1 px-5 dark:text-gray-100"
-                  >
+                  <option key={category.id} value={category.id} className="rounded px-1 py-1">
                     {category.name}
                   </option>
                 ))}
               </select>
-              <button
-                type="button"
+              <Button
+                icon="plus"
                 onClick={handleShowCategoryCreate}
-                className="btn btn-secondary h-10 px-3 py-2 flex-shrink-0 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600"
-                title="Add New Category"
+                title="Add a new category"
+                className="shrink-0"
               >
-                <span className="sr-only">Add New Category</span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-              </button>
+                New
+              </Button>
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Hold Ctrl or Cmd to select multiple categories
+            <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+              Hold Ctrl (Cmd on Mac) to select more than one.
             </p>
             {pendingCategoryNames.length > 0 && (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-                Will also add on save: {pendingCategoryNames.join(", ")}{" "}
-                <button type="button" onClick={() => setPendingCategoryNames([])} className="underline hover:no-underline">
+              <p className="mt-1.5 text-xs text-emerald-700 dark:text-emerald-400">
+                Will also be created on save: {pendingCategoryNames.join(", ")}{" "}
+                <button
+                  type="button"
+                  onClick={() => setPendingCategoryNames([])}
+                  className="font-medium underline underline-offset-2 hover:no-underline"
+                >
                   remove
                 </button>
               </p>
             )}
           </div>
 
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-200 px-4 py-3 rounded">
-              {error}
-            </div>
-          )}
+          {error && <Alert tone="danger">{error}</Alert>}
         </div>
       </Modal>
 
@@ -1098,14 +1065,6 @@ const BookManagement: React.FC = () => {
           />
         </div>
       </Modal>
-
-      {/* Pagination */}
-      <Pagination
-        page={page}
-        pageSize={25}
-        total={data?.booksCount ?? 0}
-        onPage={(p) => setPage(p)}
-      />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmation

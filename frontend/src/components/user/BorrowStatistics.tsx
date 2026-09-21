@@ -10,7 +10,9 @@ import {
   Legend,
   ArcElement,
 } from 'chart.js';
-import { Bar, Pie } from 'react-chartjs-2';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { Card, CardBody, CardHeader, EmptyState } from '../ui';
+import { useChartTheme, SERIES, BRAND, BLUE } from '../dashboard/chartTheme';
 
 // Register ChartJS components
 ChartJS.register(
@@ -41,23 +43,33 @@ interface BorrowStatisticsProps {
   borrows: Borrow[];
 }
 
+/**
+ * The member's own reading activity.
+ *
+ * These charts previously used Chart.js's stock demo palette — pink, sky
+ * blue, lemon — on a green product, and rendered their titles inside the
+ * canvas where they couldn't be styled or translated consistently with the
+ * rest of the page. Series colours now come from the shared chart tokens, and
+ * the titles are real headings on the card.
+ */
 const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
   const { t } = useTranslation();
+  const chart = useChartTheme();
 
   // Process monthly activity data
   const monthlyActivity = () => {
     const monthNames = t('borrowStats.monthsShort', { returnObjects: true }) as string[];
     const currentYear = new Date().getFullYear();
-    
+
     const borrowsByMonth = Array(12).fill(0);
     const returnsByMonth = Array(12).fill(0);
-    
+
     borrows.forEach(borrow => {
       const borrowDate = new Date(borrow.borrowDate);
       if (borrowDate.getFullYear() === currentYear) {
         borrowsByMonth[borrowDate.getMonth()]++;
       }
-      
+
       if (borrow.returnDate) {
         const returnDate = new Date(borrow.returnDate);
         if (returnDate.getFullYear() === currentYear) {
@@ -65,18 +77,18 @@ const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
         }
       }
     });
-    
+
     return {
       labels: monthNames,
       borrowed: borrowsByMonth,
       returned: returnsByMonth
     };
   };
-  
+
   // Calculate category distribution
   const categoryDistribution = () => {
     const categories: Record<string, number> = {};
-    
+
     borrows.forEach(borrow => {
       borrow.book.categories.forEach(category => {
         if (categories[category.name]) {
@@ -86,129 +98,168 @@ const BorrowStatistics: React.FC<BorrowStatisticsProps> = ({ borrows }) => {
         }
       });
     });
-    
+
     return {
       labels: Object.keys(categories),
       data: Object.values(categories)
     };
   };
-  
+
   const activity = monthlyActivity();
   const categories = categoryDistribution();
-  
+  const hasActivity = activity.borrowed.some(Boolean) || activity.returned.some(Boolean);
+
   const barChartData = {
     labels: activity.labels,
     datasets: [
       {
         label: t('borrowStats.booksBorrowed'),
         data: activity.borrowed,
-        backgroundColor: 'rgba(53, 162, 235, 0.5)',
-        borderColor: 'rgb(53, 162, 235)',
-        borderWidth: 1,
+        backgroundColor: BRAND,
+        borderRadius: 4,
+        borderSkipped: false as const,
+        maxBarThickness: 18,
       },
       {
         label: t('borrowStats.booksReturned'),
         data: activity.returned,
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        borderColor: 'rgb(75, 192, 192)',
-        borderWidth: 1,
+        backgroundColor: BLUE,
+        borderRadius: 4,
+        borderSkipped: false as const,
+        maxBarThickness: 18,
       },
     ],
   };
-  
+
   const pieChartData = {
     labels: categories.labels,
     datasets: [
       {
         data: categories.data,
-        backgroundColor: [
-          'rgba(255, 99, 132, 0.6)',
-          'rgba(54, 162, 235, 0.6)',
-          'rgba(255, 206, 86, 0.6)',
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(153, 102, 255, 0.6)',
-          'rgba(255, 159, 64, 0.6)',
-          'rgba(199, 199, 199, 0.6)',
-          'rgba(83, 102, 255, 0.6)',
-          'rgba(40, 159, 64, 0.6)',
-          'rgba(210, 199, 199, 0.6)',
-        ],
-        borderColor: [
-          'rgba(255, 99, 132, 1)',
-          'rgba(54, 162, 235, 1)',
-          'rgba(255, 206, 86, 1)',
-          'rgba(75, 192, 192, 1)',
-          'rgba(153, 102, 255, 1)',
-          'rgba(255, 159, 64, 1)',
-          'rgba(199, 199, 199, 1)',
-          'rgba(83, 102, 255, 1)',
-          'rgba(40, 159, 64, 1)',
-          'rgba(210, 199, 199, 1)',
-        ],
-        borderWidth: 1,
+        backgroundColor: categories.labels.map((_, i) => SERIES[i % SERIES.length]),
+        borderWidth: 0,
+        hoverOffset: 6,
       },
     ],
   };
-  
+
+  const tooltip = {
+    backgroundColor: chart.tooltip.contentStyle.backgroundColor as string,
+    titleColor: chart.tick.fill,
+    bodyColor: chart.tick.fill,
+    borderColor: chart.grid,
+    borderWidth: 1,
+    padding: 10,
+    cornerRadius: 10,
+    displayColors: true,
+    boxPadding: 4,
+  };
+
   const barOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: 'top' as const,
+        position: 'bottom' as const,
+        labels: {
+          color: chart.tick.fill,
+          boxWidth: 10,
+          boxHeight: 10,
+          usePointStyle: true,
+          pointStyle: 'circle' as const,
+          padding: 16,
+          font: { size: 11 },
+        },
       },
-      title: {
-        display: true,
-        text: t('borrowStats.monthlyActivityChartTitle'),
-      },
+      title: { display: false },
+      tooltip,
     },
     scales: {
+      x: {
+        grid: { display: false },
+        border: { color: chart.grid },
+        ticks: { color: chart.tick.fill, font: { size: 10 } },
+      },
       y: {
         beginAtZero: true,
-        ticks: {
-          precision: 0
-        }
-      }
-    }
-  };
-  
-  const pieOptions = {
-    responsive: true,
-    plugins: {
-      legend: {
-        position: 'top' as const,
-      },
-      title: {
-        display: true,
-        text: t('borrowStats.categoryChartTitle'),
+        grid: { color: chart.grid },
+        border: { display: false },
+        ticks: { precision: 0, color: chart.tick.fill, font: { size: 10 } },
       },
     },
   };
-  
+
+  const pieOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '58%',
+    plugins: {
+      legend: {
+        position: 'bottom' as const,
+        labels: {
+          color: chart.tick.fill,
+          boxWidth: 8,
+          boxHeight: 8,
+          usePointStyle: true,
+          pointStyle: 'circle' as const,
+          padding: 12,
+          font: { size: 11 },
+        },
+      },
+      title: { display: false },
+      tooltip,
+    },
+  };
+
   return (
-    <div className="p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-      <h2 className="text-xl font-semibold mb-4">{t('borrowStats.title')}</h2>
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <Card className="flex flex-col">
+        <CardHeader
+          title={t('borrowStats.monthlyActivity')}
+          description={t('borrowStats.title')}
+          bare
+          className="pb-0"
+        />
+        <CardBody className="flex-1 pt-3">
+          {hasActivity ? (
+            <div className="h-[260px] w-full">
+              <Bar options={barOptions} data={barChartData} />
+            </div>
+          ) : (
+            <EmptyState
+              compact
+              icon="chart"
+              title={t('borrowStats.noActivity', 'No activity this year')}
+              description={t(
+                'borrowStats.noActivityHint',
+                'Borrow a book and your reading year starts filling in here.'
+              )}
+            />
+          )}
+        </CardBody>
+      </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-lg font-medium mb-2">{t('borrowStats.monthlyActivity')}</h3>
-          <div className="h-80">
-            <Bar options={barOptions} data={barChartData} />
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-lg font-medium mb-2">{t('borrowStats.categoriesDistribution')}</h3>
-          <div className="h-80">
-            {categories.labels.length > 0 ? (
-              <Pie options={pieOptions} data={pieChartData} />
-            ) : (
-              <div className="flex h-full items-center justify-center text-gray-500">
-                {t('borrowStats.noCategoryData')}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <Card className="flex flex-col">
+        <CardHeader
+          title={t('borrowStats.categoriesDistribution')}
+          description={t('borrowStats.categoryChartTitle')}
+          bare
+          className="pb-0"
+        />
+        <CardBody className="flex-1 pt-3">
+          {categories.labels.length > 0 ? (
+            <div className="h-[260px] w-full">
+              <Doughnut options={pieOptions} data={pieChartData} />
+            </div>
+          ) : (
+            <EmptyState
+              compact
+              icon="tag"
+              title={t('borrowStats.noCategoryData')}
+            />
+          )}
+        </CardBody>
+      </Card>
     </div>
   );
 };

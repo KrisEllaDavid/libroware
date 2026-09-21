@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../context/AuthContext";
 import UserManagement from "./admin/UserManagement";
 import BookManagement from "./admin/BookManagement";
@@ -12,60 +12,87 @@ import PendingRequests from "./admin/PendingRequests";
 import BorrowHistory from "./admin/BorrowHistory";
 import { useLocation, Navigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
+import { ErrorState, TabItem, Tabs } from "./ui";
+
+/** Guards a tab's subtree so one failing query can't blank the whole panel. */
+class TabBoundary extends React.Component<
+  { tab: string; children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidUpdate(prev: { tab: string }) {
+    // A new tab gets a clean slate — otherwise one broken tab wedges the panel.
+    if (prev.tab !== this.props.tab && this.state.error) {
+      this.setState({ error: null });
+    }
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <ErrorState
+          title="This section could not be loaded"
+          message={this.state.error.message}
+          onRetry={() => this.setState({ error: null })}
+        />
+      );
+    }
+    return <>{this.props.children}</>;
+  }
+}
 
 const AdminPanel: React.FC = () => {
-  const { isAdmin, isLibrarian, user } = useAuth();
+  const { isAdmin, isLibrarian } = useAuth();
   const location = useLocation();
+  const { t } = useTranslation();
 
   // If not admin or librarian, redirect to user dashboard
   if (!isAdmin() && !isLibrarian()) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Get tab from query params if available
+  const tabs: TabItem[] = useMemo(() => {
+    const base: TabItem[] = [
+      { id: "home", label: t("admin.tabs.home"), icon: "chart" },
+      { id: "users", label: t("admin.tabs.users"), icon: "users" },
+      { id: "books", label: t("admin.tabs.books"), icon: "books" },
+      { id: "authors", label: t("admin.tabs.authors"), icon: "user" },
+      { id: "categories", label: t("admin.tabs.categories"), icon: "tag" },
+      { id: "pending", label: t("admin.tabs.pending"), icon: "inbox" },
+      { id: "history", label: t("admin.tabs.history"), icon: "history" },
+      { id: "fines", label: t("admin.tabs.fines"), icon: "coins" },
+    ];
+    if (isAdmin()) {
+      base.push(
+        { id: "deleted", label: t("admin.tabs.deleted", "Recycle bin"), icon: "trash" },
+        { id: "audit", label: t("admin.tabs.audit", "Audit log"), icon: "shield" }
+      );
+    }
+    return base;
+  }, [t, isAdmin]);
+
   const getTabFromQueryParams = () => {
     const params = new URLSearchParams(location.search);
     return params.get("tab") || null;
   };
 
-  // Determine initial active tab based on user role and query params
   const getInitialTab = () => {
     const queryTab = getTabFromQueryParams();
-
-    // If a tab is specified in the query params, validate it
-    if (queryTab) {
-      // Check if the tab is valid
-      if (
-        [
-          "home",
-          "users",
-          "books",
-          "authors",
-          "categories",
-          "pending",
-          "history",
-          "fines",
-          "deleted",
-          "audit",
-        ].includes(queryTab)
-      ) {
-        return queryTab;
-      }
-    }
-
-    // Default tab is home
+    if (queryTab && tabs.some((tab) => tab.id === queryTab)) return queryTab;
     return "home";
   };
 
   const [activeTab, setActiveTab] = useState<string>(getInitialTab());
-  const { t } = useTranslation();
 
   // Update URL when tab changes
   useEffect(() => {
-    // Only update URL if the tab is different from what's in the query params
     const currentQueryTab = getTabFromQueryParams();
     if (currentQueryTab !== activeTab) {
-      // Update URL without using navigate
       const searchParams = new URLSearchParams(location.search);
       searchParams.set("tab", activeTab);
       const newUrl = `${window.location.pathname}?${searchParams.toString()}`;
@@ -81,84 +108,46 @@ const AdminPanel: React.FC = () => {
     }
   }, [location.search]);
 
-  const handleTabChange = (tab: string) => {
-    setActiveTab(tab);
-  };
-
-  // Render tab button with appropriate styling
-  const renderTabButton = (tab: string, label: string) => {
-    return (
-      <button
-        key={tab}
-        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-          activeTab === tab
-            ? "bg-emerald-600 text-white shadow-md"
-            : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-        }`}
-        onClick={() => handleTabChange(tab)}
-      >
-        {label}
-      </button>
-    );
-  };
-
   const renderTabContent = () => {
-    try {
-      switch (activeTab) {
-        case "home":
-          return <AnalyticsDashboard />;
-        case "users":
-          return <UserManagement />;
-        case "books":
-          return <BookManagement />;
-        case "authors":    return <AuthorManagement />;
-        case "categories": return <CategoryManagement />;
-        case "pending":    return <PendingRequests />;
-        case "history":    return <BorrowHistory />;
-        case "fines":      return <FinesManagement />;
-        case "deleted":    return <DeletedRecords />;
-        case "audit":      return <AuditLogViewer />;
-        default:
-          return null;
-      }
-    } catch (error) {
-      return (
-        <div className="p-6 bg-red-50 dark:bg-red-900/20 rounded-lg">
-          <h3 className="text-lg font-medium text-red-800 dark:text-red-200">
-            Error loading tab content
-          </h3>
-          <p className="mt-2 text-red-700 dark:text-red-300">
-            There was an error rendering this tab. Please try again or select a
-            different tab.
-          </p>
-          <pre className="mt-4 p-3 bg-red-100 dark:bg-red-800/30 rounded overflow-auto text-xs">
-            {error instanceof Error ? error.message : "Unknown error"}
-          </pre>
-        </div>
-      );
+    switch (activeTab) {
+      case "home":       return <AnalyticsDashboard />;
+      case "users":      return <UserManagement />;
+      case "books":      return <BookManagement />;
+      case "authors":    return <AuthorManagement />;
+      case "categories": return <CategoryManagement />;
+      case "pending":    return <PendingRequests />;
+      case "history":    return <BorrowHistory />;
+      case "fines":      return <FinesManagement />;
+      case "deleted":    return <DeletedRecords />;
+      case "audit":      return <AuditLogViewer />;
+      default:           return null;
     }
   };
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Make the tabs stick to the top of the viewport when scrolling, accounting for the main nav */}
-      <div className="sticky top-16 z-50 bg-white dark:bg-gray-900 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-2 pb-3 shadow-md transition-all duration-200">
-        <div className="flex overflow-x-auto space-x-2">
-          {renderTabButton("home",       t('admin.tabs.home'))}
-          {renderTabButton("users",      t('admin.tabs.users'))}
-          {renderTabButton("books",      t('admin.tabs.books'))}
-          {renderTabButton("authors",    t('admin.tabs.authors'))}
-          {renderTabButton("categories", t('admin.tabs.categories'))}
-          {renderTabButton("pending",    t('admin.tabs.pending'))}
-          {renderTabButton("history",    t('admin.tabs.history'))}
-          {renderTabButton("fines",      t('admin.tabs.fines'))}
-          {isAdmin() && renderTabButton("deleted", "Recycle Bin")}
-          {isAdmin() && renderTabButton("audit",   "Audit Log")}
-        </div>
-      </div>
+    <div className="app-shell pb-10 pt-6 sm:pt-8">
+      {/*
+        The tab bar sticks under the fixed nav via `top-[var(--nav-h)]` rather
+        than a hardcoded `top-16`, so the two can never drift apart. It also
+        bleeds to the shell's gutters so the underline runs the full width of
+        the content instead of stopping short of it.
+      */}
+      <Tabs
+        items={tabs}
+        active={activeTab}
+        onChange={setActiveTab}
+        sticky
+        className="mb-6 sm:mb-8"
+      />
 
-      {/* Add padding to prevent content from showing under the fixed tabs */}
-      <div className="mt-6">{renderTabContent()}</div>
+      <TabBoundary tab={activeTab}>
+        {/* Keyed so a tab switch remounts rather than reconciling a completely
+            different screen into the previous one's DOM — which is what made
+            the transition between tabs flash stale rows. */}
+        <div key={activeTab} className="animate-fade-in">
+          {renderTabContent()}
+        </div>
+      </TabBoundary>
     </div>
   );
 };
